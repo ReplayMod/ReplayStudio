@@ -1,0 +1,70 @@
+defaultTasks 'clean', 'build'
+
+apply plugin: 'java'
+apply plugin: 'application'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+
+// Methods to determine detailed version string
+def gitDescribe() {
+    try {
+        // determine git-describe output
+        def out = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'describe', '--always', '--dirty=*'
+            standardOutput = out
+        }
+        return out.toString().trim()
+    } catch (e) {
+        return "unknown"
+    }
+}
+
+group = 'de.johni0702'
+description = 'ReplayStudio'
+version = '0.0.1-SNAPSHOT'
+mainClassName = 'de.johni0702.replaystudio.Launcher'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+compileJava {
+    options.encoding = 'UTF-8'
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'me.tatarka:gradle-retrolambda:2.5.0'
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'http://repo.spacehq.org/content/repositories/snapshots/'
+    }
+}
+
+dependencies {
+    compile 'org.spacehq:mcprotocollib:1.8-SNAPSHOT'
+    compile 'org.apache.commons:commons-lang3:3.0'
+    compile 'org.apache.commons:commons-collections4:4.0'
+    compile 'org.projectlombok:lombok:1.14.8'
+    compile 'com.google.guava:guava:12.0'
+    testCompile 'junit:junit:4.11'
+}
+
+eclipse.project {
+        name = 'ReplayStudio'
+}
+
+jar.manifest.mainAttributes(
+        'Main-Class': mainClassName,
+        'Implementation-Title': description,
+        'Implementation-Version': gitDescribe(),
+        'Sealed': true
+)
