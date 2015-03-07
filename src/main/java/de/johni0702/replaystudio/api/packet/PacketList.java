@@ -1,9 +1,11 @@
 package de.johni0702.replaystudio.api.packet;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import org.apache.commons.lang3.StringUtils;
+
 import java.lang.reflect.Array;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 /**
  * A list for PacketData allowing efficient modification.
@@ -13,6 +15,49 @@ public class PacketList implements List<PacketData> {
     protected int size;
     protected PacketData first;
     protected PacketData last;
+
+    /**
+     * Creates a new empty list.
+     */
+    public PacketList() {
+
+    }
+
+    /**
+     * Creates a new empty list containing the specified packet data.
+     * No check is performed to ensure their order!
+     * @param from Iterable of packet data
+     */
+    public PacketList(Iterable<PacketData> from) {
+        this(from, Predicates.alwaysTrue());
+    }
+
+    /**
+     * Creates a new empty list containing the specified packet data.
+     * No check is performed to ensure their order!
+     * @param from Iterable of packet data
+     * @param filter Filter for whether to include a packet
+     */
+    public PacketList(Iterable<PacketData> from, Predicate<PacketData> filter) {
+        PacketData last = null;
+        for (PacketData data : from) {
+            if (filter.apply(data)) {
+                data = new PacketData(data.getTime(), data.getPacket());
+                if (last == null) {
+                    first = data;
+                } else {
+                    last.next = data;
+                }
+                data.previous = last;
+                last = data;
+                size++;
+            }
+        }
+        if (last != null) {
+            this.last = last;
+            last.next = null;
+        }
+    }
 
     @Override
     public int size() {
@@ -47,7 +92,7 @@ public class PacketList implements List<PacketData> {
         int i = 0;
         PacketData e = first;
         while (e != null) {
-            array[i] = e;
+            array[i++] = e;
             e = e.next;
         }
         return array;
@@ -69,7 +114,7 @@ public class PacketList implements List<PacketData> {
 
     @Override
     public boolean add(PacketData packetData) {
-        iterator().skipTo(packetData.getTime());
+        iterator().skipTo(packetData.getTime()).add(packetData);
         return true;
     }
 
@@ -97,11 +142,11 @@ public class PacketList implements List<PacketData> {
 
     @Override
     public boolean addAll(Collection<? extends PacketData> c) {
-        boolean changed = false;
+        PacketListIterator iter = iterator();
         for (PacketData data : c) {
-            changed |= add(data);
+            iter.skipTo(data.getTime()).add(data);
         }
-        return changed;
+        return !c.isEmpty();
     }
 
     @Override
@@ -149,7 +194,11 @@ public class PacketList implements List<PacketData> {
 
     @Override
     public PacketData get(int index) {
-        return listIterator(index).next();
+        try {
+            return listIterator(index).next();
+        } catch (NoSuchElementException e) {
+            throw new IndexOutOfBoundsException();
+        }
     }
 
     @Override
@@ -167,6 +216,7 @@ public class PacketList implements List<PacketData> {
 
     @Override
     public PacketData remove(int index) {
+        if (index < 0 || index >= size) throw new IndexOutOfBoundsException();
         PacketListIterator iter = listIterator(index);
         PacketData previous = iter.next();
         iter.remove();
@@ -214,4 +264,32 @@ public class PacketList implements List<PacketData> {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public String toString() {
+        return "[" + StringUtils.join(this, ", ") + "]";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof List) {
+            PacketListIterator iter = this.listIterator();
+            ListIterator<?> other = ((List<?>) obj).listIterator();
+            while (other.hasNext() && iter.hasNext()) {
+                if (!Objects.equals(other.next(), iter.next())) {
+                    return false;
+                }
+            }
+            return !(other.hasNext() || iter.hasNext());
+        }
+        return super.equals(obj);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = 1;
+        for (PacketData data : this) {
+            result = 31 * result + data.hashCode();
+        }
+        return result;
+    }
 }

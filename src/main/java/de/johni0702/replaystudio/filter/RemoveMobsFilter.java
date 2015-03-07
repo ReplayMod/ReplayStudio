@@ -6,6 +6,7 @@ import de.johni0702.replaystudio.api.ReplayPart;
 import de.johni0702.replaystudio.api.Studio;
 import de.johni0702.replaystudio.api.manipulation.Filter;
 import de.johni0702.replaystudio.api.manipulation.PacketUtils;
+import de.johni0702.replaystudio.api.packet.PacketData;
 import org.spacehq.mc.protocol.data.game.values.entity.MobType;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.ServerDestroyEntitiesPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnMobPacket;
@@ -21,6 +22,11 @@ public class RemoveMobsFilter implements Filter {
     private Set<MobType> filterTypes;
 
     @Override
+    public String getName() {
+        return "remove_mobs";
+    }
+
+    @Override
     public void init(Studio studio, JsonObject config) {
         filterTypes = EnumSet.noneOf(MobType.class);
         for (JsonElement e : config.getAsJsonArray("Types")) {
@@ -31,8 +37,8 @@ public class RemoveMobsFilter implements Filter {
     @Override
     public ReplayPart apply(ReplayPart part) {
         Set<Integer> removedEntities = new HashSet<>();
-        for (Iterator<Packet> iter = part.packets().iterator(); iter.hasNext(); ) {
-            Packet packet = iter.next();
+        for (Iterator<PacketData> iter = part.iterator(); iter.hasNext(); ) {
+            Packet packet = iter.next().getPacket();
             if (packet instanceof ServerSpawnMobPacket) {
                 ServerSpawnMobPacket p = (ServerSpawnMobPacket) packet;
                 if (filterTypes.contains(p.getType())) {

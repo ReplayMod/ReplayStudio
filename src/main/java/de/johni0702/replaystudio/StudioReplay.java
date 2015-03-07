@@ -2,15 +2,14 @@ package de.johni0702.replaystudio;
 
 import de.johni0702.replaystudio.api.Replay;
 import de.johni0702.replaystudio.api.ReplayMetaData;
-import de.johni0702.replaystudio.io.ReplayReader;
-import de.johni0702.replaystudio.io.ReplayWriter;
+import de.johni0702.replaystudio.api.Studio;
+import de.johni0702.replaystudio.api.packet.PacketList;
+import de.johni0702.replaystudio.io.ReplayInputStream;
+import de.johni0702.replaystudio.io.ReplayOutputStream;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.tuple.Pair;
-import org.spacehq.packetlib.packet.Packet;
 
 import java.io.*;
-import java.util.List;
 
 public class StudioReplay extends StudioReplayPart implements Replay {
 
@@ -18,12 +17,16 @@ public class StudioReplay extends StudioReplayPart implements Replay {
     @Setter
     private ReplayMetaData metaData;
 
-    public StudioReplay(List<Pair<Long, Packet>> packets) {
+    private final Studio studio;
+
+    public StudioReplay(Studio studio, PacketList packets) {
         super(packets);
+        this.studio = studio;
     }
 
-    public StudioReplay(InputStream in) {
-        super(ReplayReader.readPackets(in));
+    public StudioReplay(Studio studio, InputStream in) {
+        super(ReplayInputStream.readPackets(studio, in));
+        this.studio = studio;
     }
 
     @Override
@@ -33,7 +36,11 @@ public class StudioReplay extends StudioReplayPart implements Replay {
 
     @Override
     public void save(OutputStream output, boolean raw) throws IOException {
-        ReplayWriter.writeReplay(output, this, raw);
+        if (raw) {
+            ReplayOutputStream.writePackets(studio, output, this);
+        } else {
+            ReplayOutputStream.writeReplay(studio, output, this);
+        }
     }
 
 }

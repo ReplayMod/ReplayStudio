@@ -1,15 +1,15 @@
 package de.johni0702.replaystudio.api;
 
-import org.apache.commons.lang3.tuple.Pair;
+import de.johni0702.replaystudio.api.packet.PacketData;
 import org.spacehq.packetlib.packet.Packet;
 
 import java.util.Collection;
-import java.util.List;
+import java.util.ListIterator;
 
 /**
  * A part of a replay. Containing packets with their timestamps in their chronological order.
  */
-public interface ReplayPart extends Iterable<Pair<Long, Packet>> {
+public interface ReplayPart extends Iterable<PacketData> {
 
     /**
      * Returns the length of this part.
@@ -66,32 +66,6 @@ public interface ReplayPart extends Iterable<Pair<Long, Packet>> {
     ReplayPartView viewOf(long from, long to);
 
     /**
-     * Returns a list of packets in this part.
-     * Inserting a new packet into the returned list inserts it at the same time as the previous packet.
-     * @return List of packets
-     */
-    List<Packet> packets();
-
-    /**
-     * Returns a list of packets in this part starting from {@code from} (inclusive).
-     * Inserting a new packet into the returned list inserts it at the same time as the previous packet.
-     * @param from timestamp in milliseconds
-     * @return List of packets
-     * @throws java.lang.IndexOutOfBoundsException if {@code from < 0}
-     */
-    List<Packet> packets(long from);
-
-    /**
-     * Returns a list of packets in this part starting from {@code from} (inclusive) till {@code to} (inclusive).
-     * Inserting a new packet into the returned list inserts it at the same time as the previous packet.
-     * @param from timestamp in milliseconds
-     * @param to timestamp in milliseconds
-     * @return List of packets
-     * @throws java.lang.IndexOutOfBoundsException if {@code from < 0} or {@code to > length}
-     */
-    List<Packet> packets(long from, long to);
-
-    /**
      * Adds a new packet into this part.
      * Adding packets at a timestamp beyond this part increases the length of this part which might also increase the
      * view range if this part is a view.
@@ -115,7 +89,7 @@ public interface ReplayPart extends Iterable<Pair<Long, Packet>> {
      * view range if this part is a view.
      * @param packets Collection of all packets with their timestamp in milliseconds
      */
-    void add(Iterable<Pair<Long, Packet>> packets);
+    void add(Iterable<PacketData> packets);
 
     /**
      * Adds all packets into this part.
@@ -124,7 +98,7 @@ public interface ReplayPart extends Iterable<Pair<Long, Packet>> {
      * @param offset Offset added to each timestamp
      * @param packets Iterable of all packets with their timestamp in milliseconds
      */
-    void addAt(long offset, Iterable<Pair<Long, Packet>> packets);
+    void addAt(long offset, Iterable<PacketData> packets);
 
     /**
      * Appends the specified part to this part and returns the resulting combination.
@@ -142,6 +116,8 @@ public interface ReplayPart extends Iterable<Pair<Long, Packet>> {
      * @return Collection of removed packets and their timestamps
      * @throws java.lang.IndexOutOfBoundsException if {@code from < 0} or {@code to > length}
      */
-    Collection<Pair<Long, Packet>> remove(long from, long to);
+    Collection<PacketData> remove(long from, long to);
 
+    @Override
+    ListIterator<PacketData> iterator();
 }

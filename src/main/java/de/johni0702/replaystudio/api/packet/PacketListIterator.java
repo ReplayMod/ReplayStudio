@@ -30,6 +30,7 @@ public class PacketListIterator implements ListIterator<PacketData>, Cloneable {
     }
 
     public PacketListIterator(PacketList list, int index) {
+        if (index < 0 || index > list.size) throw new IndexOutOfBoundsException();
         this.list = list;
         if (index < list.size / 2) {
             this.previous = null;
@@ -56,7 +57,7 @@ public class PacketListIterator implements ListIterator<PacketData>, Cloneable {
     private PacketListIterator(PacketList list, PacketData next) {
         this.list = list;
         this.next = next;
-        this.previous = next.previous;
+        this.previous = next == null ? null : next.previous;
     }
 
     @Override
@@ -105,6 +106,15 @@ public class PacketListIterator implements ListIterator<PacketData>, Cloneable {
             throw new IllegalStateException();
         }
         list.size--;
+
+        if (previous == latest) {
+            previous = previous.previous;
+        }
+
+        if (next == latest) {
+            next = next.next;
+        }
+
         if (previous == null) { // Beginning of list
             list.first = next;
         } else {
@@ -182,13 +192,14 @@ public class PacketListIterator implements ListIterator<PacketData>, Cloneable {
         latest = null;
     }
 
-    public void skipTo(long time) {
+    public PacketListIterator skipTo(long time) {
         while (hasNext() && next.getTime() < time) {
             next();
         }
         while (hasPrevious() && previous.getTime() > time) {
             previous();
         }
+        return this;
     }
 
     @Override

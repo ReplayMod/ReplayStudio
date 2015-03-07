@@ -1,16 +1,17 @@
 package de.johni0702.replaystudio;
 
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import de.johni0702.replaystudio.api.ReplayPart;
 import de.johni0702.replaystudio.api.ReplayPartView;
+import de.johni0702.replaystudio.api.packet.PacketData;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.collections4.IteratorUtils;
+import org.apache.commons.lang3.Validate;
 import org.spacehq.packetlib.packet.Packet;
 
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.ListIterator;
 
 @RequiredArgsConstructor
 public class StudioReplayPartView implements ReplayPartView {
@@ -31,12 +32,12 @@ public class StudioReplayPartView implements ReplayPartView {
 
     @Override
     public int size() {
-        return packets().size();
+        return Iterators.size(iterator());
     }
 
     @Override
     public ReplayPart copy() {
-        return copyOf(from);
+        return copyOf(0);
     }
 
     @Override
@@ -56,22 +57,8 @@ public class StudioReplayPartView implements ReplayPartView {
 
     @Override
     public ReplayPartView viewOf(long from, long to) {
+        Validate.isTrue(from <= to, "from (" + from + ") must not be greater than to (" + to + ")");
         return new StudioReplayPartView(this, from, to);
-    }
-
-    @Override
-    public List<Packet> packets() {
-        return packets(0);
-    }
-
-    @Override
-    public List<Packet> packets(long from) {
-        return packets(from, length());
-    }
-
-    @Override
-    public List<Packet> packets(long from, long to) {
-        return viewed.packets(this.from + from, this.from + to);
     }
 
     @Override
@@ -85,12 +72,12 @@ public class StudioReplayPartView implements ReplayPartView {
     }
 
     @Override
-    public void add(Iterable<Pair<Long, Packet>> packets) {
+    public void add(Iterable<PacketData> packets) {
         viewed.addAt(this.from, packets);
     }
 
     @Override
-    public void addAt(long offset, Iterable<Pair<Long, Packet>> packets) {
+    public void addAt(long offset, Iterable<PacketData> packets) {
         viewed.addAt(this.from + offset, packets);
     }
 
@@ -102,15 +89,64 @@ public class StudioReplayPartView implements ReplayPartView {
     }
 
     @Override
-    public Collection<Pair<Long, Packet>> remove(long from, long to) {
+    public Collection<PacketData> remove(long from, long to) {
+        Validate.isTrue(from <= to, "from (" + from + ") must not be greater than to (" + to + ")");
         return viewed.remove(this.from + from, this.from + to);
     }
 
     @Override
-    public Iterator<Pair<Long, Packet>> iterator() {
-        return Iterables.transform(
-                Iterables.filter(viewed, (p) -> p.getKey() >= from && p.getKey() <= to),
-                (p) -> Pair.of(p.getKey() - from, p.getValue())).iterator();
+    public ListIterator<PacketData> iterator() {
+        return new ListIterator<PacketData>() {
+            private final ListIterator<PacketData> org = IteratorUtils.filteredListIterator(viewed.iterator(),
+                    (p) -> p.getTime() >= from && p.getTime() <= to);
+
+            @Override
+            public boolean hasNext() {
+                return org.hasNext();
+            }
+
+            @Override
+            public PacketData next() {
+                PacketData next = org.next();
+                return new PacketData(next.getTime() - from, next.getPacket());
+            }
+
+            @Override
+            public boolean hasPrevious() {
+                return org.hasPrevious();
+            }
+
+            @Override
+            public PacketData previous() {
+            PacketData next = org.previous();
+            return new PacketData(next.getTime() - from, next.getPacket());
+            }
+
+            @Override
+            public int nextIndex() {
+                return org.nextIndex();
+            }
+
+            @Override
+            public int previousIndex() {
+                return org.previousIndex();
+            }
+
+            @Override
+            public void remove() {
+                org.remove();
+            }
+
+            @Override
+            public void set(PacketData packetData) {
+                org.set(new PacketData(packetData.getTime() + from, packetData.getPacket()));
+            }
+
+            @Override
+            public void add(PacketData packetData) {
+                org.add(new PacketData(packetData.getTime() + from, packetData.getPacket()));
+            }
+        };
     }
 
 }

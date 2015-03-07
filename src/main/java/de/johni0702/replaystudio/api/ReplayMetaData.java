@@ -38,4 +38,21 @@ public class ReplayMetaData {
      */
     private int fileFormatVersion;
 
+    /**
+     * The program which generated the file.
+     * Will always be written as "ReplayStudio vXY".
+     */
+    private String generator;
+
+    /**
+     * The entity id of the player manually added to this replay which represents the recording player.
+     * Must be a valid entity id (e.g. must not be -1). May not be set.
+     */
+    private int selfId = -1;
+
+    /**
+     * Array of UUIDs of all players which can be seen in this replay.
+     */
+    private String[] players = new String[0];
+
 }

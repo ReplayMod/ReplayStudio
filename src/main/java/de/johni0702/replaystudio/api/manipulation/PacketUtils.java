@@ -1,6 +1,7 @@
 package de.johni0702.replaystudio.api.manipulation;
 
 import com.google.common.primitives.Ints;
+import de.johni0702.replaystudio.api.Studio;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerCombatPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerSwitchCameraPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.*;
@@ -17,6 +18,38 @@ import java.util.List;
  * Contains utilities for working with packets.
  */
 public class PacketUtils {
+
+    /**
+     * Registers all packets which contain entity ids necessary for the getEntityId(s) methods.
+     * @param studio The studio
+     */
+    public static void registerAllEntityRelated(Studio studio) {
+        studio.setParsing(ServerPlayerUseBedPacket.class, true);
+        studio.setParsing(ServerSpawnExpOrbPacket.class, true);
+        studio.setParsing(ServerSpawnGlobalEntityPacket.class, true);
+        studio.setParsing(ServerSpawnMobPacket.class, true);
+        studio.setParsing(ServerSpawnObjectPacket.class, true);
+        studio.setParsing(ServerSpawnPaintingPacket.class, true);
+        studio.setParsing(ServerSpawnPlayerPacket.class, true);
+        studio.setParsing(ServerAnimationPacket.class, true);
+        studio.setParsing(ServerCollectItemPacket.class, true);
+        studio.setParsing(ServerDestroyEntitiesPacket.class, true);
+        studio.setParsing(ServerEntityAttachPacket.class, true);
+        studio.setParsing(ServerEntityEffectPacket.class, true);
+        studio.setParsing(ServerEntityEquipmentPacket.class, true);
+        studio.setParsing(ServerEntityHeadLookPacket.class, true);
+        studio.setParsing(ServerEntityMetadataPacket.class, true);
+        studio.setParsing(ServerEntityMovementPacket.class, true);
+        studio.setParsing(ServerEntityNBTUpdatePacket.class, true);
+        studio.setParsing(ServerEntityPropertiesPacket.class, true);
+        studio.setParsing(ServerEntityRemoveEffectPacket.class, true);
+        studio.setParsing(ServerEntityStatusPacket.class, true);
+        studio.setParsing(ServerEntityTeleportPacket.class, true);
+        studio.setParsing(ServerEntityVelocityPacket.class, true);
+        studio.setParsing(ServerBlockBreakAnimPacket.class, true);
+        studio.setParsing(ServerCombatPacket.class, true);
+        studio.setParsing(ServerSwitchCameraPacket.class, true);
+    }
 
     /**
      * Returns the entity id in the specified packet.
@@ -70,6 +103,9 @@ public class PacketUtils {
         }
         if (packet instanceof ServerEntityMetadataPacket) {
             return ((ServerEntityMetadataPacket) packet).getEntityId();
+        }
+        if (packet instanceof ServerEntityMovementPacket) {
+            return ((ServerEntityMovementPacket) packet).getEntityId();
         }
         if (packet instanceof ServerEntityNBTUpdatePacket) {
             return ((ServerEntityNBTUpdatePacket) packet).getEntityId();

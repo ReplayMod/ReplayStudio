@@ -10,6 +10,15 @@ import de.johni0702.replaystudio.api.Studio;
 public interface Filter {
 
     /**
+     * Returns a unique but simple name for this filter. This name is used when referring to the filter
+     * in configs and in {@link de.johni0702.replaystudio.api.Studio#loadFilter(String)}.
+     * It may not contain whitespace or special characters except underscores.
+     * It should be all lowercase, however this is not a requirement.
+     * @return Name of this filter
+     */
+    String getName();
+
+    /**
      * Initializes this filter.
      * Read the configuration of this filter from the supplied json.
      * This can be called multiple times.

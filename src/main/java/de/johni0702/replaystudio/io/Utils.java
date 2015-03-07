@@ -11,19 +11,17 @@ public class Utils {
         int b1 = in.read();
         int b2 = in.read();
         int b3 = in.read();
-        if (b3 == -1) {
+        if ((b0 | b1 | b2 | b3) < 0) {
             return -1;
         }
         return b0 << 24 | b1 << 16 | b2 << 8 | b3;
     }
 
     public static void writeInt(OutputStream out, int x) throws IOException {
-        byte[] r = new byte[4];
-        r[0] = (byte) (x >> 24);
-        r[1] = (byte) (x >> 16);
-        r[2] = (byte) (x >> 8);
-        r[3] = (byte) x;
-        out.write(r);
+        out.write((x >>> 24) & 0xFF);
+        out.write((x >>> 16) & 0xFF);
+        out.write((x >>>  8) & 0xFF);
+        out.write(x & 0xFF);
     }
 
 }

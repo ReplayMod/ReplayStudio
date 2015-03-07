@@ -1,0 +1,7 @@
+de.johni0702.replaystudio.filter.PacketCountFilter
+de.johni0702.replaystudio.filter.RemoveMobsFilter
+de.johni0702.replaystudio.filter.NeutralizerFilter
+de.johni0702.replaystudio.filter.ReverseTimeFilter
+de.johni0702.replaystudio.filter.RemoveFilter
+de.johni0702.replaystudio.filter.SquashFilter
+de.johni0702.replaystudio.filter.ChangeTimestampFilter

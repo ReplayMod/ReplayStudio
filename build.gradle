@@ -1,9 +1,25 @@
-defaultTasks 'clean', 'build'
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'me.tatarka:gradle-retrolambda:2.5.0'
+        classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.6'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.0'
+    }
+}
+
+defaultTasks 'clean', 'build', 'shadowJar', 'install'
 
 apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'maven'
+apply plugin: 'errorprone'
 
 // Methods to determine detailed version string
 def gitDescribe() {
@@ -24,6 +40,7 @@ group = 'de.johni0702'
 description = 'ReplayStudio'
 version = '0.0.1-SNAPSHOT'
 mainClassName = 'de.johni0702.replaystudio.Launcher'
+ext.lombok = 'org.projectlombok:lombok:1.14.8'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -32,18 +49,9 @@ compileJava {
     options.encoding = 'UTF-8'
 }
 
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath 'me.tatarka:gradle-retrolambda:2.5.0'
-    }
-}
-
 repositories {
     mavenCentral()
+    mavenLocal()
     maven {
         url 'http://repo.spacehq.org/content/repositories/snapshots/'
     }
@@ -53,9 +61,18 @@ dependencies {
     compile 'org.spacehq:mcprotocollib:1.8-SNAPSHOT'
     compile 'org.apache.commons:commons-lang3:3.0'
     compile 'org.apache.commons:commons-collections4:4.0'
-    compile 'org.projectlombok:lombok:1.14.8'
+    compile 'commons-cli:commons-cli:1.2'
+    compile lombok
     compile 'com.google.guava:guava:12.0'
     testCompile 'junit:junit:4.11'
+    testCompile 'com.google.guava:guava-testlib:18.0'
+}
+
+shadowJar {
+    dependencies {
+        exclude(dependency(lombok))
+    }
+    //include 'lombok/Lombok.class'
 }
 
 eclipse.project {

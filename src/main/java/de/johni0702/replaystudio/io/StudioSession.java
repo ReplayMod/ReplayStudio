@@ -1,5 +1,6 @@
 package de.johni0702.replaystudio.io;
 
+import de.johni0702.replaystudio.api.Studio;
 import lombok.Getter;
 import lombok.Setter;
 import org.spacehq.packetlib.Session;
@@ -14,10 +15,10 @@ import java.util.Map;
 public class StudioSession implements Session {
 
     @Getter
-    private StudioMinecraftProtocol packetProtocol;
+    private final StudioMinecraftProtocol packetProtocol;
 
-    public StudioSession(boolean client) {
-        packetProtocol = new StudioMinecraftProtocol(this, client);
+    public StudioSession(Studio studio, boolean client) {
+        packetProtocol = new StudioMinecraftProtocol(studio, this, client);
     }
 
     @Getter
