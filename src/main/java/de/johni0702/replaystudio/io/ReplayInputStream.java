@@ -1,8 +1,11 @@
 package de.johni0702.replaystudio.io;
 
-import de.johni0702.replaystudio.api.Studio;
-import de.johni0702.replaystudio.api.packet.PacketData;
-import de.johni0702.replaystudio.api.packet.PacketList;
+import de.johni0702.replaystudio.PacketData;
+import de.johni0702.replaystudio.Studio;
+import de.johni0702.replaystudio.collection.PacketList;
+import de.johni0702.replaystudio.studio.protocol.StudioCodec;
+import de.johni0702.replaystudio.studio.protocol.StudioCompression;
+import de.johni0702.replaystudio.studio.protocol.StudioSession;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -19,18 +22,40 @@ import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 
-import static de.johni0702.replaystudio.io.Utils.readInt;
+import static de.johni0702.replaystudio.util.Utils.readInt;
 
+/**
+ * Input stream for reading packet data.
+ */
 public class ReplayInputStream extends InputStream {
 
     private static final ByteBufAllocator ALLOC = PooledByteBufAllocator.DEFAULT;
 
+    /**
+     * The actual input stream.
+     */
     private final InputStream in;
 
+    /**
+     * The studio session.
+     */
     private final StudioSession session;
-    private final StudioCodec codec;
-    StudioCompression compression = null;
 
+    /**
+     * The studio codec.
+     */
+    private final StudioCodec codec;
+
+    /**
+     * The studio compression. May be null if no compression is applied at the moment.
+     */
+    private StudioCompression compression = null;
+
+    /**
+     * Creates a new replay input stream for reading raw packet data.
+     * @param studio The studio
+     * @param in The actual input stream.
+     */
     public ReplayInputStream(Studio studio, InputStream in) {
         this.session = new StudioSession(studio, true);
         this.codec = new StudioCodec(session);
@@ -47,6 +72,11 @@ public class ReplayInputStream extends InputStream {
         in.close();
     }
 
+    /**
+     * Read the next packet from this input stream.
+     * @return The packet
+     * @throws IOException if an I/O error occurs.
+     */
     public PacketData readPacket() throws IOException {
         while (true) {
             int next = readInt(in);
@@ -109,6 +139,13 @@ public class ReplayInputStream extends InputStream {
         return null;
     }
 
+    /**
+     * Reads all packets from the specified input stream into a new packet list.
+     * The input stream is closed if no more packets can be read.
+     * @param studio The studio
+     * @param in The input stream to read from
+     * @return The packet list
+     */
     @SneakyThrows
     public static PacketList readPackets(Studio studio, InputStream in) {
         ReplayInputStream replayIn = new ReplayInputStream(studio, in);
@@ -118,6 +155,8 @@ public class ReplayInputStream extends InputStream {
         while ((data = replayIn.readPacket()) != null) {
             packets.add(data);
         }
+
+        in.close();
 
         return new PacketList(packets);
     }

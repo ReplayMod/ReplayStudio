@@ -3,12 +3,12 @@ package de.johni0702.replaystudio.filter;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.gson.JsonObject;
-import de.johni0702.replaystudio.api.Studio;
-import de.johni0702.replaystudio.api.packet.PacketData;
-import de.johni0702.replaystudio.api.packet.PacketStream;
+import de.johni0702.replaystudio.PacketData;
+import de.johni0702.replaystudio.Studio;
 import de.johni0702.replaystudio.io.WrappedPacket;
+import de.johni0702.replaystudio.stream.PacketStream;
 
-public class RemoveFilter extends MultiFilter {
+public class RemoveFilter extends StreamFilterBase {
 
     private Predicate<PacketData> filter = Predicates.alwaysTrue();
 

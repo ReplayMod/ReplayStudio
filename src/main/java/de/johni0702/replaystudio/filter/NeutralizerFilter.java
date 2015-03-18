@@ -2,20 +2,18 @@ package de.johni0702.replaystudio.filter;
 
 import com.google.common.primitives.Ints;
 import com.google.gson.JsonObject;
-import de.johni0702.replaystudio.api.ReplayPart;
-import de.johni0702.replaystudio.api.Studio;
-import de.johni0702.replaystudio.api.manipulation.PacketUtils;
-import de.johni0702.replaystudio.api.packet.PacketData;
-import de.johni0702.replaystudio.api.packet.PacketStream;
+import de.johni0702.replaystudio.PacketData;
+import de.johni0702.replaystudio.Studio;
+import de.johni0702.replaystudio.collection.ReplayPart;
+import de.johni0702.replaystudio.stream.PacketStream;
+import de.johni0702.replaystudio.util.PacketUtils;
 import lombok.NonNull;
 import org.spacehq.mc.protocol.data.game.values.scoreboard.ObjectiveAction;
 import org.spacehq.mc.protocol.data.game.values.scoreboard.TeamAction;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.ServerDestroyEntitiesPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.spawn.*;
-import org.spacehq.mc.protocol.packet.ingame.server.scoreboard.ServerDisplayScoreboardPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.scoreboard.ServerScoreboardObjectivePacket;
 import org.spacehq.mc.protocol.packet.ingame.server.scoreboard.ServerTeamPacket;
-import org.spacehq.mc.protocol.packet.ingame.server.scoreboard.ServerUpdateScorePacket;
 import org.spacehq.packetlib.packet.Packet;
 
 import java.util.HashSet;
@@ -25,7 +23,7 @@ import java.util.Set;
  * (Stream) filter which appends packets to the end of the stream/replay in such a way that all entities, teams and
  * objectives get reset.
  */
-public class NeutralizerFilter extends MultiFilter {
+public class NeutralizerFilter extends StreamFilterBase {
 
     private Set<Integer> entities;
     private Set<String> teams;
@@ -45,8 +43,6 @@ public class NeutralizerFilter extends MultiFilter {
         studio.setParsing(ServerDestroyEntitiesPacket.class, true);
         studio.setParsing(ServerTeamPacket.class, true);
         studio.setParsing(ServerScoreboardObjectivePacket.class, true);
-        studio.setParsing(ServerDisplayScoreboardPacket.class, true);
-        studio.setParsing(ServerUpdateScorePacket.class, true);
     }
 
     @Override
@@ -65,7 +61,7 @@ public class NeutralizerFilter extends MultiFilter {
                 || packet instanceof ServerSpawnGlobalEntityPacket
                 || packet instanceof ServerSpawnMobPacket
                 || packet instanceof ServerSpawnPlayerPacket) {
-            entities.addAll(PacketUtils.getEntityIds(packet));
+            entities.add(PacketUtils.getEntityId(packet));
         }
 
         if (packet instanceof ServerDestroyEntitiesPacket) {
@@ -88,14 +84,6 @@ public class NeutralizerFilter extends MultiFilter {
             } else {
                 scoreboards.add(p.getName());
             }
-        }
-
-        if (packet instanceof ServerDisplayScoreboardPacket) {
-            scoreboards.add(((ServerDisplayScoreboardPacket) packet).getScoreboardName());
-        }
-
-        if (packet instanceof ServerUpdateScorePacket) {
-            scoreboards.add(((ServerUpdateScorePacket) packet).getObjective());
         }
         return true;
     }

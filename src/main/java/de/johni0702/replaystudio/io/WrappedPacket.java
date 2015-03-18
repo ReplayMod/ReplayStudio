@@ -1,6 +1,5 @@
 package de.johni0702.replaystudio.io;
 
-import com.google.common.base.Supplier;
 import lombok.SneakyThrows;
 import org.spacehq.mc.auth.util.IOUtils;
 import org.spacehq.packetlib.io.NetInput;
@@ -13,14 +12,30 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
-public class WrappedPacket implements Packet, Supplier<Class<? extends Packet>> {
+/**
+ * Wrapper class for packet which don't need parsing.
+ * As ProtocolLib performs packet lookup by class this class shouldn't be used directly.
+ * Instead the static methods should be used to generate the class for a specified packet automatically.
+ */
+public class WrappedPacket implements IWrappedPacket {
 
-    private static final Map<Class<? extends Packet>, Class<? extends Packet>> classes = new HashMap<>();
+    /**
+     * Class cache.
+     */
+    private static final Map<Class<? extends Packet>, Class<? extends IWrappedPacket>> classes = new HashMap<>();
 
+    /**
+     * Returns the wrapper class for the specified packet class.
+     * This generates a new class if necessary using the same bytecode but a different class loader.
+     * Note that this will fail if the binary file for this class is not accessible using
+     * {@link ClassLoader#getResourceAsStream(String)}.
+     * @param org The class whose wrapper to get
+     * @return The wrapper class
+     */
     @SneakyThrows
     @SuppressWarnings("unchecked")
-    public static Class<? extends Packet> getClassFor(Class<? extends Packet> org) {
-        Class<? extends Packet> cls = classes.get(org);
+    public static synchronized Class<? extends IWrappedPacket> getClassFor(Class<? extends Packet> org) {
+        Class<? extends IWrappedPacket> cls = classes.get(org);
         if (cls == null) {
             cls = (Class) new ClassLoader() {
                 @Override
@@ -48,18 +63,41 @@ public class WrappedPacket implements Packet, Supplier<Class<? extends Packet>> 
         return cls;
     }
 
+    /**
+     * Returns the class for which the specified packet is a wrapper for.
+     * If the specified packet is not a wrapped packet then returns its own class.
+     * @param wrapper The packet
+     * @return The real class
+     */
     @SuppressWarnings("unchecked")
     public static Class<? extends Packet> getWrapped(Packet wrapper) {
-        return wrapper instanceof Supplier ? ((Supplier<Class<? extends Packet>>) wrapper).get() : wrapper.getClass();
+        return wrapper instanceof IWrappedPacket ? ((IWrappedPacket) wrapper).getWrapped() : wrapper.getClass();
     }
 
+    /**
+     * Checks whether the specified packet wrapper wraps packets of the specified type.
+     * If the specified packet is not a wrapper then this acts just as an {@code instanceof} check.<br>
+     * <br>
+     * This can be used in order to e.g. filter packets by type without having to always have a special
+     * case for wrapped packets.
+     * @param packet The packet or packet wrapper
+     * @param of The class
+     * @return {@code true} if the packet is an instance (or a wrapper) of the specified class
+     */
     public static boolean instanceOf(Packet packet, Class<? extends Packet> of) {
         return of.isAssignableFrom(getWrapped(packet));
     }
 
+    /**
+     * The class wrapped by this instance of the WrappedPacket class.
+     * Set via reflection.
+     */
     @SuppressWarnings("unused")
     private static Class<? extends Packet> wrapped;
 
+    /**
+     * Byte buffer used for reading and writing.
+     */
     private byte[] buf;
 
     private WrappedPacket() {}
@@ -86,7 +124,12 @@ public class WrappedPacket implements Packet, Supplier<Class<? extends Packet>> 
     }
 
     @Override
-    public Class<? extends Packet> get() {
+    public byte[] getBytes() {
+        return buf;
+    }
+
+    @Override
+    public Class<? extends Packet> getWrapped() {
         return wrapped;
     }
 }

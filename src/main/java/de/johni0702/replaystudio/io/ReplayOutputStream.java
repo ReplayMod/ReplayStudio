@@ -1,10 +1,13 @@
 package de.johni0702.replaystudio.io;
 
 import com.google.gson.Gson;
-import de.johni0702.replaystudio.api.Replay;
-import de.johni0702.replaystudio.api.ReplayMetaData;
-import de.johni0702.replaystudio.api.Studio;
-import de.johni0702.replaystudio.api.packet.PacketData;
+import de.johni0702.replaystudio.PacketData;
+import de.johni0702.replaystudio.Studio;
+import de.johni0702.replaystudio.replay.Replay;
+import de.johni0702.replaystudio.replay.ReplayMetaData;
+import de.johni0702.replaystudio.studio.protocol.StudioCodec;
+import de.johni0702.replaystudio.studio.protocol.StudioCompression;
+import de.johni0702.replaystudio.studio.protocol.StudioSession;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -18,23 +21,60 @@ import java.io.OutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import static de.johni0702.replaystudio.io.Utils.writeInt;
+import static de.johni0702.replaystudio.util.Utils.writeInt;
 
-
+/**
+ * Output stream capable of writing {@link org.spacehq.packetlib.packet.Packet}s and (optionally)
+ * {@link de.johni0702.replaystudio.replay.ReplayMetaData}.
+ */
 public class ReplayOutputStream extends OutputStream {
 
     private static final Gson GSON = new Gson();
     private static final ByteBufAllocator ALLOC = PooledByteBufAllocator.DEFAULT;
 
+    /**
+     * Meta data for the current replay. Gets written after all packets are written.
+     */
     private final ReplayMetaData metaData;
+
+    /**
+     * The actual output stream.
+     * If we write to a ZIP output stream, this is the same as {@link #zipOut}.
+     */
     private final OutputStream out;
+
+    /**
+     * If we write to a ZIP output stream instead of just raw data, this holds a reference to that output stream.
+     */
     private final ZipOutputStream zipOut;
 
+    /**
+     * The studio session.
+     */
     private final StudioSession session;
+
+    /**
+     * The studio codec.
+     */
     private final StudioCodec codec;
+
+    /**
+     * The studio compression. May be null if no compression is applied at the moment.
+     */
     private StudioCompression compression = null;
+
+    /**
+     * Duration of the replay written. This gets updated with each packet and is afterwards used to set the
+     * duration in the replay meta data.
+     */
     private int duration;
 
+    /**
+     * Creates a new replay output stream which will not compress packets written to it nor write any meta data.
+     * The resulting output can be read directly by a {@link de.johni0702.replaystudio.io.ReplayInputStream}.
+     * @param studio The studio
+     * @param out The actual output stream
+     */
     public ReplayOutputStream(Studio studio, OutputStream out) {
         this.session = new StudioSession(studio, false);
         this.codec = new StudioCodec(session);
@@ -43,6 +83,15 @@ public class ReplayOutputStream extends OutputStream {
         this.metaData = null;
     }
 
+    /**
+     * Creates a new replay output stream which will write its packets and the specified meta data
+     * in a zip output stream according to the MCPR format.
+     *
+     * @param studio The studio
+     * @param out The actual output stream
+     * @param metaData The meta data written to the output
+     * @throws IOException If an exception occurred while writing the first entry to the zip output stream
+     */
     public ReplayOutputStream(Studio studio, OutputStream out, ReplayMetaData metaData) throws IOException {
         this.session = new StudioSession(studio, false);
         this.codec = new StudioCodec(session);
@@ -68,10 +117,25 @@ public class ReplayOutputStream extends OutputStream {
         out.write(b);
     }
 
+    /**
+     * Writes the specified packet data to the underlying output stream.
+     * @param data The packet data
+     * @throws IOException - if an I/O error occurs.
+     *      In particular, an IOException may be thrown if the output stream has been closed.
+     * @see #write(long, org.spacehq.packetlib.packet.Packet)
+     */
     public void write(PacketData data) throws IOException {
         write(data.getTime(), data.getPacket());
     }
 
+    /**
+     * Writes the specified packet data to the underlying output stream.
+     * @param time The timestamp
+     * @param packet The packet
+     * @throws IOException - if an I/O error occurs.
+     *      In particular, an IOException may be thrown if the output stream has been closed.
+     * @see #write(de.johni0702.replaystudio.PacketData)
+     */
     public void write(long time, Packet packet) throws IOException {
         if (duration < time) {
             duration = (int) time;
@@ -115,6 +179,20 @@ public class ReplayOutputStream extends OutputStream {
         }
     }
 
+    /**
+     * Starts a new entry in this replay zip file.
+     * The previous entry is therefore closed.
+     * @param name Name of the new entry
+     */
+    public void nextEntry(String name) throws IOException {
+        if (zipOut != null) {
+            zipOut.closeEntry();
+            zipOut.putNextEntry(new ZipEntry(name));
+        } else {
+            throw new UnsupportedOperationException("Cannot start new entry when writing raw replay output.");
+        }
+    }
+
     @Override
     public void close() throws IOException {
         if (zipOut != null) {
@@ -128,6 +206,14 @@ public class ReplayOutputStream extends OutputStream {
         out.close();
     }
 
+    /**
+     * Writes the specified replay file to the output stream.
+     * The output stream is closed when writing is done.
+     * @param studio The studio
+     * @param output The output stream
+     * @param replay The replay
+     * @throws IOException - if an I/O error occurs.
+     */
     public static void writeReplay(Studio studio, OutputStream output, Replay replay) throws IOException {
         ReplayOutputStream out = new ReplayOutputStream(studio, output, replay.getMetaData());
         for (PacketData data : replay) {
@@ -136,10 +222,18 @@ public class ReplayOutputStream extends OutputStream {
         out.close();
     }
 
-    public static void writePackets(Studio studio, OutputStream out, Iterable<PacketData> packets) throws IOException {
-        ReplayOutputStream replayOut = new ReplayOutputStream(studio, out);
+    /**
+     * Writes the specified packets to the output stream in the order of their occurrence.
+     * The output stream is not closed when done allowing for further writing.
+     * @param studio The studio
+     * @param output The output stream
+     * @param packets Iterable of packet data
+     * @throws IOException - if an I/O error occurs.
+     */
+    public static void writePackets(Studio studio, OutputStream output, Iterable<PacketData> packets) throws IOException {
+        ReplayOutputStream out = new ReplayOutputStream(studio, output);
         for (PacketData data : packets) {
-            replayOut.write(data);
+            out.write(data);
         }
     }
 

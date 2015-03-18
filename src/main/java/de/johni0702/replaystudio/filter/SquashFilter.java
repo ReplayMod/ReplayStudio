@@ -1,10 +1,10 @@
 package de.johni0702.replaystudio.filter;
 
 import com.google.gson.JsonObject;
-import de.johni0702.replaystudio.api.Studio;
-import de.johni0702.replaystudio.api.manipulation.PacketUtils;
-import de.johni0702.replaystudio.api.packet.PacketData;
-import de.johni0702.replaystudio.api.packet.PacketStream;
+import de.johni0702.replaystudio.PacketData;
+import de.johni0702.replaystudio.Studio;
+import de.johni0702.replaystudio.stream.PacketStream;
+import de.johni0702.replaystudio.util.PacketUtils;
 import org.spacehq.mc.protocol.data.game.values.entity.player.GameMode;
 import org.spacehq.mc.protocol.data.game.values.scoreboard.FriendlyFire;
 import org.spacehq.mc.protocol.data.game.values.scoreboard.NameTagVisibility;
@@ -27,10 +27,10 @@ import org.spacehq.packetlib.packet.Packet;
 
 import java.util.*;
 
-import static de.johni0702.replaystudio.Java8.Map8.getOrCreate;
 import static de.johni0702.replaystudio.io.WrappedPacket.instanceOf;
+import static de.johni0702.replaystudio.util.Java8.Map8.getOrCreate;
 
-public class SquashFilter extends MultiFilter {
+public class SquashFilter extends StreamFilterBase {
 
     private static class Team {
         private static enum Status {

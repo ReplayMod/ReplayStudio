@@ -2,16 +2,16 @@ package de.johni0702.replaystudio.filter;
 
 import com.google.common.collect.Ordering;
 import com.google.gson.JsonObject;
-import de.johni0702.replaystudio.api.Studio;
-import de.johni0702.replaystudio.api.packet.PacketData;
-import de.johni0702.replaystudio.api.packet.PacketStream;
+import de.johni0702.replaystudio.PacketData;
+import de.johni0702.replaystudio.Studio;
 import de.johni0702.replaystudio.io.WrappedPacket;
+import de.johni0702.replaystudio.stream.PacketStream;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class PacketCountFilter extends MultiFilter {
+public class PacketCountFilter extends StreamFilterBase {
 
     private final Map<Class<?>, MutableInt> count = new HashMap<>();
 

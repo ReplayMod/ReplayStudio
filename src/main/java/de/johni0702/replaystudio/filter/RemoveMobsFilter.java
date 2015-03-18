@@ -2,11 +2,10 @@ package de.johni0702.replaystudio.filter;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import de.johni0702.replaystudio.api.ReplayPart;
-import de.johni0702.replaystudio.api.Studio;
-import de.johni0702.replaystudio.api.manipulation.Filter;
-import de.johni0702.replaystudio.api.manipulation.PacketUtils;
-import de.johni0702.replaystudio.api.packet.PacketData;
+import de.johni0702.replaystudio.PacketData;
+import de.johni0702.replaystudio.Studio;
+import de.johni0702.replaystudio.collection.ReplayPart;
+import de.johni0702.replaystudio.util.PacketUtils;
 import org.spacehq.mc.protocol.data.game.values.entity.MobType;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.ServerDestroyEntitiesPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnMobPacket;

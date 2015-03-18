@@ -1,11 +1,11 @@
 package de.johni0702.replaystudio.filter;
 
 import com.google.gson.JsonObject;
-import de.johni0702.replaystudio.api.Studio;
-import de.johni0702.replaystudio.api.packet.PacketData;
-import de.johni0702.replaystudio.api.packet.PacketStream;
+import de.johni0702.replaystudio.PacketData;
+import de.johni0702.replaystudio.Studio;
+import de.johni0702.replaystudio.stream.PacketStream;
 
-public class ChangeTimestampFilter extends MultiFilter {
+public class ChangeTimestampFilter extends StreamFilterBase {
 
     private long offset;
 
