@@ -129,6 +129,8 @@ public class PacketList implements List<PacketData> {
             if (e != null) {
                 a[i] = (T) e.data;
                 e = e.next;
+            } else {
+                a[i] = null;
             }
         }
         return a;
