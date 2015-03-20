@@ -34,14 +34,17 @@ public class MinecraftProtocolMock extends MinecraftProtocol {
             @SuppressWarnings("unchecked")
             @SneakyThrows
             public Object put(Object key, Object value) {
-                Constructor constructor = (Constructor) value;
-                Class<? extends Packet> cls = constructor.getDeclaringClass();
-                cls = incoming.apply(cls);
-                if (cls != null) {
-                    constructor = cls.getDeclaredConstructor();
-                    constructor.setAccessible(true);
+                if (value instanceof Constructor) {
+                    Constructor constructor = (Constructor) value;
+                    Class<? extends Packet> cls = constructor.getDeclaringClass();
+                    cls = incoming.apply(cls);
+                    if (cls != null) {
+                        constructor = cls.getDeclaredConstructor();
+                        constructor.setAccessible(true);
+                    }
+                    value = constructor;
                 }
-                return super.put(key, constructor);
+                return super.put(key, value);
             }
         });
 
@@ -49,10 +52,12 @@ public class MinecraftProtocolMock extends MinecraftProtocol {
             @Override
             @SuppressWarnings("unchecked")
             public Object put(Object key, Object value) {
-                Class<? extends Packet> cls = (Class) key;
-                cls = outgoing.apply(cls);
-                if (cls != null) {
-                    key = cls;
+                if (key instanceof Class) {
+                    Class<? extends Packet> cls = (Class) key;
+                    cls = outgoing.apply(cls);
+                    if (cls != null) {
+                        key = cls;
+                    }
                 }
                 return super.put(key, value);
             }
