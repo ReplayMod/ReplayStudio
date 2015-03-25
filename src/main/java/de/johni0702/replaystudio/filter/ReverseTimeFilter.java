@@ -840,7 +840,8 @@ public class ReverseTimeFilter extends StreamFilterBase {
         private String displayName;
         private String prefix;
         private String suffix;
-        private FriendlyFire friendlyFire;
+        private boolean friendlyFire;
+        private boolean seeingFriendlyInvisibles;
         private NameTagVisibility nameTagVisibility;
         private TeamColor color;
 
@@ -855,17 +856,19 @@ public class ReverseTimeFilter extends StreamFilterBase {
             this.prefix = packet.getPrefix();
             this.suffix = packet.getSuffix();
             this.friendlyFire = packet.getFriendlyFire();
+            this.seeingFriendlyInvisibles = packet.getSeeFriendlyInvisibles();
             this.nameTagVisibility = packet.getNameTagVisibility();
             this.color = packet.getColor();
         }
 
         public ServerTeamPacket create() {
-            return new ServerTeamPacket(name, displayName, prefix, suffix, friendlyFire, nameTagVisibility, color,
-                    players.toArray(new String[players.size()]));
+            return new ServerTeamPacket(name, displayName, prefix, suffix, friendlyFire, seeingFriendlyInvisibles,
+                    nameTagVisibility, color, players.toArray(new String[players.size()]));
         }
 
         public ServerTeamPacket update() {
-            return new ServerTeamPacket(name, displayName, prefix, suffix, friendlyFire, nameTagVisibility, color);
+            return new ServerTeamPacket(name, displayName, prefix, suffix, friendlyFire, seeingFriendlyInvisibles,
+                    nameTagVisibility, color);
         }
 
         public ServerTeamPacket remove() {

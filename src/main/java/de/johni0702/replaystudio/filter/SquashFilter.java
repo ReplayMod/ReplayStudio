@@ -6,7 +6,6 @@ import de.johni0702.replaystudio.Studio;
 import de.johni0702.replaystudio.stream.PacketStream;
 import de.johni0702.replaystudio.util.PacketUtils;
 import org.spacehq.mc.protocol.data.game.values.entity.player.GameMode;
-import org.spacehq.mc.protocol.data.game.values.scoreboard.FriendlyFire;
 import org.spacehq.mc.protocol.data.game.values.scoreboard.NameTagVisibility;
 import org.spacehq.mc.protocol.data.game.values.scoreboard.TeamAction;
 import org.spacehq.mc.protocol.data.game.values.scoreboard.TeamColor;
@@ -43,7 +42,8 @@ public class SquashFilter extends StreamFilterBase {
         private String displayName;
         private String prefix;
         private String suffix;
-        private FriendlyFire friendlyFire;
+        private boolean friendlyFire;
+        private boolean seeingFriendlyInvisibles;
         private NameTagVisibility nameTagVisibility;
         private TeamColor color;
         private final Set<String> added = new HashSet<>();
@@ -326,12 +326,12 @@ public class SquashFilter extends StreamFilterBase {
             String[] added = team.added.toArray(new String[team.added.size()]);
             String[] removed = team.added.toArray(new String[team.removed.size()]);
             if (team.status == Team.Status.CREATED) {
-                add(stream, timestamp, new ServerTeamPacket(team.name, team.displayName, team.prefix,
-                        team.suffix, team.friendlyFire, team.nameTagVisibility, team.color, added));
+                add(stream, timestamp, new ServerTeamPacket(team.name, team.displayName, team.prefix, team.suffix,
+                        team.friendlyFire, team.seeingFriendlyInvisibles, team.nameTagVisibility, team.color, added));
             } else if (team.status == Team.Status.UPDATED) {
                 if (team.color != null) {
                     add(stream, timestamp, new ServerTeamPacket(team.name, team.displayName, team.prefix, team.suffix,
-                            team.friendlyFire, team.nameTagVisibility, team.color));
+                            team.friendlyFire, team.seeingFriendlyInvisibles, team.nameTagVisibility, team.color));
                 }
                 if (added.length > 0) {
                     add(stream, timestamp, new ServerTeamPacket(team.name, TeamAction.ADD_PLAYER, added));
