@@ -31,6 +31,9 @@ public class StudioMinecraftProtocol extends MinecraftProtocol {
             @SuppressWarnings("unchecked")
             @SneakyThrows
             public Object put(Object key, Object value) {
+                if (!(value instanceof Constructor)) {
+                    return super.put(key, value);
+                }
                 Constructor constructor = (Constructor) value;
                 constructor = getPacketClass(studio, constructor.getDeclaringClass()).getDeclaredConstructor();
                 constructor.setAccessible(true);
@@ -42,6 +45,9 @@ public class StudioMinecraftProtocol extends MinecraftProtocol {
             @Override
             @SuppressWarnings("unchecked")
             public Object put(Object key, Object value) {
+                if (!(key instanceof Class)) {
+                    return super.put(key, value);
+                }
                 return super.put(getPacketClass(studio, (Class) key), value);
             }
         });
