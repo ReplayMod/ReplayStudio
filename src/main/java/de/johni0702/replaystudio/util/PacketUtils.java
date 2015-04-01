@@ -42,6 +42,9 @@ public class PacketUtils {
         studio.setParsing(ServerEntityHeadLookPacket.class, true);
         studio.setParsing(ServerEntityMetadataPacket.class, true);
         studio.setParsing(ServerEntityMovementPacket.class, true);
+        studio.setParsing(ServerEntityPositionRotationPacket.class, true);
+        studio.setParsing(ServerEntityPositionPacket.class, true);
+        studio.setParsing(ServerEntityRotationPacket.class, true);
         studio.setParsing(ServerEntityNBTUpdatePacket.class, true);
         studio.setParsing(ServerEntityPropertiesPacket.class, true);
         studio.setParsing(ServerEntityRemoveEffectPacket.class, true);
