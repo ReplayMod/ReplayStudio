@@ -32,6 +32,7 @@ public class Launcher {
         Options options = new Options();
         options.addOption("h", "help", false, "Shows the help page.");
         options.addOption("w", "wait", true, "[Debugging] Amount of seconds to wait before starting.");
+        options.addOption("n", "no-wrapping", false, "[Debugging] Disables packet wrapping.");
         options.addOption("j", "json-config", true, "Use the supplied json config file to load instructions.");
         options.addOption("c", "config", true, "Use the supplied string to load instructions.");
         options.addOption("s", "stream", true, "Use streams instead of loading whole replays into RAM." +
@@ -99,6 +100,9 @@ public class Launcher {
 
     public void launch(CommandLine cmd) throws FileNotFoundException {
         Studio studio = new ReplayStudio();
+        if (cmd.hasOption('n')) {
+            studio.setWrappingEnabled(false);
+        }
 
         if (cmd.hasOption('j')) {
             JsonObject o;

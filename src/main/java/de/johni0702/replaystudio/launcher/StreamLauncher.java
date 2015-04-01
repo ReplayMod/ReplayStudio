@@ -21,6 +21,9 @@ public class StreamLauncher {
     private final Studio studio = new ReplayStudio();
 
     public void launch(CommandLine cmd) throws IOException {
+        if (cmd.hasOption('n')) {
+            studio.setWrappingEnabled(false);
+        }
         // Removes the first minute, applies sample_filter on the whole stream and applies some_other at 3m for 10s:
         //   remove(-1m),sample_filter,some_other(3m-3m10s)
         List<PacketStream.FilterInfo> filters = new ArrayList<>();
