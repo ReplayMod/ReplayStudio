@@ -6,7 +6,6 @@ buildscript {
 
     dependencies {
         classpath 'me.tatarka:gradle-retrolambda:2.5.0'
-        classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.0.6'
         classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.0'
     }
 }
@@ -20,7 +19,6 @@ apply plugin: 'idea'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'me.tatarka.retrolambda'
 apply plugin: 'maven'
-apply plugin: 'errorprone'
 
 // Methods to determine detailed version string
 def gitDescribe() {
