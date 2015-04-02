@@ -103,6 +103,10 @@ public class SquashFilter extends StreamFilterBase {
         Packet packet = data.getPacket();
         lastTimestamp = data.getTime();
 
+        if (instanceOf(packet, ServerSpawnParticlePacket.class)) {
+            return false;
+        }
+
         // Entities
         Integer entityId = PacketUtils.getEntityId(packet);
         if (entityId != null) { // Some entity is associated with this packet
