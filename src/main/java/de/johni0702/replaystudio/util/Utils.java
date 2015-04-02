@@ -54,4 +54,23 @@ public class Utils {
         return true;
     }
 
+    /**
+     * Make sure that the returned value is within the specified bounds (inclusive).
+     * If the value is greater than {@code max} then {@code max} is returned.
+     * If the value is smaller than {@code min} then {@code min} is returned.
+     * @param i The value
+     * @param min Lower bound
+     * @param max Upper bound
+     * @return The value within max and min
+     */
+    public static long within(long i, long min, long max) {
+        if (i > max) {
+            return max;
+        }
+        if (i < min) {
+            return min;
+        }
+        return i;
+    }
+
 }

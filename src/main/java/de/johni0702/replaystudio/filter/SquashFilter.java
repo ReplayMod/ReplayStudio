@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import de.johni0702.replaystudio.PacketData;
 import de.johni0702.replaystudio.Studio;
 import de.johni0702.replaystudio.stream.PacketStream;
+import de.johni0702.replaystudio.util.Location;
 import de.johni0702.replaystudio.util.PacketUtils;
 import org.spacehq.mc.protocol.data.game.values.entity.player.GameMode;
 import org.spacehq.mc.protocol.data.game.values.scoreboard.NameTagVisibility;
@@ -15,7 +16,7 @@ import org.spacehq.mc.protocol.data.game.values.world.notify.ClientNotification;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerDifficultyPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerJoinGamePacket;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerRespawnPacket;
-import org.spacehq.mc.protocol.packet.ingame.server.entity.ServerDestroyEntitiesPacket;
+import org.spacehq.mc.protocol.packet.ingame.server.entity.*;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.player.ServerPlayerAbilitiesPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.player.ServerPlayerPositionRotationPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.player.ServerSetExperiencePacket;
@@ -28,8 +29,12 @@ import java.util.*;
 
 import static de.johni0702.replaystudio.io.WrappedPacket.instanceOf;
 import static de.johni0702.replaystudio.util.Java8.Map8.getOrCreate;
+import static de.johni0702.replaystudio.util.Utils.within;
 
 public class SquashFilter extends StreamFilterBase {
+
+    private static final long POS_MIN = Byte.MIN_VALUE;
+    private static final long POS_MAX = Byte.MAX_VALUE;
 
     private static class Team {
         private static enum Status {
@@ -54,8 +59,20 @@ public class SquashFilter extends StreamFilterBase {
         }
     }
 
+    private static class Entity {
+        private List<PacketData> packets = new ArrayList<>();
+        private long lastTimestamp = 0;
+        private Location loc = null;
+        private long dx = 0;
+        private long dy = 0;
+        private long dz = 0;
+        private Float yaw = null;
+        private Float pitch = null;
+        private boolean onGround = false;
+    }
+
     private final List<PacketData> unhandled = new ArrayList<>();
-    private final Map<Integer, List<PacketData>> entities = new HashMap<>();
+    private final Map<Integer, Entity> entities = new HashMap<>();
     private final Map<String, Team> teams = new HashMap<>();
     private final Map<Integer, PacketData> mainInventoryChanges = new HashMap<>();
 
@@ -94,11 +111,37 @@ public class SquashFilter extends StreamFilterBase {
                     if (packet instanceof ServerDestroyEntitiesPacket) {
                         entities.remove(id);
                     } else {
-                        getOrCreate(entities, id, ArrayList::new).add(data);
+                        getOrCreate(entities, id, Entity::new).packets.add(data);
                     }
                 }
             } else { // Only one entity
-                getOrCreate(entities, entityId, ArrayList::new).add(data);
+                Entity entity = getOrCreate(entities, entityId, Entity::new);
+                if (packet instanceof ServerEntityMovementPacket) {
+                    ServerEntityMovementPacket p = (ServerEntityMovementPacket) packet;
+                    double mx = p.getMovementX();
+                    double my = p.getMovementY();
+                    double mz = p.getMovementZ();
+                    entity.onGround = p.isOnGround();
+
+                    if (p instanceof ServerEntityPositionPacket || p instanceof ServerEntityPositionRotationPacket) {
+                        entity.dx += mx * 32;
+                        entity.dy += my * 32;
+                        entity.dz += mz * 32;
+                    }
+                    if (p instanceof ServerEntityRotationPacket || p instanceof ServerEntityPositionRotationPacket) {
+                        entity.yaw = p.getYaw();
+                        entity.pitch = p.getPitch();
+                    }
+                } else if (packet instanceof ServerEntityTeleportPacket) {
+                    ServerEntityTeleportPacket p = (ServerEntityTeleportPacket) packet;
+                    entity.loc = Location.from(p);
+                    entity.dx = entity.dy = entity.dz = 0;
+                    entity.yaw = entity.pitch = null;
+                    entity.onGround = p.isOnGround();
+                } else {
+                    entity.packets.add(data);
+                }
+                entity.lastTimestamp = lastTimestamp;
             }
             return false;
         }
@@ -301,9 +344,11 @@ public class SquashFilter extends StreamFilterBase {
             result.add(new PacketData(lastTimestamp, abilities));
         }
 
-        for (List<PacketData> packets : entities.values()) {
+        for (Map.Entry<Integer, Entity> e : entities.entrySet()) {
+            Entity entity = e.getValue();
+
             FOR_PACKETS:
-            for (PacketData data : packets) {
+            for (PacketData data : entity.packets) {
                 Packet packet = data.getPacket();
                 Integer id = PacketUtils.getEntityId(packet);
                 if (id == -1) { // Multiple entities
@@ -315,6 +360,24 @@ public class SquashFilter extends StreamFilterBase {
                     }
                 }
                 result.add(data);
+            }
+
+            if (entity.loc != null) {
+                result.add(new PacketData(entity.lastTimestamp, entity.loc.toServerEntityTeleportPacket(e.getKey(), entity.onGround)));
+            }
+            while (entity.dx != 0 && entity.dy != 0 && entity.dz != 0) {
+                long mx = within(entity.dx, POS_MIN, POS_MAX);
+                long my = within(entity.dy, POS_MIN, POS_MAX);
+                long mz = within(entity.dz, POS_MIN, POS_MAX);
+                entity.dx -= mx;
+                entity.dy -= my;
+                entity.dz -= mz;
+                ServerEntityPositionPacket p = new ServerEntityPositionPacket(e.getKey(), mx / 32d, my / 32d, mz / 32d, entity.onGround);
+                result.add(new PacketData(entity.lastTimestamp, p));
+            }
+            if (entity.yaw != null && entity.pitch != null) {
+                ServerEntityRotationPacket p = new ServerEntityRotationPacket(e.getKey(), entity.yaw, entity.pitch, entity.onGround);
+                result.add(new PacketData(entity.lastTimestamp, p));
             }
         }
 

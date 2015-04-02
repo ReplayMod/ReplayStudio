@@ -36,6 +36,10 @@ public class Location {
         return new Location(p.getX(), p.getY(), p.getZ(), p.getYaw(), p.getPitch());
     }
 
+    public ServerEntityTeleportPacket toServerEntityTeleportPacket(int entityId, boolean onGround) {
+        return new ServerEntityTeleportPacket(entityId, x, y, z, yaw, pitch, onGround);
+    }
+
     public Position getPosition() {
         return new Position((int) x, (int) y, (int) z);
     }
