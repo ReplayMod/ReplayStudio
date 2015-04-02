@@ -237,6 +237,7 @@ public class SquashFilter extends StreamFilterBase {
                 team.prefix = p.getPrefix();
                 team.suffix = p.getSuffix();
                 team.friendlyFire = p.getFriendlyFire();
+                team.seeingFriendlyInvisibles = p.getSeeFriendlyInvisibles();
                 team.nameTagVisibility = p.getNameTagVisibility();
                 team.color = p.getColor();
             }
