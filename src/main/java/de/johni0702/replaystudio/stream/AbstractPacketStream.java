@@ -99,7 +99,7 @@ public abstract class AbstractPacketStream implements PacketStream {
 
         public void process(PacketData data) {
             boolean keep = true;
-            if (filter.applies(data.getTime())) {
+            if (data != null && filter.applies(data.getTime())) {
                 if (!active) {
                     filter.getFilter().onStart(context);
                     active = true;
@@ -109,14 +109,14 @@ public abstract class AbstractPacketStream implements PacketStream {
                 filter.getFilter().onEnd(context, lastTimestamp);
                 active = false;
                 for (PacketData d : inserted) {
-                    if (data.getTime() > lastTimestamp) {
-                        lastTimestamp = data.getTime();
+                    if (d.getTime() > lastTimestamp) {
+                        lastTimestamp = d.getTime();
                     }
                     next.process(d);
                 }
                 inserted.clear();
             }
-            if (keep) {
+            if (data != null && keep) {
                 if (data.getTime() > lastTimestamp) {
                     lastTimestamp = data.getTime();
                 }
@@ -129,6 +129,9 @@ public abstract class AbstractPacketStream implements PacketStream {
                 next.process(d);
             }
             inserted.clear();
+            if (data == null) {
+                next.process(null);
+            }
         }
 
         @Override
@@ -144,7 +147,9 @@ public abstract class AbstractPacketStream implements PacketStream {
 
         @Override
         public void process(PacketData data) {
-            AbstractPacketStream.this.inserted.add(data);
+            if (data != null) {
+                AbstractPacketStream.this.inserted.add(data);
+            }
         }
 
         @Override
@@ -230,12 +235,7 @@ public abstract class AbstractPacketStream implements PacketStream {
 
     @Override
     public List<PacketData> end() {
-        for (StreamElement e : filters) {
-            if (e.active) {
-                e.filter.getFilter().onEnd(this, e.lastTimestamp);
-            }
-            e.active = false;
-        }
+        firstElement.process(null);
         List<PacketData> result = new LinkedList<>(inserted);
         inserted.clear();
         return result;
