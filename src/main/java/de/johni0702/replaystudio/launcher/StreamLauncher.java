@@ -61,13 +61,20 @@ public class StreamLauncher {
             filters.add(new PacketStream.FilterInfo(filter, start, end));
         }
 
-        long start = System.nanoTime();
-        System.out.println("Generating 1 replay via 1 stream from 1 input applying " + filters.size() + " filter(s)");
-
         String input = cmd.getArgs()[0];
+        String output = cmd.getArgs()[1];
+
+        long start = System.nanoTime();
+        System.out.println("Generating " + ("x".equals(output) ? 0 : 1) + " replay via 1 stream from 1 input applying " + filters.size() + " filter(s)");
+
         InputStream in = new BufferedInputStream(new FileInputStream(input));
-        OutputStream buffOut = new BufferedOutputStream(new FileOutputStream(cmd.getArgs()[1]));
-        ReplayOutputStream out = new ReplayOutputStream(studio, buffOut, null);
+        ReplayOutputStream out;
+        if (!"x".equals(output)) {
+            OutputStream buffOut = new BufferedOutputStream(new FileOutputStream(output));
+            out = new ReplayOutputStream(studio, buffOut, null);
+        } else {
+            out = null;
+        }
         ReplayMetaData meta = studio.readReplayMetaData(in);
         in.close();
         in = new BufferedInputStream(new FileInputStream(input));
@@ -84,16 +91,22 @@ public class StreamLauncher {
         System.out.println("Built pipeline: " + stream);
 
         PacketData data;
-        while ((data = stream.next()) != null) {
-            out.write(data);
-        }
+        if (out != null) { // Write output
+            while ((data = stream.next()) != null) {
+                out.write(data);
+            }
 
-        for (PacketData d : stream.end()) {
-            out.write(d);
+            for (PacketData d : stream.end()) {
+                out.write(d);
+            }
+
+            out.close();
+        } else { // Drop output
+            while (stream.next() != null);
+            stream.end();
         }
 
         in.close();
-        out.close();
 
         System.out.println("Done after " + (System.nanoTime() - start) + "ns");
     }
