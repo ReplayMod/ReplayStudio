@@ -6,6 +6,8 @@ import de.johni0702.replaystudio.Studio;
 import de.johni0702.replaystudio.stream.PacketStream;
 import de.johni0702.replaystudio.util.Location;
 import de.johni0702.replaystudio.util.PacketUtils;
+import de.johni0702.replaystudio.util.Utils;
+import org.spacehq.mc.protocol.data.game.Chunk;
 import org.spacehq.mc.protocol.data.game.values.entity.player.GameMode;
 import org.spacehq.mc.protocol.data.game.values.scoreboard.NameTagVisibility;
 import org.spacehq.mc.protocol.data.game.values.scoreboard.TeamAction;
@@ -79,6 +81,9 @@ public class SquashFilter extends StreamFilterBase {
     private final List<PacketData> currentWorld = new ArrayList<>();
     private final List<PacketData> currentWindow = new ArrayList<>();
     private final List<PacketData> closeWindows = new ArrayList<>();
+
+    private final Map<Long, ChunkData> chunks = new HashMap<>();
+    private final Map<Long, Long> unloadedChunks = new HashMap<>();
 
     private long lastTimestamp;
 
@@ -198,16 +203,27 @@ public class SquashFilter extends StreamFilterBase {
             return false;
         }
 
+        if (packet instanceof ServerChunkDataPacket) {
+            ServerChunkDataPacket p = (ServerChunkDataPacket) packet;
+            updateChunk(data.getTime(), p.getX(), p.getZ(), p.getChunks(), p.getBiomeData());
+            return false;
+        }
+        if (packet instanceof ServerMultiChunkDataPacket) {
+            ServerMultiChunkDataPacket p = (ServerMultiChunkDataPacket) packet;
+            for (int i = 0; i < p.getColumns(); i++) {
+                updateChunk(data.getTime(), p.getX(i), p.getZ(i), p.getChunks(i), p.getBiomeData(i));
+            }
+            return false;
+        }
+
         if (instanceOf(packet, ServerPlayerPositionRotationPacket.class)
                 || instanceOf(packet, ServerRespawnPacket.class)
                 || instanceOf(packet, ServerBlockBreakAnimPacket.class)
                 || instanceOf(packet, ServerBlockChangePacket.class)
                 || instanceOf(packet, ServerBlockValuePacket.class)
-                || instanceOf(packet, ServerChunkDataPacket.class)
                 || instanceOf(packet, ServerExplosionPacket.class)
                 || instanceOf(packet, ServerMapDataPacket.class)
                 || instanceOf(packet, ServerMultiBlockChangePacket.class)
-                || instanceOf(packet, ServerMultiChunkDataPacket.class)
                 || instanceOf(packet, ServerOpenTileEntityEditorPacket.class)
                 || instanceOf(packet, ServerPlayEffectPacket.class)
                 || instanceOf(packet, ServerPlaySoundPacket.class)
@@ -385,6 +401,17 @@ public class SquashFilter extends StreamFilterBase {
             }
         }
 
+        for (Map.Entry<Long, Long> e : unloadedChunks.entrySet()) {
+            int x = ChunkData.longToX(e.getKey());
+            int z = ChunkData.longToZ(e.getKey());
+            result.add(new PacketData(e.getValue(), new ServerChunkDataPacket(x, z)));
+        }
+
+        for (ChunkData chunk : chunks.values()) {
+            Packet packet = new ServerChunkDataPacket(chunk.x, chunk.z, chunk.changes, chunk.biomeData);
+            result.add(new PacketData(chunk.firstAppearance, packet));
+        }
+
         Collections.sort(result, (e1, e2) -> Long.compare(e1.getTime(), e2.getTime()));
         for (PacketData data : result) {
             add(stream, timestamp, data.getPacket());
@@ -432,10 +459,66 @@ public class SquashFilter extends StreamFilterBase {
         studio.setParsing(ServerCloseWindowPacket.class, true);
         studio.setParsing(ServerWindowItemsPacket.class, true);
         studio.setParsing(ServerSetSlotPacket.class, true);
+        studio.setParsing(ServerChunkDataPacket.class, true);
+        studio.setParsing(ServerMultiChunkDataPacket.class, true);
     }
 
     private void add(PacketStream stream, long timestamp, Packet packet) {
         stream.insert(new PacketData(timestamp, packet));
+    }
+
+    private void updateChunk(long time, int x, int z, Chunk[] chunkArray, byte[] biomeData) {
+        long coord = ChunkData.coordToLong(x, z);
+        if (Utils.containsOnlyNull(chunkArray)) { // UNLOAD
+            if (chunks.remove(coord) == null) {
+                unloadedChunks.put(coord, time);
+            }
+        } else { // LOAD
+            unloadedChunks.remove(coord);
+            ChunkData chunk = chunks.get(coord);
+            if (chunk == null) {
+                chunks.put(coord, chunk = new ChunkData(time, x, z));
+            }
+            chunk.update(chunkArray, biomeData);
+        }
+    }
+
+    private static class ChunkData {
+        private final long firstAppearance;
+        private final int x;
+        private final int z;
+        private final Chunk[] changes = new Chunk[16];
+        private byte[] biomeData;
+
+        public ChunkData(long firstAppearance, int x, int z) {
+            this.firstAppearance = firstAppearance;
+            this.x = x;
+            this.z = z;
+        }
+
+        public void update(Chunk[] newChunks, byte[] newBiomeData) {
+            for (int i = 0; i < newChunks.length; i++) {
+                if (newChunks[i] != null) {
+                    changes[i] = newChunks[i];
+                }
+            }
+
+            if (newBiomeData != null) {
+                this.biomeData = newBiomeData;
+            }
+        }
+
+        public static long coordToLong(int x, int z) {
+            return (long) x << 32 | z & 0xFFFFFFFFL;
+        }
+
+        public static int longToX(long coord) {
+            return (int) (coord >> 32);
+        }
+
+        public static int longToZ(long coord) {
+            return (int) (coord & 0xFFFFFFFFL);
+        }
     }
 
 }
