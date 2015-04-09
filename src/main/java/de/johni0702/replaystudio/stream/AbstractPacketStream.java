@@ -130,8 +130,8 @@ public abstract class AbstractPacketStream implements PacketStream {
                 next.process(data);
             }
             for (PacketData d : inserted) {
-                if (data.getTime() > lastTimestamp) {
-                    lastTimestamp = data.getTime();
+                if (d.getTime() > lastTimestamp) {
+                    lastTimestamp = d.getTime();
                 }
                 next.process(d);
             }
