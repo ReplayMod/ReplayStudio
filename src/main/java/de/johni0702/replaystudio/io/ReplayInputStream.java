@@ -9,7 +9,6 @@ import de.johni0702.replaystudio.studio.protocol.StudioSession;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
-import lombok.SneakyThrows;
 import org.spacehq.mc.protocol.ProtocolMode;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerKeepAlivePacket;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
@@ -96,7 +95,11 @@ public class ReplayInputStream extends InputStream {
             ByteBuf decompressed;
             if (compression != null) {
                 List<Object> out = new LinkedList<>();
-                compression.decode(null, buf, out);
+                try {
+                    compression.decode(null, buf, out);
+                } catch (Exception e) {
+                    throw e instanceof IOException ? (IOException) e : new IOException("decompressing", e);
+                }
                 buf.release();
                 decompressed = (ByteBuf) out.get(0);
             } else {
@@ -104,7 +107,11 @@ public class ReplayInputStream extends InputStream {
             }
 
             List<Object> decoded = new LinkedList<>();
-            codec.decode(null, decompressed, decoded);
+            try {
+                codec.decode(null, decompressed, decoded);
+            } catch (Exception e) {
+                throw e instanceof IOException ? (IOException) e : new IOException("decoding", e);
+            }
             decompressed.release();
 
             for (Object o : decoded) {
@@ -146,8 +153,7 @@ public class ReplayInputStream extends InputStream {
      * @param in The input stream to read from
      * @return The packet list
      */
-    @SneakyThrows
-    public static PacketList readPackets(Studio studio, InputStream in) {
+    public static PacketList readPackets(Studio studio, InputStream in) throws IOException {
         ReplayInputStream replayIn = new ReplayInputStream(studio, in);
         List<PacketData> packets = new LinkedList<>();
 

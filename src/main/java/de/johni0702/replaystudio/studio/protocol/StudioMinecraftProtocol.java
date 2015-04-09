@@ -3,7 +3,6 @@ package de.johni0702.replaystudio.studio.protocol;
 import de.johni0702.replaystudio.Studio;
 import de.johni0702.replaystudio.io.WrappedPacket;
 import de.johni0702.replaystudio.util.Reflection;
-import lombok.SneakyThrows;
 import org.spacehq.mc.protocol.MinecraftProtocol;
 import org.spacehq.mc.protocol.ProtocolMode;
 import org.spacehq.packetlib.Session;
@@ -29,13 +28,16 @@ public class StudioMinecraftProtocol extends MinecraftProtocol {
         Reflection.setField(PacketProtocol.class, "incoming", this, new HashMap() {
             @Override
             @SuppressWarnings("unchecked")
-            @SneakyThrows
             public Object put(Object key, Object value) {
                 if (!(value instanceof Constructor)) {
                     return super.put(key, value);
                 }
                 Constructor constructor = (Constructor) value;
-                constructor = getPacketClass(studio, constructor.getDeclaringClass()).getDeclaredConstructor();
+                try {
+                    constructor = getPacketClass(studio, constructor.getDeclaringClass()).getDeclaredConstructor();
+                } catch (NoSuchMethodException e) {
+                    throw new RuntimeException(e);
+                }
                 constructor.setAccessible(true);
                 return super.put(key, constructor);
             }

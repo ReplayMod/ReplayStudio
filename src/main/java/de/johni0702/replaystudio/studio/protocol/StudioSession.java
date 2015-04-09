@@ -1,8 +1,6 @@
 package de.johni0702.replaystudio.studio.protocol;
 
 import de.johni0702.replaystudio.Studio;
-import lombok.Getter;
-import lombok.Setter;
 import org.spacehq.packetlib.Session;
 import org.spacehq.packetlib.TimeoutHandler;
 import org.spacehq.packetlib.event.session.SessionEvent;
@@ -14,16 +12,13 @@ import java.util.Map;
 
 public class StudioSession implements Session {
 
-    @Getter
     private final StudioMinecraftProtocol packetProtocol;
+
+    private int compressionThreshold;
 
     public StudioSession(Studio studio, boolean client) {
         packetProtocol = new StudioMinecraftProtocol(studio, this, client);
     }
-
-    @Getter
-    @Setter
-    private int compressionThreshold;
 
     @Override
     public void connect() {
@@ -130,5 +125,16 @@ public class StudioSession implements Session {
 
     }
 
+    public StudioMinecraftProtocol getPacketProtocol() {
+        return this.packetProtocol;
+    }
+
+    public int getCompressionThreshold() {
+        return this.compressionThreshold;
+    }
+
+    public void setCompressionThreshold(int compressionThreshold) {
+        this.compressionThreshold = compressionThreshold;
+    }
 }
 

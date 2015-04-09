@@ -39,7 +39,6 @@ group = 'de.johni0702'
 description = 'ReplayStudio'
 version = '0.0.1-SNAPSHOT'
 mainClassName = 'de.johni0702.replaystudio.launcher.Launcher'
-ext.lombok = 'org.projectlombok:lombok:1.14.8'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -61,7 +60,6 @@ dependencies {
     compile 'org.apache.commons:commons-lang3:3.0'
     compile 'org.apache.commons:commons-collections4:4.0'
     compile 'commons-cli:commons-cli:1.2'
-    compile lombok
     compile 'com.google.guava:guava:12.0'
     testCompile 'junit:junit:4.11'
     testCompile 'com.google.guava:guava-testlib:18.0'
@@ -70,10 +68,6 @@ dependencies {
 
 shadowJar {
     append('META-INF/NOTICE.txt')
-    dependencies {
-        exclude(dependency(lombok))
-    }
-    //include 'lombok/Lombok.class'
 }
 
 retrolambda {

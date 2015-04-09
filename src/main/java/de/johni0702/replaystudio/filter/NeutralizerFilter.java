@@ -7,7 +7,6 @@ import de.johni0702.replaystudio.Studio;
 import de.johni0702.replaystudio.collection.ReplayPart;
 import de.johni0702.replaystudio.stream.PacketStream;
 import de.johni0702.replaystudio.util.PacketUtils;
-import lombok.NonNull;
 import org.spacehq.mc.protocol.data.game.values.scoreboard.ObjectiveAction;
 import org.spacehq.mc.protocol.data.game.values.scoreboard.TeamAction;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.ServerDestroyEntitiesPacket;
@@ -108,7 +107,7 @@ public class NeutralizerFilter extends StreamFilterBase {
      * @param part The replay part
      * @return The modified replay part. (No copying is performed)
      */
-    public static ReplayPart neutralize(@NonNull ReplayPart part) {
+    public static ReplayPart neutralize(ReplayPart part) {
         return new NeutralizerFilter().apply(part);
     }
 

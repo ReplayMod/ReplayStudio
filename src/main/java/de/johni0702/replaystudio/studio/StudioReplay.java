@@ -6,27 +6,24 @@ import de.johni0702.replaystudio.io.ReplayInputStream;
 import de.johni0702.replaystudio.io.ReplayOutputStream;
 import de.johni0702.replaystudio.replay.Replay;
 import de.johni0702.replaystudio.replay.ReplayMetaData;
-import lombok.Getter;
-import lombok.Setter;
 
 import java.io.*;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class StudioReplay extends StudioReplayPart implements Replay {
 
-    @Getter
-    @Setter
     private ReplayMetaData metaData;
 
     private final Studio studio;
 
     public StudioReplay(Studio studio, PacketList packets) {
         super(packets);
-        this.studio = studio;
+        this.studio = checkNotNull(studio);
     }
 
-    public StudioReplay(Studio studio, InputStream in) {
-        super(ReplayInputStream.readPackets(studio, in));
-        this.studio = studio;
+    public StudioReplay(Studio studio, InputStream in) throws IOException {
+        this(studio, ReplayInputStream.readPackets(studio, in));
     }
 
     @Override
@@ -43,4 +40,11 @@ public class StudioReplay extends StudioReplayPart implements Replay {
         }
     }
 
+    public ReplayMetaData getMetaData() {
+        return this.metaData;
+    }
+
+    public void setMetaData(ReplayMetaData metaData) {
+        this.metaData = metaData;
+    }
 }

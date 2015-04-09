@@ -11,8 +11,6 @@ import de.johni0702.replaystudio.filter.StreamFilter;
 import de.johni0702.replaystudio.replay.Replay;
 import de.johni0702.replaystudio.replay.ReplayMetaData;
 import de.johni0702.replaystudio.stream.PacketStream;
-import lombok.Getter;
-import lombok.Setter;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerKeepAlivePacket;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
 import org.spacehq.mc.protocol.packet.login.server.LoginSetCompressionPacket;
@@ -35,8 +33,6 @@ public class ReplayStudio implements Studio {
     /**
      * Whether packets should be wrapped instead of parsed unless they're set to be parsed explicitly.
      */
-    @Getter
-    @Setter
     private boolean wrappingEnabled = true;
 
     private final ServiceLoader<Filter> filterServiceLoader = ServiceLoader.load(Filter.class);
@@ -186,4 +182,11 @@ public class ReplayStudio implements Studio {
         return shouldBeParsed.contains(packetClass);
     }
 
+    public boolean isWrappingEnabled() {
+        return this.wrappingEnabled;
+    }
+
+    public void setWrappingEnabled(boolean wrappingEnabled) {
+        this.wrappingEnabled = wrappingEnabled;
+    }
 }

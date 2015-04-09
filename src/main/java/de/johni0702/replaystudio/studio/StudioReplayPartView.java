@@ -4,8 +4,6 @@ import com.google.common.collect.Iterators;
 import de.johni0702.replaystudio.PacketData;
 import de.johni0702.replaystudio.collection.ReplayPart;
 import de.johni0702.replaystudio.collection.ReplayPartView;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.Validate;
 import org.spacehq.packetlib.packet.Packet;
@@ -13,17 +11,19 @@ import org.spacehq.packetlib.packet.Packet;
 import java.util.Collection;
 import java.util.ListIterator;
 
-@RequiredArgsConstructor
 public class StudioReplayPartView implements ReplayPartView {
 
-    @Getter
     private final ReplayPart viewed;
 
-    @Getter
     private final long from;
 
-    @Getter
     private final long to;
+
+    public StudioReplayPartView(ReplayPart viewed, long from, long to) {
+        this.viewed = viewed;
+        this.from = from;
+        this.to = to;
+    }
 
     @Override
     public long length() {
@@ -149,4 +149,15 @@ public class StudioReplayPartView implements ReplayPartView {
         };
     }
 
+    public ReplayPart getViewed() {
+        return this.viewed;
+    }
+
+    public long getFrom() {
+        return this.from;
+    }
+
+    public long getTo() {
+        return this.to;
+    }
 }

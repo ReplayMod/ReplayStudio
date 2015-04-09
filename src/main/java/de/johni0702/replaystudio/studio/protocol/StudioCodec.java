@@ -2,7 +2,6 @@ package de.johni0702.replaystudio.studio.protocol;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import lombok.SneakyThrows;
 import org.spacehq.packetlib.Session;
 import org.spacehq.packetlib.tcp.TcpPacketCodec;
 
@@ -15,8 +14,7 @@ public class StudioCodec extends TcpPacketCodec {
     }
 
     @Override
-    @SneakyThrows
-    public void decode(ChannelHandlerContext ctx, ByteBuf buf, List<Object> out) {
+    public void decode(ChannelHandlerContext ctx, ByteBuf buf, List<Object> out) throws Exception {
         super.decode(ctx, buf, out);
     }
 

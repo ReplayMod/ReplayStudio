@@ -2,7 +2,6 @@ package de.johni0702.replaystudio.mock;
 
 import com.google.common.base.Function;
 import de.johni0702.replaystudio.util.Reflection;
-import lombok.SneakyThrows;
 import org.spacehq.mc.protocol.MinecraftProtocol;
 import org.spacehq.mc.protocol.ProtocolMode;
 import org.spacehq.packetlib.Session;
@@ -32,14 +31,17 @@ public class MinecraftProtocolMock extends MinecraftProtocol {
         Reflection.setField(PacketProtocol.class, "incoming", this, new HashMap() {
             @Override
             @SuppressWarnings("unchecked")
-            @SneakyThrows
             public Object put(Object key, Object value) {
                 if (value instanceof Constructor) {
                     Constructor constructor = (Constructor) value;
                     Class<? extends Packet> cls = constructor.getDeclaringClass();
                     cls = incoming.apply(cls);
                     if (cls != null) {
-                        constructor = cls.getDeclaredConstructor();
+                        try {
+                            constructor = cls.getDeclaredConstructor();
+                        } catch (NoSuchMethodException e) {
+                            throw new RuntimeException(e);
+                        }
                         constructor.setAccessible(true);
                     }
                     value = constructor;

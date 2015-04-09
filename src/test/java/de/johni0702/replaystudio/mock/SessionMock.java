@@ -2,8 +2,6 @@ package de.johni0702.replaystudio.mock;
 
 
 import com.google.common.base.Function;
-import lombok.Getter;
-import lombok.Setter;
 import org.spacehq.mc.protocol.MinecraftProtocol;
 import org.spacehq.packetlib.Session;
 import org.spacehq.packetlib.TimeoutHandler;
@@ -15,16 +13,13 @@ import java.util.List;
 import java.util.Map;
 
 public class SessionMock<P extends MinecraftProtocol> implements Session {
-    @Getter
     private final P packetProtocol;
+
+    private int compressionThreshold;
 
     public SessionMock(Function<SessionMock, P> protocol) {
         packetProtocol = protocol.apply(this);
     }
-
-    @Getter
-    @Setter
-    private int compressionThreshold;
 
     @Override
     public void connect() {
@@ -131,4 +126,15 @@ public class SessionMock<P extends MinecraftProtocol> implements Session {
 
     }
 
+    public P getPacketProtocol() {
+        return this.packetProtocol;
+    }
+
+    public int getCompressionThreshold() {
+        return this.compressionThreshold;
+    }
+
+    public void setCompressionThreshold(int compressionThreshold) {
+        this.compressionThreshold = compressionThreshold;
+    }
 }

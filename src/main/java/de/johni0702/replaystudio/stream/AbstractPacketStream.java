@@ -4,10 +4,11 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 import de.johni0702.replaystudio.PacketData;
 import de.johni0702.replaystudio.filter.StreamFilter;
-import lombok.RequiredArgsConstructor;
 import org.spacehq.packetlib.packet.Packet;
 
 import java.util.*;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public abstract class AbstractPacketStream implements PacketStream {
 
@@ -38,9 +39,12 @@ public abstract class AbstractPacketStream implements PacketStream {
         }
     }
 
-    @RequiredArgsConstructor
     private class PacketStreamContext implements PacketStream {
         private final StreamElement element;
+
+        public PacketStreamContext(StreamElement element) {
+            this.element = checkNotNull(element);
+        }
 
         @Override
         public void insert(PacketData packet) {
@@ -88,7 +92,6 @@ public abstract class AbstractPacketStream implements PacketStream {
         }
     }
 
-    @RequiredArgsConstructor
     private class StreamElement {
         private final FilterInfo filter;
         private final PacketStreamContext context = new PacketStreamContext(this);
@@ -96,6 +99,10 @@ public abstract class AbstractPacketStream implements PacketStream {
         private boolean active;
         private long lastTimestamp;
         private StreamElement next;
+
+        public StreamElement(FilterInfo filter) {
+            this.filter = checkNotNull(filter);
+        }
 
         public void process(PacketData data) {
             boolean keep = true;

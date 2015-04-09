@@ -1,6 +1,5 @@
 package de.johni0702.replaystudio.io;
 
-import lombok.SneakyThrows;
 import org.spacehq.mc.auth.util.IOUtils;
 import org.spacehq.packetlib.io.NetInput;
 import org.spacehq.packetlib.io.NetOutput;
@@ -32,14 +31,12 @@ public class WrappedPacket implements IWrappedPacket {
      * @param org The class whose wrapper to get
      * @return The wrapper class
      */
-    @SneakyThrows
     @SuppressWarnings("unchecked")
     public static synchronized Class<? extends IWrappedPacket> getClassFor(Class<? extends Packet> org) {
         Class<? extends IWrappedPacket> cls = classes.get(org);
         if (cls == null) {
-            cls = (Class) new ClassLoader() {
+            ClassLoader loader =  new ClassLoader() {
                 @Override
-                @SneakyThrows
                 protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
                     if (name.equals(WrappedPacket.class.getName())) {
                         if (findLoadedClass(name) == null) {
@@ -48,17 +45,27 @@ public class WrappedPacket implements IWrappedPacket {
                             if (in == null) {
                                 throw new ClassNotFoundException(name);
                             }
-                            byte[] array = IOUtils.toByteArray(in);
+                            byte[] array;
+                            try {
+                                array = IOUtils.toByteArray(in);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
                             defineClass(name, array, 0, array.length);
                         }
                     }
                     return super.loadClass(name, resolve);
                 }
-            }.loadClass(WrappedPacket.class.getName());
-            Field field = cls.getDeclaredField("wrapped");
-            field.setAccessible(true);
-            field.set(null, org);
-            classes.put(org, cls);
+            };
+            try {
+                cls = (Class) loader.loadClass(WrappedPacket.class.getName());
+                Field field = cls.getDeclaredField("wrapped");
+                field.setAccessible(true);
+                field.set(null, org);
+                classes.put(org, cls);
+            } catch (ClassNotFoundException | IllegalAccessException | NoSuchFieldException e) {
+                throw new RuntimeException(e);
+            }
         }
         return cls;
     }

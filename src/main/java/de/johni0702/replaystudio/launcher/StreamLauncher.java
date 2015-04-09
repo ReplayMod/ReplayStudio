@@ -9,7 +9,6 @@ import de.johni0702.replaystudio.io.ReplayOutputStream;
 import de.johni0702.replaystudio.replay.ReplayMetaData;
 import de.johni0702.replaystudio.stream.PacketStream;
 import de.johni0702.replaystudio.studio.ReplayStudio;
-import lombok.RequiredArgsConstructor;
 import org.apache.commons.cli.CommandLine;
 
 import java.io.*;
@@ -148,11 +147,14 @@ public class StreamLauncher {
         }
     }
 
-    @RequiredArgsConstructor
     private static class ProgressFilter implements StreamFilter {
 
         private final long total;
         private int lastUpdate;
+
+        public ProgressFilter(long total) {
+            this.total = total;
+        }
 
         @Override
         public String getName() {

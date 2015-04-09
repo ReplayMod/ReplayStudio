@@ -2,7 +2,6 @@ package de.johni0702.replaystudio.stream;
 
 import de.johni0702.replaystudio.PacketData;
 import de.johni0702.replaystudio.filter.StreamFilter;
-import lombok.RequiredArgsConstructor;
 import org.spacehq.packetlib.packet.Packet;
 
 import java.util.*;
@@ -10,7 +9,6 @@ import java.util.*;
 /**
  * A stream wrapper for list iterators. Only supports a single filter.
  */
-@RequiredArgsConstructor
 public class IteratorStream implements PacketStream {
 
     private final ListIterator<PacketData> iterator;
@@ -22,6 +20,11 @@ public class IteratorStream implements PacketStream {
 
     public IteratorStream(ListIterator<PacketData> iterator, StreamFilter filter) {
         this(iterator, new FilterInfo(filter, -1, -1));
+    }
+
+    public IteratorStream(ListIterator<PacketData> iterator, FilterInfo filter) {
+        this.iterator = iterator;
+        this.filter = filter;
     }
 
     @Override

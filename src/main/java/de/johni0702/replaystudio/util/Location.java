@@ -1,15 +1,11 @@
 package de.johni0702.replaystudio.util;
 
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import org.spacehq.mc.protocol.data.game.Position;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.ServerEntityTeleportPacket;
 
 /**
  * Position and rotation (pitch and yaw, no roll) in three dimensional space.
  */
-@Data
-@RequiredArgsConstructor
 public class Location {
 
     /**
@@ -32,6 +28,14 @@ public class Location {
         this(x, y, z, 0, 0);
     }
 
+    public Location(double x, double y, double z, float yaw, float pitch) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.yaw = yaw;
+        this.pitch = pitch;
+    }
+
     public static Location from(ServerEntityTeleportPacket p) {
         return new Location(p.getX(), p.getY(), p.getZ(), p.getYaw(), p.getPitch());
     }
@@ -42,5 +46,59 @@ public class Location {
 
     public Position getPosition() {
         return new Position((int) x, (int) y, (int) z);
+    }
+
+    public double getX() {
+        return this.x;
+    }
+
+    public double getY() {
+        return this.y;
+    }
+
+    public double getZ() {
+        return this.z;
+    }
+
+    public float getYaw() {
+        return this.yaw;
+    }
+
+    public float getPitch() {
+        return this.pitch;
+    }
+
+    public boolean equals(Object o) {
+        if (o == this) return true;
+        if (!(o instanceof Location)) return false;
+        final Location other = (Location) o;
+        if (!other.canEqual(this)) return false;
+        if (Double.compare(this.x, other.x) != 0) return false;
+        if (Double.compare(this.y, other.y) != 0) return false;
+        if (Double.compare(this.z, other.z) != 0) return false;
+        if (Float.compare(this.yaw, other.yaw) != 0) return false;
+        if (Float.compare(this.pitch, other.pitch) != 0) return false;
+        return true;
+    }
+
+    public int hashCode() {
+        int result = 1;
+        final long x = Double.doubleToLongBits(this.x);
+        result = result * 59 + (int) (x >>> 32 ^ x);
+        final long y = Double.doubleToLongBits(this.y);
+        result = result * 59 + (int) (y >>> 32 ^ y);
+        final long z = Double.doubleToLongBits(this.z);
+        result = result * 59 + (int) (z >>> 32 ^ z);
+        result = result * 59 + Float.floatToIntBits(this.yaw);
+        result = result * 59 + Float.floatToIntBits(this.pitch);
+        return result;
+    }
+
+    protected boolean canEqual(Object other) {
+        return other instanceof Location;
+    }
+
+    public String toString() {
+        return "Location(x=" + this.x + ", y=" + this.y + ", z=" + this.z + ", yaw=" + this.yaw + ", pitch=" + this.pitch + ")";
     }
 }

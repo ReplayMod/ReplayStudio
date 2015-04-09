@@ -2,11 +2,11 @@ package de.johni0702.replaystudio.stream;
 
 import de.johni0702.replaystudio.PacketData;
 import de.johni0702.replaystudio.filter.StreamFilter;
-import lombok.Data;
 import org.spacehq.packetlib.packet.Packet;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Represents a stream of packets.
@@ -16,7 +16,6 @@ public interface PacketStream {
     /**
      * Information on the time frame for which a filter should apply and the filter itself.
      */
-    @Data
     public static class FilterInfo {
         /**
          * The filter.
@@ -35,6 +34,12 @@ public interface PacketStream {
          */
         private final long to;
 
+        public FilterInfo(StreamFilter filter, long from, long to) {
+            this.filter = filter;
+            this.from = from;
+            this.to = to;
+        }
+
         /**
          * Returns whether this filter should be applied at the specified timestamp.
          * @param time The timestamp (milliseconds)
@@ -42,6 +47,45 @@ public interface PacketStream {
          */
         public boolean applies(long time) {
             return (from == -1 || from <= time) && (to == -1 || to >= time);
+        }
+
+        public StreamFilter getFilter() {
+            return this.filter;
+        }
+
+        public long getFrom() {
+            return this.from;
+        }
+
+        public long getTo() {
+            return this.to;
+        }
+
+        public boolean equals(Object o) {
+            if (o == this) return true;
+            if (!(o instanceof FilterInfo)) return false;
+            final FilterInfo other = (FilterInfo) o;
+            if (!other.canEqual(this)) return false;
+            if (!Objects.equals(this.filter, other.filter)) return false;
+            if (this.from != other.from) return false;
+            if (this.to != other.to) return false;
+            return true;
+        }
+
+        public int hashCode() {
+            int result = 1;
+            result = result * 59 + (filter == null ? 0 : filter.hashCode());
+            result = result * 59 + (int) (from >>> 32 ^ from);
+            result = result * 59 + (int) (to >>> 32 ^ to);
+            return result;
+        }
+
+        protected boolean canEqual(Object other) {
+            return other instanceof FilterInfo;
+        }
+
+        public String toString() {
+            return "FilterInfo(filter=" + this.filter + ", from=" + this.from + ", to=" + this.to + ")";
         }
     }
 

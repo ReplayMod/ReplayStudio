@@ -1,9 +1,9 @@
 package de.johni0702.replaystudio.util;
 
-import lombok.NonNull;
-
 import java.io.IOException;
 import java.io.OutputStream;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Output stream which uses a different underlying output stream depending on the current thread.
@@ -13,7 +13,6 @@ public class ThreadLocalOutputStream extends OutputStream {
     /**
      * The default output stream.
      */
-    @NonNull
     private OutputStream def;
 
     /**
@@ -26,7 +25,7 @@ public class ThreadLocalOutputStream extends OutputStream {
      * @param def The default output stream
      */
     public ThreadLocalOutputStream(OutputStream def) {
-        this.def = def;
+        this.def = checkNotNull(def);
     }
 
     /**
@@ -42,7 +41,7 @@ public class ThreadLocalOutputStream extends OutputStream {
      * @param def The default output stream
      */
     public void setDefault(OutputStream def) {
-        this.def = def;
+        this.def = checkNotNull(def);
     }
 
     /**

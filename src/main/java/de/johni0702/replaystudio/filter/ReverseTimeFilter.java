@@ -9,9 +9,6 @@ import de.johni0702.replaystudio.util.Location;
 import de.johni0702.replaystudio.util.Motion;
 import de.johni0702.replaystudio.util.PacketUtils;
 import de.johni0702.replaystudio.util.Utils;
-import lombok.Data;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.spacehq.mc.protocol.data.game.Chunk;
@@ -910,12 +907,16 @@ public class ReverseTimeFilter extends StreamFilterBase {
         }
     }
 
-    @RequiredArgsConstructor
     private static class ChunkData {
         private final int x;
         private final int z;
         private Chunk[] chunks;
         private byte[] biomeData;
+
+        public ChunkData(int x, int z) {
+            this.x = x;
+            this.z = z;
+        }
 
         public static long coordToLong(int x, int z) {
             return (long) x << 32 | z & 0xFFFFFFFFL;
@@ -1005,15 +1006,20 @@ public class ReverseTimeFilter extends StreamFilterBase {
         }
     }
 
-    @Data
     private static final class EffectData {
         private final long time;
         private final int amplifier;
         private final int duration;
         private final boolean hideParticles;
+
+        public EffectData(long time, int amplifier, int duration, boolean hideParticles) {
+            this.time = time;
+            this.amplifier = amplifier;
+            this.duration = duration;
+            this.hideParticles = hideParticles;
+        }
     }
 
-    @Getter
     private static abstract class Entity {
         protected final int id;
         protected Location location;
@@ -1041,7 +1047,7 @@ public class ReverseTimeFilter extends StreamFilterBase {
             this.headYaw = headYaw;
             this.motion = motion;
             for (EntityMetadata meta : metadata) {
-                getMetadataMap().put(meta.getId(), meta);
+                metadataMap.put(meta.getId(), meta);
             }
         }
 

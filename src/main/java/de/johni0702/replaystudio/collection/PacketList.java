@@ -3,12 +3,12 @@ package de.johni0702.replaystudio.collection;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import de.johni0702.replaystudio.PacketData;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.Array;
 import java.util.*;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * A list for PacketData allowing efficient modification.
@@ -54,7 +54,9 @@ public class PacketList implements List<PacketData> {
      * @param filter Filter for whether to include a packet
      * @throws java.lang.IllegalArgumentException If the iterable contains packets in an invalid order.
      */
-    public PacketList(@NonNull Iterable<PacketData> from, @NonNull Predicate<PacketData> filter) {
+    public PacketList(Iterable<PacketData> from, Predicate<PacketData> filter) {
+        checkNotNull(from, "from");
+        checkNotNull(filter, "filter");
         long lastTime = 0;
         ListEntry last = null;
         for (PacketData data : from) {
@@ -318,11 +320,14 @@ public class PacketList implements List<PacketData> {
         return result;
     }
 
-    @RequiredArgsConstructor
     static final class ListEntry {
         final PacketData data;
 
         ListEntry next;
         ListEntry previous;
+
+        public ListEntry(PacketData data) {
+            this.data = data;
+        }
     }
 }

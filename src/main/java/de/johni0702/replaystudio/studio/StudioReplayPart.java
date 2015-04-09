@@ -5,16 +5,20 @@ import de.johni0702.replaystudio.collection.PacketList;
 import de.johni0702.replaystudio.collection.PacketListIterator;
 import de.johni0702.replaystudio.collection.ReplayPart;
 import de.johni0702.replaystudio.collection.ReplayPartView;
-import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.Validate;
 import org.spacehq.packetlib.packet.Packet;
 
 import java.util.*;
 
-@RequiredArgsConstructor
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class StudioReplayPart implements ReplayPart {
 
     private final PacketList packets;
+
+    public StudioReplayPart(PacketList packets) {
+        this.packets = checkNotNull(packets);
+    }
 
     @Override
     public long length() {

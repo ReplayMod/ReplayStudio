@@ -9,8 +9,6 @@ import de.johni0702.replaystudio.collection.ReplayPart;
 import de.johni0702.replaystudio.filter.Filter;
 import de.johni0702.replaystudio.replay.Replay;
 import de.johni0702.replaystudio.studio.ReplayStudio;
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.commons.cli.*;
 import org.apache.commons.lang3.StringUtils;
 
@@ -481,8 +479,6 @@ public class Launcher {
         void perform(Studio studio, List<ReplayPart> inputs, List<ReplayPart> outputs);
     }
 
-    @Getter
-    @Setter
     private static abstract class AbstractInstruction implements Instruction {
         private List<String> inputs = new ArrayList<>();
         private List<String> outputs = new ArrayList<>();
@@ -490,6 +486,14 @@ public class Launcher {
         @Override
         public String toString() {
             return getClass().getSimpleName();
+        }
+
+        public List<String> getInputs() {
+            return this.inputs;
+        }
+
+        public List<String> getOutputs() {
+            return this.outputs;
         }
     }
 

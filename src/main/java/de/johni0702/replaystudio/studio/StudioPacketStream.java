@@ -4,7 +4,6 @@ import de.johni0702.replaystudio.PacketData;
 import de.johni0702.replaystudio.Studio;
 import de.johni0702.replaystudio.io.ReplayInputStream;
 import de.johni0702.replaystudio.stream.AbstractPacketStream;
-import lombok.SneakyThrows;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,9 +17,12 @@ public class StudioPacketStream extends AbstractPacketStream {
     }
 
     @Override
-    @SneakyThrows
     protected PacketData nextInput() {
-        return in.readPacket();
+        try {
+            return in.readPacket();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
