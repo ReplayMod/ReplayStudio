@@ -100,6 +100,13 @@ public abstract class AbstractPacketStream implements PacketStream {
         private long lastTimestamp;
         private StreamElement next;
 
+        /**
+         * When using this constructor make sure to override {@link #process(PacketData)} as it will throw NPE otherwise.
+         */
+        protected StreamElement() {
+            filter = null;
+        }
+
         public StreamElement(FilterInfo filter) {
             this.filter = checkNotNull(filter);
         }
@@ -149,7 +156,7 @@ public abstract class AbstractPacketStream implements PacketStream {
 
     private class StreamElementEnd extends StreamElement {
         public StreamElementEnd() {
-            super(null);
+            super();
         }
 
         @Override
