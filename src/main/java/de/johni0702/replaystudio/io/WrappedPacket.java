@@ -35,28 +35,7 @@ public class WrappedPacket implements IWrappedPacket {
     public static synchronized Class<? extends IWrappedPacket> getClassFor(Class<? extends Packet> org) {
         Class<? extends IWrappedPacket> cls = classes.get(org);
         if (cls == null) {
-            ClassLoader loader =  new ClassLoader() {
-                @Override
-                protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-                    if (name.equals(WrappedPacket.class.getName())) {
-                        if (findLoadedClass(name) == null) {
-                            String path = name.replace('.', '/').concat(".class");
-                            InputStream in = WrappedPacket.class.getClassLoader().getResourceAsStream(path);
-                            if (in == null) {
-                                throw new ClassNotFoundException(name);
-                            }
-                            byte[] array;
-                            try {
-                                array = IOUtils.toByteArray(in);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                            defineClass(name, array, 0, array.length);
-                        }
-                    }
-                    return super.loadClass(name, resolve);
-                }
-            };
+            ClassLoader loader = new WrappingClassLoader(org);
             try {
                 cls = (Class) loader.loadClass(WrappedPacket.class.getName());
                 Field field = cls.getDeclaredField("wrapped");
@@ -68,6 +47,17 @@ public class WrappedPacket implements IWrappedPacket {
             }
         }
         return cls;
+    }
+
+    /**
+     * Returns the packet class for the specified wrapper class.
+     * @param wrapper The wrapper whose packet class to get
+     * @return The packet class or the specified class if it is no wrapper class
+     */
+    @SuppressWarnings("unchecked")
+    public static synchronized Class<? extends Packet> getWrappedClassFor(Class<? extends IWrappedPacket> wrapper) {
+        ClassLoader loader = wrapper.getClassLoader();
+        return loader instanceof WrappingClassLoader ? ((WrappingClassLoader) loader).wrapped : wrapper;
     }
 
     /**
@@ -138,5 +128,34 @@ public class WrappedPacket implements IWrappedPacket {
     @Override
     public Class<? extends Packet> getWrapped() {
         return wrapped;
+    }
+
+    private static class WrappingClassLoader extends ClassLoader {
+        private final Class<? extends Packet> wrapped;
+
+        public WrappingClassLoader(Class<? extends Packet> wrapped) {
+            this.wrapped = wrapped;
+        }
+
+        @Override
+        protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+            if (name.equals(WrappedPacket.class.getName())) {
+                if (findLoadedClass(name) == null) {
+                    String path = name.replace('.', '/').concat(".class");
+                    InputStream in = WrappedPacket.class.getClassLoader().getResourceAsStream(path);
+                    if (in == null) {
+                        throw new ClassNotFoundException(name);
+                    }
+                    byte[] array;
+                    try {
+                        array = IOUtils.toByteArray(in);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    defineClass(name, array, 0, array.length);
+                }
+            }
+            return super.loadClass(name, resolve);
+        }
     }
 }

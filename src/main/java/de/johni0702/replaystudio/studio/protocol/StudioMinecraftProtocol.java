@@ -9,7 +9,6 @@ import org.spacehq.packetlib.Session;
 import org.spacehq.packetlib.packet.Packet;
 import org.spacehq.packetlib.packet.PacketProtocol;
 
-import java.lang.reflect.Constructor;
 import java.util.HashMap;
 
 public class StudioMinecraftProtocol extends MinecraftProtocol {
@@ -28,29 +27,25 @@ public class StudioMinecraftProtocol extends MinecraftProtocol {
         Reflection.setField(PacketProtocol.class, "incoming", this, new HashMap() {
             @Override
             @SuppressWarnings("unchecked")
-            public Object put(Object key, Object value) {
-                if (!(value instanceof Constructor)) {
-                    return super.put(key, value);
-                }
-                Constructor constructor = (Constructor) value;
-                try {
-                    constructor = getPacketClass(studio, constructor.getDeclaringClass()).getDeclaredConstructor();
-                } catch (NoSuchMethodException e) {
-                    throw new RuntimeException(e);
-                }
-                constructor.setAccessible(true);
-                return super.put(key, constructor);
+            public Object get(Object key) {
+                Class<? extends Packet> value = (Class<? extends Packet>) super.get(key);
+                return getPacketClass(studio, value);
             }
         });
 
         Reflection.setField(PacketProtocol.class, "outgoing", this, new HashMap() {
             @Override
+            public boolean containsKey(Object key) {
+                return get(key) != null;
+            }
+
+            @Override
             @SuppressWarnings("unchecked")
-            public Object put(Object key, Object value) {
+            public Object get(Object key) {
                 if (!(key instanceof Class)) {
-                    return super.put(key, value);
+                    return super.get(key);
                 }
-                return super.put(getPacketClass(studio, (Class) key), value);
+                return super.get(WrappedPacket.getWrappedClassFor((Class) key));
             }
         });
 
