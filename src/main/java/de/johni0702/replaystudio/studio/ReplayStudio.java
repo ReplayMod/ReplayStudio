@@ -11,6 +11,7 @@ import de.johni0702.replaystudio.filter.StreamFilter;
 import de.johni0702.replaystudio.replay.Replay;
 import de.johni0702.replaystudio.replay.ReplayMetaData;
 import de.johni0702.replaystudio.stream.PacketStream;
+import de.johni0702.replaystudio.util.Utils;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerKeepAlivePacket;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
 import org.spacehq.mc.protocol.packet.login.server.LoginSetCompressionPacket;
@@ -112,16 +113,17 @@ public class ReplayStudio implements Studio {
         if (raw) {
             return new StudioReplay(this, in);
         } else {
-            ZipInputStream zipIn = new ZipInputStream(new BufferedInputStream(in));
-            ZipEntry entry;
             Replay replay = null;
             ReplayMetaData meta = null;
-            while ((entry = zipIn.getNextEntry()) != null) {
-                if ("metaData.json".equals(entry.getName())) {
-                    meta = GSON.fromJson(new InputStreamReader(zipIn), ReplayMetaData.class);
-                }
-                if ("recording.tmcpr".equals(entry.getName())) {
-                    replay = new StudioReplay(this, zipIn);
+            try (ZipInputStream zipIn = new ZipInputStream(new BufferedInputStream(in))) {
+                ZipEntry entry;
+                while ((entry = zipIn.getNextEntry()) != null) {
+                    if ("metaData.json".equals(entry.getName())) {
+                        meta = GSON.fromJson(new InputStreamReader(Utils.notCloseable(zipIn)), ReplayMetaData.class);
+                    }
+                    if ("recording.tmcpr".equals(entry.getName())) {
+                        replay = new StudioReplay(this, Utils.notCloseable(zipIn));
+                    }
                 }
             }
             if (replay != null) {
@@ -137,14 +139,15 @@ public class ReplayStudio implements Studio {
 
     @Override
     public ReplayMetaData readReplayMetaData(InputStream in) throws IOException {
-        ZipInputStream zipIn = new ZipInputStream(new BufferedInputStream(in));
-        ZipEntry entry;
-        while ((entry = zipIn.getNextEntry()) != null) {
-            if ("metaData.json".equals(entry.getName())) {
-                return GSON.fromJson(new InputStreamReader(zipIn), ReplayMetaData.class);
+        try (ZipInputStream zipIn = new ZipInputStream(new BufferedInputStream(in))) {
+            ZipEntry entry;
+            while ((entry = zipIn.getNextEntry()) != null) {
+                if ("metaData.json".equals(entry.getName())) {
+                    return GSON.fromJson(new InputStreamReader(zipIn), ReplayMetaData.class);
+                }
             }
+            throw new IOException("ZipInputStream did not contain \"metaData.json\"");
         }
-        throw new IOException("ZipInputStream did not contain \"metaData.json\"");
     }
 
     @Override

@@ -73,4 +73,74 @@ public class Utils {
         return i;
     }
 
+    /**
+     * Create a new input stream delegating to the specified source.
+     * The new input stream has its own closed state and does not close the
+     * source stream.
+     * @param source The source input stream
+     * @return The delegating input stream
+     */
+    public static InputStream notCloseable(InputStream source) {
+        return new InputStream() {
+            boolean closed;
+
+            @Override
+            public void close() throws IOException {
+                closed = true;
+            }
+
+            @Override
+            public int read() throws IOException {
+                if (closed) {
+                    return -1;
+                }
+                return source.read();
+            }
+
+            @Override
+            public int read(byte[] b, int off, int len) throws IOException {
+                if (closed) {
+                    return -1;
+                }
+                return source.read(b, off, len);
+            }
+
+            @Override
+            public int available() throws IOException {
+                return source.available();
+            }
+
+            @Override
+            public long skip(long n) throws IOException {
+                if (closed) {
+                    return 0;
+                }
+                return source.skip(n);
+            }
+
+            @Override
+            public synchronized void mark(int readlimit) {
+                source.mark(readlimit);
+            }
+
+            @Override
+            public synchronized void reset() throws IOException {
+                source.reset();
+            }
+
+            @Override
+            public boolean markSupported() {
+                return source.markSupported();
+            }
+
+            @Override
+            public int read(byte[] b) throws IOException {
+                if (closed) {
+                    return -1;
+                }
+                return source.read(b);
+            }
+        };
+    }
+
 }
