@@ -1,11 +1,13 @@
 package de.johni0702.replaystudio.studio;
 
+import com.google.common.base.Optional;
 import de.johni0702.replaystudio.PacketData;
 import de.johni0702.replaystudio.Studio;
 import de.johni0702.replaystudio.collection.ReplayPart;
 import de.johni0702.replaystudio.collection.ReplayPartView;
 import de.johni0702.replaystudio.io.ReplayOutputStream;
 import de.johni0702.replaystudio.replay.Replay;
+import de.johni0702.replaystudio.replay.ReplayFile;
 import de.johni0702.replaystudio.replay.ReplayMetaData;
 import org.spacehq.packetlib.packet.Packet;
 
@@ -49,6 +51,11 @@ public class StudioDelegatingReplay implements Replay {
 
     public ReplayMetaData getMetaData() {
         return this.metaData;
+    }
+
+    @Override
+    public Optional<ReplayFile> getReplayFile() {
+        return Optional.absent();
     }
 
     public void setMetaData(ReplayMetaData metaData) {

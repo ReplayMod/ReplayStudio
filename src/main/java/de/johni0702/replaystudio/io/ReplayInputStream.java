@@ -154,7 +154,12 @@ public class ReplayInputStream extends InputStream {
      * @return The packet list
      */
     public static PacketList readPackets(Studio studio, InputStream in) throws IOException {
-        ReplayInputStream replayIn = new ReplayInputStream(studio, in);
+        ReplayInputStream replayIn;
+        if (in instanceof ReplayInputStream) {
+            replayIn = (ReplayInputStream) in;
+        } else {
+            replayIn = new ReplayInputStream(studio, in);
+        }
         List<PacketData> packets = new LinkedList<>();
 
         PacketData data;

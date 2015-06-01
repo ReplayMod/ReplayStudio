@@ -1,5 +1,6 @@
 package de.johni0702.replaystudio.replay;
 
+import com.google.common.base.Optional;
 import de.johni0702.replaystudio.collection.ReplayPart;
 
 import java.io.File;
@@ -16,6 +17,12 @@ public interface Replay extends ReplayPart {
      * @return The meta data
      */
     ReplayMetaData getMetaData();
+
+    /**
+     * Returns the replay file containing all metadata for this replay.
+     * @return The replay file
+     */
+    Optional<ReplayFile> getReplayFile();
 
     /**
      * Sets the meta data of this replay.

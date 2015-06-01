@@ -4,6 +4,7 @@ import de.johni0702.replaystudio.collection.ReplayPart;
 import de.johni0702.replaystudio.filter.Filter;
 import de.johni0702.replaystudio.filter.StreamFilter;
 import de.johni0702.replaystudio.replay.Replay;
+import de.johni0702.replaystudio.replay.ReplayFile;
 import de.johni0702.replaystudio.replay.ReplayMetaData;
 import de.johni0702.replaystudio.stream.PacketStream;
 import org.spacehq.packetlib.packet.Packet;
@@ -53,6 +54,13 @@ public interface Studio {
      * @return The created replay
      */
     Replay createReplay(InputStream in) throws IOException;
+
+    /**
+     * Creates a new replay from the specified replay file.
+     * @param file The replay file to read from
+     * @return The created replay
+     */
+    Replay createReplay(ReplayFile file) throws IOException;
 
     /**
      * Creates a new replay from the specified input stream.

@@ -9,6 +9,7 @@ import de.johni0702.replaystudio.filter.Filter;
 import de.johni0702.replaystudio.filter.SquashFilter;
 import de.johni0702.replaystudio.filter.StreamFilter;
 import de.johni0702.replaystudio.replay.Replay;
+import de.johni0702.replaystudio.replay.ReplayFile;
 import de.johni0702.replaystudio.replay.ReplayMetaData;
 import de.johni0702.replaystudio.stream.PacketStream;
 import de.johni0702.replaystudio.util.Utils;
@@ -106,6 +107,11 @@ public class ReplayStudio implements Studio {
     @Override
     public Replay createReplay(InputStream in) throws IOException {
         return createReplay(in, false);
+    }
+
+    @Override
+    public Replay createReplay(ReplayFile file) throws IOException {
+        return new StudioReplay(this, file);
     }
 
     @Override
