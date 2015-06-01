@@ -29,6 +29,11 @@ public class ReplayMetaData {
     private long date;
 
     /**
+     * Minecraft version. (E.g. 1.8)
+     */
+    private String mcversion;
+
+    /**
      * File format. Defaults to 'MCPR'
      */
     private String fileFormat;
@@ -71,6 +76,10 @@ public class ReplayMetaData {
         return this.date;
     }
 
+    public String getMcVersion() {
+        return mcversion;
+    }
+
     public String getFileFormat() {
         return this.fileFormat;
     }
@@ -107,6 +116,10 @@ public class ReplayMetaData {
         this.date = date;
     }
 
+    public void setMcVersion(String mcVersion) {
+        this.mcversion = mcVersion;
+    }
+
     public void setFileFormat(String fileFormat) {
         this.fileFormat = fileFormat;
     }
@@ -136,6 +149,7 @@ public class ReplayMetaData {
         if (!Objects.equals(this.serverName, other.serverName)) return false;
         if (this.duration != other.duration) return false;
         if (this.date != other.date) return false;
+        if (!Objects.equals(this.mcversion, other.mcversion)) return false;
         if (!Objects.equals(this.fileFormat, other.fileFormat)) return false;
         if (this.fileFormatVersion != other.fileFormatVersion) return false;
         if (!Objects.equals(this.generator, other.generator)) return false;
@@ -150,6 +164,7 @@ public class ReplayMetaData {
         result = result * 59 + (serverName == null ? 0 : serverName.hashCode());
         result = result * 59 + this.duration;
         result = result * 59 + (int) (date >>> 32 ^ date);
+        result = result * 59 + (mcversion == null ? 0 : mcversion.hashCode());
         result = result * 59 + (fileFormat == null ? 0 : fileFormat.hashCode());
         result = result * 59 + this.fileFormatVersion;
         result = result * 59 + (generator == null ? 0 : generator.hashCode());
@@ -162,7 +177,19 @@ public class ReplayMetaData {
         return other instanceof ReplayMetaData;
     }
 
+    @Override
     public String toString() {
-        return "ReplayMetaData(singleplayer=" + this.singleplayer + ", serverName=" + this.serverName + ", duration=" + this.duration + ", date=" + this.date + ", fileFormat=" + this.fileFormat + ", fileFormatVersion=" + this.fileFormatVersion + ", generator=" + this.generator + ", selfId=" + this.selfId + ", players=" + java.util.Arrays.deepToString(this.players) + ")";
+        return "ReplayMetaData{" +
+                "singleplayer=" + singleplayer +
+                ", serverName='" + serverName + '\'' +
+                ", duration=" + duration +
+                ", date=" + date +
+                ", mcversion='" + mcversion + '\'' +
+                ", fileFormat='" + fileFormat + '\'' +
+                ", fileFormatVersion=" + fileFormatVersion +
+                ", generator='" + generator + '\'' +
+                ", selfId=" + selfId +
+                ", players=" + Arrays.toString(players) +
+                '}';
     }
 }
