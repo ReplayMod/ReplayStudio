@@ -126,6 +126,10 @@ public class ZipReplayFile implements ReplayFile {
 
     @Override
     public void writeMetaData(ReplayMetaData metaData) throws IOException {
+        metaData.setFileFormat("MCPR");
+        metaData.setFileFormatVersion(1);
+        metaData.setGenerator("ReplayStudio v" + studio.getVersion());
+
         try (OutputStream out = write(ENTRY_META_DATA)) {
             String json = new Gson().toJson(metaData);
             out.write(json.getBytes());
