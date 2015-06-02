@@ -49,13 +49,18 @@ public class ZipReplayFile implements ReplayFile {
     public ZipReplayFile(Studio studio, File file) throws IOException {
         this.studio = studio;
         this.file = file;
-        this.zipFile = new ZipFile(file);
+        if (file.exists()) {
+            this.zipFile = new ZipFile(file);
+        }
     }
 
     @Override
     public Optional<InputStream> get(String entry) throws IOException {
         if (changedEntries.containsKey(entry)) {
             return Optional.of(new FileInputStream(changedEntries.get(entry)));
+        }
+        if (zipFile == null) {
+            return Optional.absent();
         }
         ZipEntry zipEntry = zipFile.getEntry(entry);
         if (zipEntry == null) {
@@ -93,10 +98,12 @@ public class ZipReplayFile implements ReplayFile {
         outputStreams.clear();
 
         try (ZipOutputStream out = new ZipOutputStream(new FileOutputStream(target))) {
-            for (ZipEntry entry : Collections.list(zipFile.entries())) {
-                if (!changedEntries.containsKey(entry.getName())) {
-                    out.putNextEntry(entry);
-                    Utils.copy(zipFile.getInputStream(entry), out);
+            if (zipFile != null) {
+                for (ZipEntry entry : Collections.list(zipFile.entries())) {
+                    if (!changedEntries.containsKey(entry.getName())) {
+                        out.putNextEntry(entry);
+                        Utils.copy(zipFile.getInputStream(entry), out);
+                    }
                 }
             }
             for (Map.Entry<String, File> e : changedEntries.entrySet()) {
@@ -343,7 +350,9 @@ public class ZipReplayFile implements ReplayFile {
 
     @Override
     public void close() throws IOException {
-        zipFile.close();
+        if (zipFile != null) {
+            zipFile.close();
+        }
         for (OutputStream out : outputStreams.values()) {
             IOUtils.closeQuietly(out);
         }
