@@ -5,3 +5,4 @@ de.johni0702.replaystudio.filter.ReverseTimeFilter
 de.johni0702.replaystudio.filter.RemoveFilter
 de.johni0702.replaystudio.filter.SquashFilter
 de.johni0702.replaystudio.filter.ChangeTimestampFilter
+de.johni0702.replaystudio.filter.JsonConverterFilter
