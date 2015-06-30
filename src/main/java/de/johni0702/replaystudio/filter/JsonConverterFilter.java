@@ -1,7 +1,6 @@
 package de.johni0702.replaystudio.filter;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
+import com.google.gson.*;
 import com.google.gson.stream.JsonWriter;
 import de.johni0702.replaystudio.PacketData;
 import de.johni0702.replaystudio.Studio;
@@ -16,7 +15,12 @@ import java.io.IOException;
 
 public class JsonConverterFilter extends StreamFilterBase {
 
-    private final Gson gson = new Gson();
+    private final Gson gson;
+    {
+        gson = new GsonBuilder().registerTypeAdapter(Class.class,
+                (JsonSerializer<Class<?>>) (cls, type, jsonSerializationContext) -> new JsonPrimitive(cls.getName()))
+                .create();
+    }
     private JsonWriter jsonWriter;
     private File output;
     private boolean dumpChunks;
