@@ -39,7 +39,7 @@ public class SquashFilter extends StreamFilterBase {
     private static final long POS_MAX = Byte.MAX_VALUE;
 
     private static class Team {
-        private static enum Status {
+        private enum Status {
             CREATED, UPDATED, REMOVED
         }
 
@@ -77,6 +77,7 @@ public class SquashFilter extends StreamFilterBase {
     private final Map<Integer, Entity> entities = new HashMap<>();
     private final Map<String, Team> teams = new HashMap<>();
     private final Map<Integer, PacketData> mainInventoryChanges = new HashMap<>();
+    private final Map<Integer, ServerMapDataPacket> maps = new HashMap<>();
 
     private final List<PacketData> currentWorld = new ArrayList<>();
     private final List<PacketData> currentWindow = new ArrayList<>();
@@ -222,7 +223,6 @@ public class SquashFilter extends StreamFilterBase {
                 || instanceOf(packet, ServerBlockChangePacket.class)
                 || instanceOf(packet, ServerBlockValuePacket.class)
                 || instanceOf(packet, ServerExplosionPacket.class)
-                || instanceOf(packet, ServerMapDataPacket.class)
                 || instanceOf(packet, ServerMultiBlockChangePacket.class)
                 || instanceOf(packet, ServerOpenTileEntityEditorPacket.class)
                 || instanceOf(packet, ServerPlayEffectPacket.class)
@@ -318,6 +318,13 @@ public class SquashFilter extends StreamFilterBase {
                     }
                 }
             }
+            return false;
+        }
+
+        // Misc
+        if (packet instanceof ServerMapDataPacket) {
+            ServerMapDataPacket p = (ServerMapDataPacket) packet;
+            maps.put(p.getMapId(), p);
             return false;
         }
 
@@ -438,6 +445,10 @@ public class SquashFilter extends StreamFilterBase {
                 add(stream, timestamp, new ServerTeamPacket(team.name));
             }
         }
+
+        for (ServerMapDataPacket packet : maps.values()) {
+            add(stream, timestamp, packet);
+        }
     }
 
     @Override
@@ -461,6 +472,7 @@ public class SquashFilter extends StreamFilterBase {
         studio.setParsing(ServerSetSlotPacket.class, true);
         studio.setParsing(ServerChunkDataPacket.class, true);
         studio.setParsing(ServerMultiChunkDataPacket.class, true);
+        studio.setParsing(ServerMapDataPacket.class, true);
     }
 
     private void add(PacketStream stream, long timestamp, Packet packet) {
