@@ -19,6 +19,11 @@ import java.util.regex.Pattern;
 public class Launcher {
 
     public static void main(String[] args) throws Exception {
+//        Message msg = new TranslationMessage("key");
+//        System.out.println(msg.toJsonString());
+//        msg = Message.fromString(msg.toJsonString());
+//        System.out.println(msg.toJsonString());
+
         try {
             run(args);
         } catch (CriticalException e) {
@@ -473,7 +478,7 @@ public class Launcher {
         }
     }
 
-    private static interface Instruction {
+    private interface Instruction {
         List<String> getInputs();
         List<String> getOutputs();
         void perform(Studio studio, List<ReplayPart> inputs, List<ReplayPart> outputs);

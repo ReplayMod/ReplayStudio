@@ -2,7 +2,6 @@ package de.johni0702.replaystudio.studio.protocol;
 
 import de.johni0702.replaystudio.Studio;
 import org.spacehq.packetlib.Session;
-import org.spacehq.packetlib.TimeoutHandler;
 import org.spacehq.packetlib.event.session.SessionEvent;
 import org.spacehq.packetlib.event.session.SessionListener;
 import org.spacehq.packetlib.packet.Packet;
@@ -101,16 +100,6 @@ public class StudioSession implements Session {
     }
 
     @Override
-    public TimeoutHandler getTimeoutHandler() {
-        return null;
-    }
-
-    @Override
-    public void setTimeoutHandler(TimeoutHandler timeoutHandler) {
-
-    }
-
-    @Override
     public boolean isConnected() {
         return false;
     }
@@ -125,6 +114,21 @@ public class StudioSession implements Session {
 
     }
 
+    @Override
+    public void disconnect(String s, boolean b) {
+
+    }
+
+    @Override
+    public void disconnect(String s, Throwable throwable) {
+
+    }
+
+    @Override
+    public void disconnect(String s, Throwable throwable, boolean b) {
+
+    }
+
     public StudioMinecraftProtocol getPacketProtocol() {
         return this.packetProtocol;
     }
@@ -135,6 +139,16 @@ public class StudioSession implements Session {
 
     public void setCompressionThreshold(int compressionThreshold) {
         this.compressionThreshold = compressionThreshold;
+    }
+
+    @Override
+    public int getConnectTimeout() {
+        return 0;
+    }
+
+    @Override
+    public void setConnectTimeout(int i) {
+
     }
 }
 

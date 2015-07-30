@@ -1,6 +1,7 @@
 package de.johni0702.replaystudio.replay;
 
 import com.google.common.base.Optional;
+import com.google.common.io.Closeables;
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -13,7 +14,6 @@ import de.johni0702.replaystudio.path.Path;
 import de.johni0702.replaystudio.util.DPosition;
 import de.johni0702.replaystudio.util.Utils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.spacehq.mc.auth.util.IOUtils;
 import org.spacehq.mc.protocol.data.game.Rotation;
 
 import javax.imageio.ImageIO;
@@ -77,7 +77,7 @@ public class ZipReplayFile implements ReplayFile {
             changedEntries.put(entry, file);
         }
         OutputStream out = new FileOutputStream(file);
-        IOUtils.closeQuietly(outputStreams.put(entry, out));
+        Closeables.closeQuietly(outputStreams.put(entry, out));
         return out;
     }
 
@@ -93,7 +93,7 @@ public class ZipReplayFile implements ReplayFile {
     @Override
     public void saveTo(File target) throws IOException {
         for (OutputStream out : outputStreams.values()) {
-            IOUtils.closeQuietly(out);
+            Closeables.closeQuietly(out);
         }
         outputStreams.clear();
 
@@ -358,7 +358,7 @@ public class ZipReplayFile implements ReplayFile {
             zipFile.close();
         }
         for (OutputStream out : outputStreams.values()) {
-            IOUtils.closeQuietly(out);
+            Closeables.closeQuietly(out);
         }
         outputStreams.clear();
 

@@ -1,6 +1,6 @@
 package de.johni0702.replaystudio.io;
 
-import org.spacehq.mc.auth.util.IOUtils;
+import com.google.common.io.ByteStreams;
 import org.spacehq.packetlib.io.NetInput;
 import org.spacehq.packetlib.io.NetOutput;
 import org.spacehq.packetlib.packet.Packet;
@@ -148,7 +148,7 @@ public class WrappedPacket implements IWrappedPacket {
                     }
                     byte[] array;
                     try {
-                        array = IOUtils.toByteArray(in);
+                        array = ByteStreams.toByteArray(in);
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }

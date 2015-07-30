@@ -9,13 +9,14 @@ import de.johni0702.replaystudio.studio.protocol.StudioSession;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
-import org.spacehq.mc.protocol.ProtocolMode;
+import org.spacehq.mc.protocol.data.SubProtocol;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerKeepAlivePacket;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
 import org.spacehq.mc.protocol.packet.login.server.LoginSetCompressionPacket;
 import org.spacehq.mc.protocol.packet.login.server.LoginSuccessPacket;
 import org.spacehq.packetlib.packet.Packet;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
@@ -89,7 +90,11 @@ public class ReplayInputStream extends InputStream {
 
             ByteBuf buf = ALLOC.buffer(length);
             while (length > 0) {
-                length -= buf.writeBytes(in, length);
+                int read = buf.writeBytes(in, length);
+                if (read == -1) {
+                    throw new EOFException();
+                }
+                length -= read;
             }
 
             ByteBuf decompressed;
@@ -138,7 +143,7 @@ public class ReplayInputStream extends InputStream {
                     }
                 }
                 if (o instanceof LoginSuccessPacket) {
-                    session.getPacketProtocol().setMode(ProtocolMode.GAME, true, session);
+                    session.getPacketProtocol().setSubProtocol(SubProtocol.GAME, true, session);
                 }
                 return new PacketData(next, (Packet) o);
             }

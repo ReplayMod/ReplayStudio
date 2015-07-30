@@ -56,7 +56,7 @@ repositories {
 }
 
 dependencies {
-    compile 'org.spacehq:mcprotocollib:1.8-SNAPSHOT'
+    compile 'org.spacehq:mcprotocollib:1.8.8-SNAPSHOT'
     compile 'org.apache.commons:commons-lang3:3.0'
     compile 'org.apache.commons:commons-collections4:4.0'
     compile 'commons-cli:commons-cli:1.2'
