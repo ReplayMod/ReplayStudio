@@ -198,6 +198,8 @@ public class SquashFilter extends StreamFilterBase {
             worldType = p.getWorldType();
             gameMode = p.getGameMode();
             currentWorld.clear();
+            chunks.clear();
+            unloadedChunks.clear();
             currentWindow.clear();
             entities.clear();
             respawn = data;
