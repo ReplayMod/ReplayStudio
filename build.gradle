@@ -68,6 +68,7 @@ dependencies {
 
 shadowJar {
     append('META-INF/NOTICE.txt')
+    relocate 'com.google.common.io', 'de.johni0702.replaystudio.com.google.common.io'
 }
 
 retrolambda {
