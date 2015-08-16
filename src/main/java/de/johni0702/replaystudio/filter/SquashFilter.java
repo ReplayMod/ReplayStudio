@@ -7,13 +7,16 @@ import de.johni0702.replaystudio.stream.PacketStream;
 import de.johni0702.replaystudio.util.Location;
 import de.johni0702.replaystudio.util.PacketUtils;
 import de.johni0702.replaystudio.util.Utils;
+import org.apache.commons.lang3.tuple.MutablePair;
 import org.spacehq.mc.protocol.data.game.Chunk;
+import org.spacehq.mc.protocol.data.game.Position;
 import org.spacehq.mc.protocol.data.game.values.entity.player.GameMode;
 import org.spacehq.mc.protocol.data.game.values.scoreboard.NameTagVisibility;
 import org.spacehq.mc.protocol.data.game.values.scoreboard.TeamAction;
 import org.spacehq.mc.protocol.data.game.values.scoreboard.TeamColor;
 import org.spacehq.mc.protocol.data.game.values.setting.Difficulty;
 import org.spacehq.mc.protocol.data.game.values.world.WorldType;
+import org.spacehq.mc.protocol.data.game.values.world.block.BlockChangeRecord;
 import org.spacehq.mc.protocol.data.game.values.world.notify.ClientNotification;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerDifficultyPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerJoinGamePacket;
@@ -80,6 +83,7 @@ public class SquashFilter extends StreamFilterBase {
     private final Map<Integer, ServerMapDataPacket> maps = new HashMap<>();
 
     private final List<PacketData> currentWorld = new ArrayList<>();
+    private final List<BlockChangeRecord> currentBlocks = new ArrayList<>();
     private final List<PacketData> currentWindow = new ArrayList<>();
     private final List<PacketData> closeWindows = new ArrayList<>();
 
@@ -200,6 +204,7 @@ public class SquashFilter extends StreamFilterBase {
             currentWorld.clear();
             chunks.clear();
             unloadedChunks.clear();
+            currentBlocks.clear();
             currentWindow.clear();
             entities.clear();
             respawn = data;
@@ -215,6 +220,18 @@ public class SquashFilter extends StreamFilterBase {
             ServerMultiChunkDataPacket p = (ServerMultiChunkDataPacket) packet;
             for (int i = 0; i < p.getColumns(); i++) {
                 updateChunk(data.getTime(), p.getX(i), p.getZ(i), p.getChunks(i), p.getBiomeData(i));
+            }
+            return false;
+        }
+
+        if (packet instanceof ServerBlockChangePacket) {
+            updateBlock(data.getTime(), ((ServerBlockChangePacket) packet).getRecord());
+            return false;
+        }
+
+        if (packet instanceof ServerMultiBlockChangePacket) {
+            for (BlockChangeRecord record : ((ServerMultiBlockChangePacket) packet).getRecords()) {
+                updateBlock(data.getTime(), record);
             }
             return false;
         }
@@ -419,6 +436,13 @@ public class SquashFilter extends StreamFilterBase {
         for (ChunkData chunk : chunks.values()) {
             Packet packet = new ServerChunkDataPacket(chunk.x, chunk.z, chunk.changes, chunk.biomeData);
             result.add(new PacketData(chunk.firstAppearance, packet));
+            for (Map<Short, MutablePair<Long, BlockChangeRecord>> e : chunk.blockChanges) {
+                if (e != null) {
+                    for (MutablePair<Long, BlockChangeRecord> pair : e.values()) {
+                        result.add(new PacketData(pair.getLeft(), new ServerBlockChangePacket(pair.getRight())));
+                    }
+                }
+            }
         }
 
         Collections.sort(result, (e1, e2) -> Long.compare(e1.getTime(), e2.getTime()));
@@ -474,11 +498,21 @@ public class SquashFilter extends StreamFilterBase {
         studio.setParsing(ServerSetSlotPacket.class, true);
         studio.setParsing(ServerChunkDataPacket.class, true);
         studio.setParsing(ServerMultiChunkDataPacket.class, true);
+        studio.setParsing(ServerBlockChangePacket.class, true);
+        studio.setParsing(ServerMultiBlockChangePacket.class, true);
         studio.setParsing(ServerMapDataPacket.class, true);
     }
 
     private void add(PacketStream stream, long timestamp, Packet packet) {
         stream.insert(new PacketData(timestamp, packet));
+    }
+
+    private void updateBlock(long time, BlockChangeRecord record) {
+        Position pos = record.getPosition();
+        ChunkData data = chunks.get(ChunkData.coordToLong(pos.getX(), pos.getZ()));
+        if (data != null) {
+            data.updateBlock(time, record);
+        }
     }
 
     private void updateChunk(long time, int x, int z, Chunk[] chunkArray, byte[] biomeData) {
@@ -503,6 +537,8 @@ public class SquashFilter extends StreamFilterBase {
         private final int z;
         private final Chunk[] changes = new Chunk[16];
         private byte[] biomeData;
+        @SuppressWarnings("unchecked")
+        private Map<Short, MutablePair<Long, BlockChangeRecord>>[] blockChanges = new Map[16];
 
         public ChunkData(long firstAppearance, int x, int z) {
             this.firstAppearance = firstAppearance;
@@ -519,6 +555,27 @@ public class SquashFilter extends StreamFilterBase {
 
             if (newBiomeData != null) {
                 this.biomeData = newBiomeData;
+            }
+        }
+
+        private MutablePair<Long, BlockChangeRecord> blockChanges(Position pos) {
+            int y = pos.getY() / 16;
+            if (blockChanges[y] == null) {
+                blockChanges[y] = new HashMap<>();
+            }
+            short index = (short) ((pos.getX() % 16) << 10 | (pos.getY() % 16) << 5 | (pos.getZ() % 16));
+            MutablePair<Long, BlockChangeRecord> pair = blockChanges[y].get(index);
+            if (pair == null) {
+                blockChanges[y].put(index, pair = MutablePair.of(0l, null));
+            }
+            return pair;
+        }
+
+        public void updateBlock(long time, BlockChangeRecord record) {
+            MutablePair<Long, BlockChangeRecord> pair = blockChanges(record.getPosition());
+            if (pair.getLeft() < time) {
+                pair.setLeft(time);
+                pair.setRight(record);
             }
         }
 
