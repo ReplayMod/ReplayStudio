@@ -131,8 +131,8 @@ public class ZipReplayFile implements ReplayFile {
     public void save() throws IOException {
         File outputFile = Files.createTempFile("replaystudio", "replayfile").toFile();
         saveTo(outputFile);
-        Files.move(outputFile.toPath(), file.toPath());
         close();
+        Files.move(outputFile.toPath(), file.toPath());
         zipFile = new ZipFile(file);
     }
 
@@ -414,8 +414,8 @@ public class ZipReplayFile implements ReplayFile {
                     Marker marker = new Marker();
                     marker.setTime(obj.get("realTimestamp").getAsInt());
                     marker.setX(position.get("x").getAsDouble());
-                    marker.setX(position.get("y").getAsDouble());
-                    marker.setX(position.get("z").getAsDouble());
+                    marker.setY(position.get("y").getAsDouble());
+                    marker.setZ(position.get("z").getAsDouble());
                     marker.setYaw(position.get("yaw").getAsFloat());
                     marker.setPitch(position.get("pitch").getAsFloat());
                     marker.setRoll(position.get("roll").getAsFloat());
