@@ -132,6 +132,9 @@ public class ZipReplayFile implements ReplayFile {
         File outputFile = Files.createTempFile("replaystudio", "replayfile").toFile();
         saveTo(outputFile);
         close();
+        if (file.exists()) {
+            Files.delete(file.toPath());
+        }
         Files.move(outputFile.toPath(), file.toPath());
         zipFile = new ZipFile(file);
     }
