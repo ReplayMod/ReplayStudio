@@ -64,7 +64,7 @@ public class ZipReplayFile implements ReplayFile {
     @Override
     public Optional<InputStream> get(String entry) throws IOException {
         if (changedEntries.containsKey(entry)) {
-            return Optional.of(new FileInputStream(changedEntries.get(entry)));
+            return Optional.of(new BufferedInputStream(new FileInputStream(changedEntries.get(entry))));
         }
         if (zipFile == null || removedEntries.contains(entry)) {
             return Optional.absent();
@@ -73,7 +73,7 @@ public class ZipReplayFile implements ReplayFile {
         if (zipEntry == null) {
             return Optional.absent();
         }
-        return Optional.of(zipFile.getInputStream(zipEntry));
+        return Optional.of(new BufferedInputStream(zipFile.getInputStream(zipEntry)));
     }
 
     @Override
@@ -83,7 +83,7 @@ public class ZipReplayFile implements ReplayFile {
         for (Map.Entry<String, File> entry : changedEntries.entrySet()) {
             String name = entry.getKey();
             if (pattern.matcher(name).matches()) {
-                streams.put(name, new FileInputStream(changedEntries.get(name)));
+                streams.put(name, new BufferedInputStream(new FileInputStream(changedEntries.get(name))));
             }
         }
 
@@ -94,7 +94,7 @@ public class ZipReplayFile implements ReplayFile {
                 String name = entry.getName();
                 if (pattern.matcher(name).matches()) {
                     if (!streams.containsKey(name) && !removedEntries.contains(name)) {
-                        streams.put(name, zipFile.getInputStream(entry));
+                        streams.put(name, new BufferedInputStream(zipFile.getInputStream(entry)));
                     }
                 }
             }
@@ -110,7 +110,7 @@ public class ZipReplayFile implements ReplayFile {
             file = Files.createTempFile("replaystudio", "replayfile").toFile();
             changedEntries.put(entry, file);
         }
-        OutputStream out = new FileOutputStream(file);
+        OutputStream out = new BufferedOutputStream(new FileOutputStream(file));
         Closeables.closeQuietly(outputStreams.put(entry, out));
         removedEntries.remove(entry);
         return out;
@@ -143,7 +143,7 @@ public class ZipReplayFile implements ReplayFile {
         }
         outputStreams.clear();
 
-        try (ZipOutputStream out = new ZipOutputStream(new FileOutputStream(target))) {
+        try (ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(target)))) {
             if (zipFile != null) {
                 for (ZipEntry entry : Collections.list(zipFile.entries())) {
                     if (!changedEntries.containsKey(entry.getName()) && !removedEntries.contains(entry.getName())) {
@@ -154,7 +154,7 @@ public class ZipReplayFile implements ReplayFile {
             }
             for (Map.Entry<String, File> e : changedEntries.entrySet()) {
                 out.putNextEntry(new ZipEntry(e.getKey()));
-                Utils.copy(new FileInputStream(e.getValue()), out);
+                Utils.copy(new BufferedInputStream(new FileInputStream(e.getValue())), out);
             }
         }
     }
