@@ -134,6 +134,7 @@ public class WrappedPacket implements IWrappedPacket {
         private final Class<? extends Packet> wrapped;
 
         public WrappingClassLoader(Class<? extends Packet> wrapped) {
+            super(WrappingClassLoader.class.getClassLoader());
             this.wrapped = wrapped;
         }
 
