@@ -60,6 +60,22 @@ public class ReplayMetaData {
      */
     private String[] players = new String[0];
 
+    public ReplayMetaData() {
+    }
+
+    public ReplayMetaData(ReplayMetaData other) {
+        singleplayer = other.singleplayer;
+        serverName = other.serverName;
+        duration = other.duration;
+        date = other.date;
+        mcversion = other.mcversion;
+        fileFormat = other.fileFormat;
+        fileFormatVersion = other.fileFormatVersion;
+        generator = other.generator;
+        selfId = other.selfId;
+        players = Arrays.copyOf(other.players, other.players.length);
+    }
+
     public boolean isSingleplayer() {
         return this.singleplayer;
     }
@@ -154,8 +170,7 @@ public class ReplayMetaData {
         if (this.fileFormatVersion != other.fileFormatVersion) return false;
         if (!Objects.equals(this.generator, other.generator)) return false;
         if (this.selfId != other.selfId) return false;
-        if (!Arrays.deepEquals(this.players, other.players)) return false;
-        return true;
+        return Arrays.deepEquals(this.players, other.players);
     }
 
     public int hashCode() {
