@@ -1,15 +1,19 @@
 package de.johni0702.replaystudio.replay;
 
 import com.google.common.base.Optional;
+import de.johni0702.replaystudio.data.Marker;
+import de.johni0702.replaystudio.data.ReplayAssetEntry;
 import de.johni0702.replaystudio.io.ReplayInputStream;
 import de.johni0702.replaystudio.io.ReplayOutputStream;
 import de.johni0702.replaystudio.path.Path;
 
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 public interface ReplayFile extends Closeable {
 
@@ -22,6 +26,14 @@ public interface ReplayFile extends Closeable {
     Optional<InputStream> get(String entry) throws IOException;
 
     /**
+     * Returns input streams for each entry matching in this replay file.
+     * @param pattern The pattern used for matching entries
+     * @return Map with entry names as keys and their input streams as values
+     * @throws IOException If an I/O error occurs
+     */
+    Map<String, InputStream> getAll(Pattern pattern) throws IOException;
+
+    /**
      * Write to the specified entry in this replay file.
      * If an output stream for this entry already exists, it is closed.
      * The changes will not be written unless {@link #save()} is called.
@@ -30,6 +42,14 @@ public interface ReplayFile extends Closeable {
      * @throws IOException If an I/O error occurs
      */
     OutputStream write(String entry) throws IOException;
+
+    /**
+     * Removes the entry from this replay file.
+     * Changes will not be written unless {@link #save()} is called.
+     * @param entry The entry
+     * @throws IOException
+     */
+    void remove(String entry) throws IOException;
 
     /**
      * Saves the changes to this replay file.
@@ -67,5 +87,13 @@ public interface ReplayFile extends Closeable {
 
     Optional<Set<UUID>> getInvisiblePlayers() throws IOException;
     void writeInvisiblePlayers(Set<UUID> uuids) throws IOException;
+
+    Optional<Set<Marker>> getMarkers() throws IOException;
+    void writeMarkers(Set<Marker> markers) throws IOException;
+
+    Collection<ReplayAssetEntry> getAssets() throws IOException;
+    Optional<InputStream> getAsset(UUID uuid) throws IOException;
+    OutputStream writeAsset(ReplayAssetEntry asset) throws IOException;
+    void removeAsset(UUID uuid) throws IOException;
 
 }
