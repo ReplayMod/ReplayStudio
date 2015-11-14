@@ -54,10 +54,14 @@ public class ZipReplayFile implements ReplayFile {
     private ZipFile zipFile;
 
     public ZipReplayFile(Studio studio, File file) throws IOException {
+        this(studio, file, file);
+    }
+
+    public ZipReplayFile(Studio studio, File input, File output) throws IOException {
         this.studio = studio;
-        this.file = file;
-        if (file.exists()) {
-            this.zipFile = new ZipFile(file);
+        this.file = output;
+        if (input.exists()) {
+            this.zipFile = new ZipFile(input);
         }
     }
 
