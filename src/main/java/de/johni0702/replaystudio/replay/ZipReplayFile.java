@@ -133,6 +133,9 @@ public class ZipReplayFile implements ReplayFile {
 
     @Override
     public void save() throws IOException {
+        if (zipFile != null && changedEntries.isEmpty() && removedEntries.isEmpty()) {
+            return; // No changes, no need to save
+        }
         File outputFile = Files.createTempFile("replaystudio", "replayfile").toFile();
         saveTo(outputFile);
         close();
@@ -518,5 +521,6 @@ public class ZipReplayFile implements ReplayFile {
             Files.delete(file.toPath());
         }
         changedEntries.clear();
+        removedEntries.clear();
     }
 }
