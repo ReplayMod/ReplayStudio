@@ -5,8 +5,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'me.tatarka:gradle-retrolambda:2.5.0'
-        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.0'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
     }
 }
 
@@ -17,7 +16,6 @@ apply plugin: 'application'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'com.github.johnrengelman.shadow'
-apply plugin: 'me.tatarka.retrolambda'
 apply plugin: 'maven'
 
 // Methods to determine detailed version string
@@ -35,10 +33,10 @@ def gitDescribe() {
     }
 }
 
-group = 'de.johni0702'
+group = 'com.replaymod'
 description = 'ReplayStudio'
 version = '0.0.1-SNAPSHOT'
-mainClassName = 'de.johni0702.replaystudio.launcher.Launcher'
+mainClassName = 'com.replaymod.replaystudio.launcher.Launcher'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -51,16 +49,17 @@ repositories {
     mavenCentral()
     mavenLocal()
     maven {
-        url 'https://repo.johni0702.de/content/groups/public/'
+        url 'https://repo.spacehq.org/content/repositories/snapshots/'
     }
 }
 
 dependencies {
     compile 'org.spacehq:mcprotocollib:1.8.8-SNAPSHOT'
-    compile 'org.apache.commons:commons-lang3:3.0'
+    compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'
     compile 'commons-cli:commons-cli:1.2'
-    compile 'com.google.guava:guava:12.0'
+    compile 'com.google.guava:guava:18.0'
+    compile "org.projectlombok:lombok:1.16.6"
     testCompile 'junit:junit:4.11'
     testCompile 'com.google.guava:guava-testlib:18.0'
     testCompile 'pl.pragmatists:JUnitParams:1.0.4'
@@ -68,13 +67,6 @@ dependencies {
 
 shadowJar {
     append('META-INF/NOTICE.txt')
-    relocate 'com.google.common.io', 'de.johni0702.replaystudio.com.google.common.io'
-}
-
-retrolambda {
-    jdk System.getenv("JAVA8_HOME")
-    oldJdk System.getenv("JAVA7_HOME")
-    javaVersion JavaVersion.VERSION_1_7
 }
 
 eclipse.project {
