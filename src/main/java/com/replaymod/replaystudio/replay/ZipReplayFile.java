@@ -3,20 +3,15 @@ package com.replaymod.replaystudio.replay;
 import com.google.common.base.Optional;
 import com.google.common.io.Closeables;
 import com.google.gson.*;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
 import com.replaymod.replaystudio.Studio;
-import com.replaymod.replaystudio.io.ReplayInputStream;
-import com.replaymod.replaystudio.io.ReplayOutputStream;
-import com.replaymod.replaystudio.path.KeyframePosition;
-import com.replaymod.replaystudio.path.KeyframeTime;
-import com.replaymod.replaystudio.path.Path;
-import com.replaymod.replaystudio.util.DPosition;
-import com.replaymod.replaystudio.util.Utils;
 import com.replaymod.replaystudio.data.Marker;
 import com.replaymod.replaystudio.data.ReplayAssetEntry;
-import org.apache.commons.lang3.tuple.Pair;
-import org.spacehq.mc.protocol.data.game.Rotation;
+import com.replaymod.replaystudio.io.ReplayInputStream;
+import com.replaymod.replaystudio.io.ReplayOutputStream;
+import com.replaymod.replaystudio.pathing.PathingRegistry;
+import com.replaymod.replaystudio.pathing.path.Timeline;
+import com.replaymod.replaystudio.pathing.serialize.TimelineSerialization;
+import com.replaymod.replaystudio.util.Utils;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -35,8 +30,6 @@ public class ZipReplayFile implements ReplayFile {
     private static final String ENTRY_RESOURCE_PACK = "resourcepack/%s.zip";
     private static final String ENTRY_RESOURCE_PACK_INDEX = "resourcepack/index.json";
     private static final String ENTRY_THUMB = "thumb";
-    private static final String ENTRY_PATHS_OLD = "paths";
-    private static final String ENTRY_PATHS = "path.json";
     private static final String ENTRY_VISIBILITY_OLD = "visibility";
     private static final String ENTRY_VISIBILITY = "visibility.json";
     private static final String ENTRY_MARKERS = "markers.json";
@@ -115,7 +108,7 @@ public class ZipReplayFile implements ReplayFile {
             changedEntries.put(entry, file);
         }
         OutputStream out = new BufferedOutputStream(new FileOutputStream(file));
-        Closeables.closeQuietly(outputStreams.put(entry, out));
+        Closeables.close(outputStreams.put(entry, out), true);
         removedEntries.remove(entry);
         return out;
     }
@@ -149,7 +142,7 @@ public class ZipReplayFile implements ReplayFile {
     @Override
     public void saveTo(File target) throws IOException {
         for (OutputStream out : outputStreams.values()) {
-            Closeables.closeQuietly(out);
+            Closeables.close(out, false);
         }
         outputStreams.clear();
 
@@ -250,110 +243,14 @@ public class ZipReplayFile implements ReplayFile {
         return write(String.format(ENTRY_RESOURCE_PACK, hash));
     }
 
-    private Gson gsonPaths() {
-        return new GsonBuilder().registerTypeAdapter(KeyframeTime.class, new TypeAdapter<KeyframeTime>() {
-            @Override
-            public void write(JsonWriter jsonWriter, KeyframeTime keyframe) throws IOException {
-                jsonWriter.beginObject();
-                jsonWriter.name("timestamp").value(keyframe.getReplayTime());
-                jsonWriter.name("realTimestamp").value(keyframe.getTime());
-            }
-
-            @Override
-            public KeyframeTime read(JsonReader jsonReader) throws IOException {
-                long time = 0;
-                long replayTime = 0;
-                jsonReader.beginObject();
-                while (jsonReader.hasNext()) {
-                    String name = jsonReader.nextName();
-                    if ("timestamp".equals(name)) {
-                        replayTime = jsonReader.nextLong();
-                    } else if ("realTimestamp".equals(name)) {
-                        time = jsonReader.nextLong();
-                    } else {
-                        jsonReader.skipValue();
-                    }
-                }
-                jsonReader.endObject();
-                return new KeyframeTime(time, replayTime);
-            }
-        }).registerTypeAdapter(KeyframePosition.class, new TypeAdapter<KeyframePosition>() {
-            @Override
-            public void write(JsonWriter jsonWriter, KeyframePosition keyframe) throws IOException {
-                jsonWriter.beginObject();
-                jsonWriter.name("position");
-                {
-                    jsonWriter.beginObject();
-                    jsonWriter.name("x").value(keyframe.getPosition().getX());
-                    jsonWriter.name("y").value(keyframe.getPosition().getY());
-                    jsonWriter.name("z").value(keyframe.getPosition().getZ());
-                    jsonWriter.name("pitch").value(keyframe.getRotation().getPitch());
-                    jsonWriter.name("yaw").value(keyframe.getRotation().getYaw());
-                    jsonWriter.name("roll").value(keyframe.getRotation().getRoll());
-                }
-                jsonWriter.name("realTimestamp");
-                jsonWriter.value(keyframe.getTime());
-            }
-
-            @Override
-            public KeyframePosition read(JsonReader jsonReader) throws IOException {
-                long time = 0;
-                Pair<DPosition, Rotation> posRot = Pair.of(DPosition.NULL, new Rotation(0, 0, 0));
-                jsonReader.beginObject();
-                while (jsonReader.hasNext()) {
-                    String name = jsonReader.nextName();
-                    if ("position".equals(name)) {
-                        posRot = readPosRot(jsonReader);
-                    } else if ("realTimestamp".equals(name)) {
-                        time = jsonReader.nextLong();
-                    } else {
-                        jsonReader.skipValue();
-                    }
-                }
-                jsonReader.endObject();
-                return new KeyframePosition(time, posRot.getLeft(), posRot.getRight());
-            }
-
-            private Pair<DPosition, Rotation> readPosRot(JsonReader jsonReader) throws IOException {
-                double x = 0, y = 0, z = 0;
-                float pitch = 0, yaw = 0, roll = 0;
-                jsonReader.beginObject();
-                while (jsonReader.hasNext()) {
-                    String name = jsonReader.nextName();
-                    switch (name) {
-                        case "x": x = jsonReader.nextDouble(); break;
-                        case "y": y = jsonReader.nextDouble(); break;
-                        case "z": z = jsonReader.nextDouble(); break;
-                        case "pitch": pitch = (float) jsonReader.nextDouble(); break;
-                        case "yaw": yaw = (float) jsonReader.nextDouble(); break;
-                        case "roll": roll = (float) jsonReader.nextDouble(); break;
-                        default: jsonReader.skipValue();
-                    }
-                }
-                jsonReader.endObject();
-                return Pair.of(new DPosition(x, y, z), new Rotation(pitch, yaw, roll));
-            }
-        }).create();
+    @Override
+    public Map<String, Timeline> getTimelines(PathingRegistry pathingRegistry) throws IOException {
+        return new TimelineSerialization(pathingRegistry, this).load();
     }
 
     @Override
-    public Optional<Path[]> getPaths() throws IOException {
-        Optional<InputStream> in = get(ENTRY_PATHS);
-        if (!in.isPresent()) {
-            in = get(ENTRY_PATHS_OLD);
-            if (!in.isPresent()) {
-                return null;
-            }
-        }
-        return Optional.of(gsonPaths().fromJson(new InputStreamReader(in.get()), Path[].class));
-    }
-
-    @Override
-    public void writePaths(Path[] paths) throws IOException {
-        try (OutputStream out = write(ENTRY_PATHS)) {
-            String json = gsonPaths().toJson(paths);
-            out.write(json.getBytes());
-        }
+    public void writeTimelines(PathingRegistry pathingRegistry, Map<String, Timeline> timelines) throws IOException {
+        new TimelineSerialization(pathingRegistry, this).save(timelines);
     }
 
     @Override
@@ -513,7 +410,7 @@ public class ZipReplayFile implements ReplayFile {
             zipFile.close();
         }
         for (OutputStream out : outputStreams.values()) {
-            Closeables.closeQuietly(out);
+            Closeables.close(out, true);
         }
         outputStreams.clear();
 

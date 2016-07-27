@@ -1,11 +1,12 @@
 package com.replaymod.replaystudio.replay;
 
 import com.google.common.base.Optional;
-import com.replaymod.replaystudio.io.ReplayInputStream;
-import com.replaymod.replaystudio.io.ReplayOutputStream;
-import com.replaymod.replaystudio.path.Path;
 import com.replaymod.replaystudio.data.Marker;
 import com.replaymod.replaystudio.data.ReplayAssetEntry;
+import com.replaymod.replaystudio.io.ReplayInputStream;
+import com.replaymod.replaystudio.io.ReplayOutputStream;
+import com.replaymod.replaystudio.pathing.PathingRegistry;
+import com.replaymod.replaystudio.pathing.path.Timeline;
 
 import java.awt.image.BufferedImage;
 import java.io.*;
@@ -79,8 +80,8 @@ public interface ReplayFile extends Closeable {
     Optional<InputStream> getResourcePack(String hash) throws IOException;
     OutputStream writeResourcePack(String hash) throws IOException;
 
-    Optional<Path[]> getPaths() throws IOException;
-    void writePaths(Path[] paths) throws IOException;
+    Map<String, Timeline> getTimelines(PathingRegistry pathingRegistry) throws IOException;
+    void writeTimelines(PathingRegistry pathingRegistry, Map<String, Timeline> timelines) throws IOException;
 
     Optional<BufferedImage> getThumb() throws IOException;
     void writeThumb(BufferedImage image) throws IOException;
