@@ -1,20 +1,11 @@
 package com.replaymod.replaystudio.replay;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.io.Closeables;
-import com.google.gson.*;
 import com.replaymod.replaystudio.Studio;
-import com.replaymod.replaystudio.data.Marker;
-import com.replaymod.replaystudio.data.ReplayAssetEntry;
-import com.replaymod.replaystudio.io.ReplayInputStream;
-import com.replaymod.replaystudio.io.ReplayOutputStream;
-import com.replaymod.replaystudio.pathing.PathingRegistry;
-import com.replaymod.replaystudio.pathing.path.Timeline;
-import com.replaymod.replaystudio.pathing.serialize.TimelineSerialization;
 import com.replaymod.replaystudio.util.Utils;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
 import java.util.*;
@@ -23,23 +14,26 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
-public class ZipReplayFile implements ReplayFile {
+import static com.google.common.io.Files.*;
+import static java.nio.file.Files.*;
+import static java.nio.file.Files.move;
 
-    private static final String ENTRY_META_DATA = "metaData.json";
-    private static final String ENTRY_RECORDING = "recording.tmcpr";
-    private static final String ENTRY_RESOURCE_PACK = "resourcepack/%s.zip";
-    private static final String ENTRY_RESOURCE_PACK_INDEX = "resourcepack/index.json";
-    private static final String ENTRY_THUMB = "thumb";
-    private static final String ENTRY_VISIBILITY_OLD = "visibility";
-    private static final String ENTRY_VISIBILITY = "visibility.json";
-    private static final String ENTRY_MARKERS = "markers.json";
-    private static final String ENTRY_ASSET = "asset/%s_%s.%s";
-    private static final Pattern PATTERN_ASSETS = Pattern.compile("asset/.*");
+public class ZipReplayFile extends AbstractReplayFile {
 
-    private static final byte[] THUMB_MAGIC_NUMBERS = {0, 1, 1, 2, 3, 5, 8};
+    private final File input;
+    private final File output;
 
-    private final Studio studio;
-    private final File file;
+    // Temporary folder structure
+    private final File tmpFiles;
+    private final File changedFiles;
+    private final File removedFiles;
+    private final File sourceFile;
+
+    /**
+     * Whether the input file path should be written to the tmp folder on next write.
+     */
+    private boolean shouldSaveInputFile;
+
     private final Map<String, OutputStream> outputStreams = new HashMap<>();
     private final Map<String, File> changedEntries = new HashMap<>();
     private final Set<String> removedEntries = new HashSet<>();
@@ -51,10 +45,58 @@ public class ZipReplayFile implements ReplayFile {
     }
 
     public ZipReplayFile(Studio studio, File input, File output) throws IOException {
-        this.studio = studio;
-        this.file = output;
-        if (input.exists()) {
+        super(studio);
+
+        tmpFiles = new File(output.getParentFile(), output.getName() + ".tmp");
+        changedFiles = new File(tmpFiles, "changed");
+        removedFiles = new File(tmpFiles, "removed");
+        sourceFile = new File(tmpFiles, "source");
+
+        if (input != null && input.exists()) {
+            // Save input file path in case of crash
+            shouldSaveInputFile = true;
+        } else if (input == null && sourceFile.exists()) {
+            // Recover input file
+            input = new File(new String(readAllBytes(sourceFile.toPath()), Charsets.UTF_8));
+            if (!input.exists()) {
+                throw new IOException("Recovered source file no longer exists.");
+            }
+        }
+
+        this.output = output;
+        this.input = input;
+
+        if (input != null && input.exists()) {
             this.zipFile = new ZipFile(input);
+        }
+
+        // Try to restore any changes if we weren't able to save them last time
+        if (changedFiles.exists()) {
+            fileTreeTraverser()
+                    .breadthFirstTraversal(changedFiles)
+                    .filter(isFile())
+                    .forEach(f -> changedEntries.put(changedFiles.toURI().relativize(f.toURI()).getPath(), f));
+        }
+        if (removedFiles.exists()) {
+            fileTreeTraverser()
+                    .breadthFirstTraversal(removedFiles)
+                    .filter(isFile())
+                    .transform(f -> removedFiles.toURI().relativize(f.toURI()).getPath())
+                    .forEach(removedEntries::add);
+        }
+    }
+
+    /**
+     * Saves the input file path to the source file in the temp folder structure.
+     * @throws IOException
+     */
+    private void saveInputFile() throws IOException {
+        if (shouldSaveInputFile) {
+            createParentDirs(sourceFile);
+            try (OutputStream out = new BufferedOutputStream(new FileOutputStream(sourceFile))) {
+                out.write(input.getCanonicalPath().getBytes(Charsets.UTF_8));
+            }
+            shouldSaveInputFile = false;
         }
     }
 
@@ -102,26 +144,33 @@ public class ZipReplayFile implements ReplayFile {
 
     @Override
     public OutputStream write(String entry) throws IOException {
+        saveInputFile();
         File file = changedEntries.get(entry);
         if (file == null) {
-            file = Files.createTempFile("replaystudio", "replayfile").toFile();
+            file = new File(changedFiles, entry);
+            createParentDirs(file);
             changedEntries.put(entry, file);
         }
         OutputStream out = new BufferedOutputStream(new FileOutputStream(file));
         Closeables.close(outputStreams.put(entry, out), true);
-        removedEntries.remove(entry);
+        if (removedEntries.remove(entry)) {
+            deleteIfExists(new File(removedFiles, entry).toPath());
+        }
         return out;
     }
 
     @Override
     public void remove(String entry) throws IOException {
+        saveInputFile();
+        Closeables.close(outputStreams.remove(entry), true);
         File file = changedEntries.remove(entry);
         if (file != null && file.exists()) {
-            if (!file.delete()) {
-                file.deleteOnExit();
-            }
+            delete(file);
         }
         removedEntries.add(entry);
+        File removedFile = new File(removedFiles, entry);
+        createParentDirs(removedFile);
+        touch(removedFile);
     }
 
     @Override
@@ -129,14 +178,14 @@ public class ZipReplayFile implements ReplayFile {
         if (zipFile != null && changedEntries.isEmpty() && removedEntries.isEmpty()) {
             return; // No changes, no need to save
         }
-        File outputFile = Files.createTempFile("replaystudio", "replayfile").toFile();
+        File outputFile = createTempFile("replaystudio", "replayfile").toFile();
         saveTo(outputFile);
         close();
-        if (file.exists()) {
-            Files.delete(file.toPath());
+        if (output.exists()) {
+            delete(output);
         }
-        Files.move(outputFile.toPath(), file.toPath());
-        zipFile = new ZipFile(file);
+        move(outputFile.toPath(), output.toPath());
+        zipFile = new ZipFile(output);
     }
 
     @Override
@@ -163,248 +212,6 @@ public class ZipReplayFile implements ReplayFile {
     }
 
     @Override
-    public ReplayMetaData getMetaData() throws IOException {
-        Optional<InputStream> in = get(ENTRY_META_DATA);
-        if (!in.isPresent()) {
-            return null;
-        }
-        try (Reader is = new InputStreamReader(in.get())) {
-            return new Gson().fromJson(is, ReplayMetaData.class);
-        }
-    }
-
-    @Override
-    public void writeMetaData(ReplayMetaData metaData) throws IOException {
-        metaData.setFileFormat("MCPR");
-        metaData.setFileFormatVersion(1);
-        if (metaData.getGenerator() == null) {
-            metaData.setGenerator("ReplayStudio v" + studio.getVersion());
-        }
-
-        try (OutputStream out = write(ENTRY_META_DATA)) {
-            String json = new Gson().toJson(metaData);
-            out.write(json.getBytes());
-        }
-    }
-
-    @Override
-    public ReplayInputStream getPacketData() throws IOException {
-        Optional<InputStream> in = get(ENTRY_RECORDING);
-        if (!in.isPresent()) {
-            return null;
-        }
-        return new ReplayInputStream(studio, in.get());
-    }
-
-    @Override
-    public ReplayOutputStream writePacketData() throws IOException {
-        return new ReplayOutputStream(studio, write(ENTRY_RECORDING));
-    }
-
-    @Override
-    public Replay toReplay() throws IOException {
-        return studio.createReplay(this);
-    }
-
-    @Override
-    public Map<Integer, String> getResourcePackIndex() throws IOException {
-        Optional<InputStream> in = get(ENTRY_RESOURCE_PACK_INDEX);
-        if (!in.isPresent()) {
-            return null;
-        }
-        Map<Integer, String> index = new HashMap<>();
-        try (Reader is = new InputStreamReader(in.get())) {
-            JsonObject array = new Gson().fromJson(is, JsonObject.class);
-            for (Map.Entry<String, JsonElement> e : array.entrySet()) {
-                try {
-                    index.put(Integer.parseInt(e.getKey()), e.getValue().getAsString());
-                } catch (NumberFormatException ignored) {
-                }
-            }
-        }
-        return index;
-    }
-
-    @Override
-    public void writeResourcePackIndex(Map<Integer, String> index) throws IOException {
-        try (OutputStream out = write(ENTRY_RESOURCE_PACK_INDEX)) {
-            String json = new Gson().toJson(index);
-            out.write(json.getBytes());
-        }
-    }
-
-    @Override
-    public Optional<InputStream> getResourcePack(String hash) throws IOException {
-        return get(String.format(ENTRY_RESOURCE_PACK, hash));
-    }
-
-    @Override
-    public OutputStream writeResourcePack(String hash) throws IOException {
-        return write(String.format(ENTRY_RESOURCE_PACK, hash));
-    }
-
-    @Override
-    public Map<String, Timeline> getTimelines(PathingRegistry pathingRegistry) throws IOException {
-        return new TimelineSerialization(pathingRegistry, this).load();
-    }
-
-    @Override
-    public void writeTimelines(PathingRegistry pathingRegistry, Map<String, Timeline> timelines) throws IOException {
-        new TimelineSerialization(pathingRegistry, this).save(timelines);
-    }
-
-    @Override
-    public Optional<BufferedImage> getThumb() throws IOException {
-        Optional<InputStream> in = get(ENTRY_THUMB);
-        if (in.isPresent()) {
-            int i = 7;
-            while (i > 0) {
-                i -= in.get().skip(i);
-            }
-            return Optional.of(ImageIO.read(in.get()));
-        }
-        return Optional.absent();
-    }
-
-    @Override
-    public void writeThumb(BufferedImage image) throws IOException {
-        try (OutputStream out = write(ENTRY_THUMB)) {
-            out.write(THUMB_MAGIC_NUMBERS);
-            ImageIO.write(image, "jpg", out);
-        }
-    }
-
-    @Override
-    public Optional<Set<UUID>> getInvisiblePlayers() throws IOException {
-        Optional<InputStream> in = get(ENTRY_VISIBILITY);
-        if (!in.isPresent()) {
-            in = get(ENTRY_VISIBILITY_OLD);
-            if (!in.isPresent()) {
-                return Optional.absent();
-            }
-        }
-        Set<UUID> uuids = new HashSet<>();
-        try (Reader is = new InputStreamReader(in.get())) {
-            JsonObject json = new Gson().fromJson(is, JsonObject.class);
-            for (JsonElement e : json.getAsJsonArray("hidden")) {
-                uuids.add(UUID.fromString(e.getAsString()));
-            }
-        }
-        return Optional.of(uuids);
-    }
-
-    @Override
-    public void writeInvisiblePlayers(Set<UUID> uuids) throws IOException {
-        try (OutputStream out = write(ENTRY_VISIBILITY)) {
-            JsonObject root = new JsonObject();
-            JsonArray array = new JsonArray();
-            root.add("hidden", array);
-            for (UUID uuid : uuids) {
-                array.add(new JsonPrimitive(uuid.toString()));
-            }
-            String json = new Gson().toJson(root);
-            out.write(json.getBytes());
-        }
-    }
-
-    @Override
-    public Optional<Set<Marker>> getMarkers() throws IOException {
-        Optional<InputStream> in = get(ENTRY_MARKERS);
-        if (in.isPresent()) {
-            try (Reader is = new InputStreamReader(in.get())) {
-                JsonArray json = new Gson().fromJson(is, JsonArray.class);
-                Set<Marker> markers = new HashSet<>();
-                for (JsonElement element : json) {
-                    JsonObject obj = element.getAsJsonObject();
-                    JsonObject value = obj.getAsJsonObject("value");
-                    JsonObject position = value.getAsJsonObject("position");
-                    Marker marker = new Marker();
-                    marker.setTime(obj.get("realTimestamp").getAsInt());
-                    marker.setX(position.get("x").getAsDouble());
-                    marker.setY(position.get("y").getAsDouble());
-                    marker.setZ(position.get("z").getAsDouble());
-                    marker.setYaw(position.get("yaw").getAsFloat());
-                    marker.setPitch(position.get("pitch").getAsFloat());
-                    marker.setRoll(position.get("roll").getAsFloat());
-                    if (value.has("name")) {
-                        marker.setName(value.get("name").getAsString());
-                    }
-                    markers.add(marker);
-                }
-                return Optional.of(markers);
-            }
-        }
-        return Optional.absent();
-    }
-
-    @Override
-    public void writeMarkers(Set<Marker> markers) throws IOException {
-        try (OutputStream out = write(ENTRY_MARKERS)) {
-            JsonArray root = new JsonArray();
-            for (Marker marker : markers) {
-                JsonObject entry = new JsonObject();
-                JsonObject value = new JsonObject();
-                JsonObject position = new JsonObject();
-
-                entry.add("realTimestamp", new JsonPrimitive(marker.getTime()));
-                value.add("name", marker.getName() == null ? null : new JsonPrimitive(marker.getName()));
-                position.add("x", new JsonPrimitive(marker.getX()));
-                position.add("y", new JsonPrimitive(marker.getY()));
-                position.add("z", new JsonPrimitive(marker.getZ()));
-                position.add("yaw", new JsonPrimitive(marker.getYaw()));
-                position.add("pitch", new JsonPrimitive(marker.getPitch()));
-                position.add("roll", new JsonPrimitive(marker.getRoll()));
-
-                value.add("position", position);
-                entry.add("value", value);
-                root.add(entry);
-            }
-            out.write(new Gson().toJson(root).getBytes());
-        }
-    }
-
-    @Override
-    public Collection<ReplayAssetEntry> getAssets() throws IOException {
-        Map<String, InputStream> entries = getAll(PATTERN_ASSETS);
-        for (InputStream in : entries.values()) {
-            Closeables.closeQuietly(in);
-        }
-        List<ReplayAssetEntry> list = new ArrayList<>();
-        for (String key : entries.keySet()) {
-            int delim = key.indexOf('_');
-            UUID uuid = UUID.fromString(key.substring(0, delim));
-            String name = key.substring(delim + 1, key.lastIndexOf('.'));
-            String extension = key.substring(key.lastIndexOf('.'));
-            list.add(new ReplayAssetEntry(uuid, extension, name));
-        }
-        return list;
-    }
-
-    @Override
-    public Optional<InputStream> getAsset(UUID uuid) throws IOException {
-        Map<String, InputStream> entries = getAll(Pattern.compile("asset/" + Pattern.quote(uuid.toString()) + "_.*"));
-        if (entries.isEmpty()) {
-            return Optional.absent();
-        }
-        return Optional.of(entries.values().iterator().next());
-    }
-
-    @Override
-    public OutputStream writeAsset(ReplayAssetEntry asset) throws IOException {
-        return write(String.format(ENTRY_ASSET, asset.getUuid().toString(), asset.getName(), asset.getFileExtension()));
-    }
-
-    @Override
-    public void removeAsset(UUID uuid) throws IOException {
-        Collection<ReplayAssetEntry> assets = getAssets();
-        for (ReplayAssetEntry asset : assets) {
-            if (asset.getUuid().equals(uuid)) {
-                remove(String.format(ENTRY_ASSET, asset.getUuid().toString(), asset.getName(), asset.getFileExtension()));
-            }
-        }
-    }
-
-    @Override
     public void close() throws IOException {
         if (zipFile != null) {
             zipFile.close();
@@ -414,10 +221,18 @@ public class ZipReplayFile implements ReplayFile {
         }
         outputStreams.clear();
 
-        for (File file : changedEntries.values()) {
-            Files.delete(file.toPath());
-        }
         changedEntries.clear();
         removedEntries.clear();
+        delete(tmpFiles);
+    }
+
+    private void delete(File file) throws IOException {
+        File[] children = file.listFiles();
+        if (children != null) {
+            for (File child : children) {
+                delete(child);
+            }
+        }
+        Files.deleteIfExists(file.toPath());
     }
 }
