@@ -3,8 +3,12 @@ package com.replaymod.replaystudio.pathing.serialize;
 import com.google.common.base.Optional;
 import com.google.gson.GsonBuilder;
 import com.replaymod.replaystudio.pathing.PathingRegistry;
+import com.replaymod.replaystudio.pathing.interpolation.CubicSplineInterpolator;
+import com.replaymod.replaystudio.pathing.interpolation.Interpolator;
+import com.replaymod.replaystudio.pathing.interpolation.LinearInterpolator;
 import com.replaymod.replaystudio.pathing.path.Path;
 import com.replaymod.replaystudio.pathing.path.Timeline;
+import com.replaymod.replaystudio.pathing.property.Property;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import org.apache.commons.lang3.tuple.Triple;
 
@@ -56,13 +60,17 @@ public class LegacyTimelineConverter {
     @SuppressWarnings("unchecked")
     private static Timeline convert(PathingRegistry registry, KeyframeSet keyframeSet) {
         Timeline timeline = registry.createTimeline();
+        Property timestamp = timeline.getProperty("timestamp");
+        Property cameraPosition = timeline.getProperty("camera:position");
+        Property cameraRotation = timeline.getProperty("camera:rotation");
+
         Path timePath = timeline.createPath();
         Path positionPath = timeline.createPath();
         for (Keyframe<AdvancedPosition> positionKeyframe : keyframeSet.positionKeyframes) {
             AdvancedPosition value = positionKeyframe.value;
             com.replaymod.replaystudio.pathing.path.Keyframe keyframe = getKeyframe(positionPath, positionKeyframe.realTimestamp);
-            keyframe.setValue(timeline.getProperty("camera:position"), Triple.of(value.x, value.y, value.z));
-            keyframe.setValue(timeline.getProperty("camera:rotation"), Triple.of(value.yaw, value.pitch, value.roll));
+            keyframe.setValue(cameraPosition, Triple.of(value.x, value.y, value.z));
+            keyframe.setValue(cameraRotation, Triple.of(value.yaw, value.pitch, value.roll));
             if (value instanceof SpectatorData) {
                 // TODO Spectator keyframes
             }
@@ -70,8 +78,18 @@ public class LegacyTimelineConverter {
         for (Keyframe<TimestampValue> timeKeyframe : keyframeSet.timeKeyframes) {
             TimestampValue value = timeKeyframe.value;
             com.replaymod.replaystudio.pathing.path.Keyframe keyframe = getKeyframe(timePath, timeKeyframe.realTimestamp);
-            keyframe.setValue(timeline.getProperty("timestamp"), (int) value.value);
+            keyframe.setValue(timestamp, (int) value.value);
         }
+
+        Interpolator timeInterpolator = new LinearInterpolator();
+        timeInterpolator.registerProperty(timestamp);
+        timePath.getSegments().forEach(s -> s.setInterpolator(timeInterpolator));
+
+        Interpolator positionInterpolator = new CubicSplineInterpolator();
+        positionInterpolator.registerProperty(cameraPosition);
+        positionInterpolator.registerProperty(cameraRotation);
+        positionPath.getSegments().forEach(s -> s.setInterpolator(positionInterpolator));
+
         return timeline;
     }
 

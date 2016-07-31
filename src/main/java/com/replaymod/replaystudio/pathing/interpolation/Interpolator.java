@@ -18,6 +18,18 @@ import java.util.Optional;
  */
 public interface Interpolator {
     /**
+     * Register the specified property to be handled by this interpolator.
+     * @param property The property
+     */
+    void registerProperty(Property property);
+
+    /**
+     * Removes the specified property from being handled by this interpolator
+     * @param property The property
+     */
+    void unregisterProperty(Property property);
+
+    /**
      * Returns a collection of all properties applicable for this Interpolator.
      *
      * @return Collection of properties or empty collection if none

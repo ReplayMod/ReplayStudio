@@ -16,8 +16,18 @@ public abstract class AbstractInterpolator implements Interpolator {
         return Collections.unmodifiableCollection(properties);
     }
 
+    @Override
     public void registerProperty(Property property) {
-        properties.add(property);
+        if (properties.add(property)) {
+            dirty = true;
+        }
+    }
+
+    @Override
+    public void unregisterProperty(Property property) {
+        if (properties.remove(property)) {
+            dirty = true;
+        }
     }
 
     @Override

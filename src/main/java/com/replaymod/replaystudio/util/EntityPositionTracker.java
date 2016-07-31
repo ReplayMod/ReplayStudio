@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -134,7 +133,7 @@ public class EntityPositionTracker {
      * @param entityID The ID of the entity
      * @param timestamp The timestamp
      * @return The position of the specified entity at the given timestamp
-     *          or {@code null} if the entity doesn't exist at that timestamp
+     *          or {@code null} if the entity hasn't yet been spawned at that timestamp
      * @throws IllegalStateException if {@link #load(Consumer)} hasn't been called or hasn't finished yet.
      */
     public Location getEntityPositionAtTimestamp(int entityID, long timestamp) {
@@ -142,6 +141,21 @@ public class EntityPositionTracker {
             throw new IllegalStateException("Not yet initialized.");
         }
 
-        return entityPositions.getOrDefault(entityID, Collections.emptyNavigableMap()).get(timestamp);
+        NavigableMap<Long, Location> positions = entityPositions.get(entityID);
+        Map.Entry<Long, Location> lower = positions.floorEntry(timestamp);
+        Map.Entry<Long, Location> higher = positions.higherEntry(timestamp);
+        if (lower == null || higher == null) {
+            return null;
+        }
+        double r = (higher.getKey() - timestamp) / (higher.getKey() - lower.getKey());
+        Location l = lower.getValue();
+        Location h = higher.getValue();
+        return new Location(
+                l.getX() + (h.getX() - l.getX()) * r,
+                l.getY() + (h.getY() - l.getY()) * r,
+                l.getZ() + (h.getZ() - l.getZ()) * r,
+                l.getYaw() + (h.getYaw() - l.getYaw()) * (float) r,
+                l.getPitch() + (h.getPitch() - l.getPitch()) * (float) r
+        );
     }
 }

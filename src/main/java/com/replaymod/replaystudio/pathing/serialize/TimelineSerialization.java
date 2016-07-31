@@ -90,7 +90,15 @@ public class TimelineSerialization {
                 writer.endArray();
                 writer.name("interpolators").beginArray();
                 for (Interpolator interpolator : interpolators.keySet()) {
+                    writer.beginObject();
+                    writer.name("type");
                     registry.serializeInterpolator(writer, interpolator);
+                    writer.name("properties").beginArray();
+                    for (Property<?> property : interpolator.getKeyframeProperties()) {
+                        writer.value((property.getGroup() == null ? "" : property.getGroup().getId() + ":") + property.getId());
+                    }
+                    writer.endArray();
+                    writer.endObject();
                 }
                 writer.endArray();
                 writer.endObject();
@@ -170,7 +178,35 @@ public class TimelineSerialization {
                         case "interpolators":
                             reader.beginArray();
                             while (reader.hasNext()) {
-                                interpolators.add(registry.deserializeInterpolator(reader));
+                                reader.beginObject();
+                                Interpolator interpolator = null;
+                                Set<String> properties = new HashSet<>();
+                                while (reader.hasNext()) {
+                                    switch (reader.nextName()) {
+                                        case "type":
+                                            interpolator = registry.deserializeInterpolator(reader);
+                                            break;
+                                        case "properties":
+                                            reader.beginArray();
+                                            while (reader.hasNext()) {
+                                                properties.add(reader.nextString());
+                                            }
+                                            reader.endArray();
+                                            break;
+                                    }
+                                }
+                                if (interpolator == null) {
+                                    throw new IOException("Missing interpolator type");
+                                }
+                                for (String propertyName : properties) {
+                                    Property property = timeline.getProperty(propertyName);
+                                    if (property == null) {
+                                        throw new IOException("Timeline does not know property '" + propertyName + "'");
+                                    }
+                                    interpolator.registerProperty(property);
+                                }
+                                interpolators.add(interpolator);
+                                reader.endObject();
                             }
                             reader.endArray();
                             break;
