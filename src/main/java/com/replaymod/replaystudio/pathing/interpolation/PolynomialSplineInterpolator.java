@@ -94,6 +94,10 @@ public abstract class PolynomialSplineInterpolator extends AbstractInterpolator 
             for (int i = 0; i < xs.length; i++) {
                 xs[i] /= 1000;
             }
+            if (params != null) {
+                params = new InterpolationParameters(params.getValue() - yOffset,
+                        params.getVelocity(), params.getAcceleration());
+            }
         }
 
         // We want to find cubic equations y = ax³ + bx² + cx + d, one for each pair of values
