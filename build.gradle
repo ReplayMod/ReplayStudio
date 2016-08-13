@@ -6,6 +6,7 @@ buildscript {
 
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+        classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'
     }
 }
 
@@ -16,6 +17,7 @@ apply plugin: 'application'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'license'
 apply plugin: 'maven'
 
 // Methods to determine detailed version string
@@ -37,6 +39,12 @@ group = 'com.replaymod'
 description = 'ReplayStudio'
 version = '0.0.1-SNAPSHOT'
 mainClassName = 'com.replaymod.replaystudio.launcher.Launcher'
+
+ext.projectName = 'ReplayStudio'
+ext.packaging = 'jar'
+ext.author = 'johni0702'
+ext.authorUrl = 'https://github.com/johni0702'
+ext.inceptionYear = '2016'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -63,6 +71,22 @@ dependencies {
     testCompile 'junit:junit:4.11'
     testCompile 'com.google.guava:guava-testlib:18.0'
     testCompile 'pl.pragmatists:JUnitParams:1.0.4'
+}
+
+license {
+    ext.name = project.projectName
+    ext.author = project.author
+    ext.url = project.authorUrl
+    ext.year = project.inceptionYear
+    header new File(project.getProjectDir(), 'HEADER.txt')
+    sourceSets = project.sourceSets
+    ignoreFailures false
+    strictCheck true
+    mapping {
+        java = 'SLASHSTAR_STYLE'
+    }
+    exclude 'LICENSE.txt'
+    exclude 'META-INF/*'
 }
 
 shadowJar {
