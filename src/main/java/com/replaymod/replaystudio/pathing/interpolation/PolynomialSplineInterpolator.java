@@ -5,11 +5,7 @@ import com.replaymod.replaystudio.pathing.path.PathSegment;
 import com.replaymod.replaystudio.pathing.property.Property;
 import com.replaymod.replaystudio.pathing.property.PropertyPart;
 
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.Optional;
+import java.util.*;
 
 public abstract class PolynomialSplineInterpolator extends AbstractInterpolator {
     private final int degree;
@@ -53,7 +49,7 @@ public abstract class PolynomialSplineInterpolator extends AbstractInterpolator 
                     time[i] = keyframe.getTime();
                     values[i++] = part.toDouble(keyframe.getValue(property).get());
                 }
-                Polynomials polynomials = calcPolynomials(time, values, parameters.get(part));
+                Polynomials polynomials = calcPolynomials(part, time, values, parameters.get(part));
 
                 double lastTime = time[time.length - 1];
                 Polynomial lastPolynomial = polynomials.polynomials[polynomials.polynomials.length - 1];
@@ -74,15 +70,19 @@ public abstract class PolynomialSplineInterpolator extends AbstractInterpolator 
         set.add(keyframe);
     }
 
-    protected Polynomials calcPolynomials(double[] xs, double[] ys, InterpolationParameters params) {
+    protected <U> Polynomials calcPolynomials(PropertyPart<U> part, double[] xs, double[] ys, InterpolationParameters params) {
         int unknowns = degree + 1;
         int num = xs.length - 1;
         if (num == 0) {
             return new Polynomials(0, new Polynomial[]{new Polynomial(new double[]{ys[0]})});
         }
 
+        for (int i = 0; i < xs.length; i++) {
+            xs[i] /= 1000;
+        }
+
         double yOffset;
-        {
+        if (Double.isNaN(part.getUpperBound())) {
             double total = 0;
             for (double y : ys) {
                 total += y;
@@ -91,13 +91,29 @@ public abstract class PolynomialSplineInterpolator extends AbstractInterpolator 
             for (int i = 0; i < ys.length; i++) {
                 ys[i] -= yOffset;
             }
-            for (int i = 0; i < xs.length; i++) {
-                xs[i] /= 1000;
-            }
             if (params != null) {
                 params = new InterpolationParameters(params.getValue() - yOffset,
                         params.getVelocity(), params.getAcceleration());
             }
+        } else {
+            double bound = part.getUpperBound();
+            double halfBound = bound / 2;
+            double firstValue = params != null ? params.getValue() : ys[0];
+            int offset = (int) Math.floor(firstValue / bound);
+            double lastValue = mod(firstValue, bound);
+            for (int i = 1; i < ys.length; i++) {
+                double value = mod(ys[i], bound);
+                if (value < halfBound ^ lastValue < halfBound) {
+                    // We can wrap around to get to the new value quicker
+                    if (lastValue < halfBound) {
+                        offset--; // Wrap around the bottom
+                    } else {
+                        offset++; // Wrap around the top
+                    }
+                }
+                ys[i] = value + offset * bound;
+            }
+            yOffset = 0; // Everything should be approximately around 0
         }
 
         // We want to find cubic equations y = ax³ + bx² + cx + d, one for each pair of values
@@ -116,6 +132,11 @@ public abstract class PolynomialSplineInterpolator extends AbstractInterpolator 
             polynomials[i] = new Polynomial(coefficients);
         }
         return new Polynomials(yOffset, polynomials);
+    }
+
+    private double mod(double val, double m) {
+        double off = Math.floor(val / m);
+        return val - off * m;
     }
 
     protected abstract void fillMatrix(double[][] matrix, double[] xs, double[] ys, int num, InterpolationParameters params);
@@ -187,7 +208,11 @@ public abstract class PolynomialSplineInterpolator extends AbstractInterpolator 
         T interpolated = kfBefore.getValue(property).get();
         for (PropertyPart<T> part : property.getParts()) {
             if (part.isInterpolatable()) {
-                interpolated = part.fromDouble(interpolated, polynomials.get(part).eval(time, index));
+                double value = polynomials.get(part).eval(time, index);
+                if (!Double.isNaN(part.getUpperBound())) {
+                    value = mod(value, part.getUpperBound());
+                }
+                interpolated = part.fromDouble(interpolated, value);
             }
         }
         return Optional.of(interpolated);

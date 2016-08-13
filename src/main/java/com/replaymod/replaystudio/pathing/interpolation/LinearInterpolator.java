@@ -77,9 +77,31 @@ public class LinearInterpolator extends AbstractInterpolator {
             if (part.isInterpolatable()) {
                 double before = part.toDouble(valueBefore);
                 double after = part.toDouble(valueAfter);
-                interpolated = part.fromDouble(interpolated, (after - before) * fraction + before);
+                double bound = part.getUpperBound();
+                if (!Double.isNaN(bound)) {
+                    before = mod(before, bound);
+                    after = mod(after, bound);
+                    if (before < bound / 2 ^ after < bound / 2) {
+                        // Wrapping around is quicker
+                        if (before < bound / 2) {
+                            after -= bound;
+                        } else {
+                            after += bound;
+                        }
+                    }
+                }
+                double value = (after - before) * fraction + before;
+                if (!Double.isNaN(bound)) {
+                    value = mod(value, bound);
+                }
+                interpolated = part.fromDouble(interpolated, value);
             }
         }
         return Optional.of(interpolated);
+    }
+
+    private double mod(double val, double m) {
+        double off = Math.floor(val / m);
+        return val - off * m;
     }
 }

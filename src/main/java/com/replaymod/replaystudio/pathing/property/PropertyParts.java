@@ -10,6 +10,10 @@ public class PropertyParts {
             super(property, interpolatable);
         }
 
+        public ForInteger(Property<Integer> property, boolean interpolatable, int upperBound) {
+            super(property, interpolatable, upperBound);
+        }
+
         @Override
         public double toDouble(Integer value) {
             return value;
@@ -25,6 +29,11 @@ public class PropertyParts {
         private final TripleElement element;
         public ForDoubleTriple(Property<Triple<Double, Double, Double>> property, boolean interpolatable, TripleElement element) {
             super(property, interpolatable);
+            this.element = element;
+        }
+
+        public ForDoubleTriple(Property<Triple<Double, Double, Double>> property, boolean interpolatable, double upperBound, TripleElement element) {
+            super(property, interpolatable, upperBound);
             this.element = element;
         }
 
@@ -53,6 +62,11 @@ public class PropertyParts {
         private final TripleElement element;
         public ForFloatTriple(Property<Triple<Float, Float, Float>> property, boolean interpolatable, TripleElement element) {
             super(property, interpolatable);
+            this.element = element;
+        }
+
+        public ForFloatTriple(Property<Triple<Float, Float, Float>> property, boolean interpolatable, float upperBound, TripleElement element) {
+            super(property, interpolatable, upperBound);
             this.element = element;
         }
 
