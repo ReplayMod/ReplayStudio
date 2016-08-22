@@ -129,15 +129,16 @@ public class PathImpl implements Path {
         if (keyframe.getTime() < next.getStartKeyframe().getTime()) {
             iter.previous();
             iter.add(new PathSegmentImpl(keyframe, next.getStartKeyframe(), next.getInterpolator()));
+            return;
         }
 
         while (true) {
             if (next.getStartKeyframe().getTime() <= keyframe.getTime()
                     && next.getEndKeyframe().getTime() >= keyframe.getTime()) {
                 iter.remove();
-                next.setInterpolator(null);
                 iter.add(new PathSegmentImpl(next.getStartKeyframe(), keyframe, next.getInterpolator()));
                 iter.add(new PathSegmentImpl(keyframe, next.getEndKeyframe(), next.getInterpolator()));
+                next.setInterpolator(null);
                 return;
             }
             if (iter.hasNext()) {
@@ -174,9 +175,9 @@ public class PathImpl implements Path {
                     iter.remove();
                     iter.add(new PathSegmentImpl(next.getStartKeyframe(), next2.getEndKeyframe(),
                             (useFirstInterpolator ? next : next2).getInterpolator()));
-                } else {
-                    next.setInterpolator(null);
+                    next2.setInterpolator(null);
                 }
+                next.setInterpolator(null);
                 return;
             }
             if (next.getStartKeyframe() == keyframe) {
