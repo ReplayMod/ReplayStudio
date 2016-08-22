@@ -166,6 +166,9 @@ public class EntityPositionTracker {
         }
 
         NavigableMap<Long, Location> positions = entityPositions.get(entityID);
+        if (positions == null) {
+            return null;
+        }
         Map.Entry<Long, Location> lower = positions.floorEntry(timestamp);
         Map.Entry<Long, Location> higher = positions.higherEntry(timestamp);
         if (lower == null || higher == null) {
