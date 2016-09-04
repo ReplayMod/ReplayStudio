@@ -26,6 +26,7 @@ package com.replaymod.replaystudio.replay;
 
 import com.google.common.base.Optional;
 import com.replaymod.replaystudio.data.Marker;
+import com.replaymod.replaystudio.data.ModInfo;
 import com.replaymod.replaystudio.data.ReplayAssetEntry;
 import com.replaymod.replaystudio.io.ReplayInputStream;
 import com.replaymod.replaystudio.io.ReplayOutputStream;
@@ -121,4 +122,6 @@ public interface ReplayFile extends Closeable {
     OutputStream writeAsset(ReplayAssetEntry asset) throws IOException;
     void removeAsset(UUID uuid) throws IOException;
 
+    Collection<ModInfo> getModInfo() throws IOException;
+    void writeModInfo(Collection<ModInfo> modInfo) throws IOException;
 }

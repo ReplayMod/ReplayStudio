@@ -29,6 +29,7 @@ import com.google.common.io.Closeables;
 import com.google.gson.*;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.data.Marker;
+import com.replaymod.replaystudio.data.ModInfo;
 import com.replaymod.replaystudio.data.ReplayAssetEntry;
 import com.replaymod.replaystudio.io.ReplayInputStream;
 import com.replaymod.replaystudio.io.ReplayOutputStream;
@@ -54,6 +55,7 @@ public abstract class AbstractReplayFile implements ReplayFile {
     private static final String ENTRY_MARKERS = "markers.json";
     private static final String ENTRY_ASSET = "asset/%s_%s.%s";
     private static final Pattern PATTERN_ASSETS = Pattern.compile("asset/.*");
+    private static final String ENTRY_MODS = "mods.json";
 
     private static final byte[] THUMB_MAGIC_NUMBERS = {0, 1, 1, 2, 3, 5, 8};
 
@@ -300,6 +302,44 @@ public abstract class AbstractReplayFile implements ReplayFile {
             if (asset.getUuid().equals(uuid)) {
                 remove(String.format(ENTRY_ASSET, asset.getUuid().toString(), asset.getName(), asset.getFileExtension()));
             }
+        }
+    }
+
+    @Override
+    public Collection<ModInfo> getModInfo() throws IOException {
+        Optional<InputStream> in = get(ENTRY_MODS);
+        if (in.isPresent()) {
+            try (Reader is = new InputStreamReader(in.get())) {
+                JsonArray json = new Gson().fromJson(is, JsonObject.class).getAsJsonArray("requiredMods");
+                List<ModInfo> modInfoList = new ArrayList<>();
+                for (JsonElement element : json) {
+                    JsonObject obj = element.getAsJsonObject();
+                    modInfoList.add(new ModInfo(
+                            obj.get("modID").getAsString(),
+                            obj.get("modName").getAsString(),
+                            obj.get("modVersion").getAsString()
+                    ));
+                }
+                return modInfoList;
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void writeModInfo(Collection<ModInfo> modInfo) throws IOException {
+        try (OutputStream out = write(ENTRY_MODS)) {
+            JsonObject root = new JsonObject();
+            JsonArray array = new JsonArray();
+            for (ModInfo mod : modInfo) {
+                JsonObject entry = new JsonObject();
+                entry.addProperty("modID", mod.getId());
+                entry.addProperty("modName", mod.getName());
+                entry.addProperty("modVersion", mod.getVersion());
+                array.add(entry);
+            }
+            root.add("requiredMods", array);
+            out.write(new Gson().toJson(root).getBytes());
         }
     }
 }
