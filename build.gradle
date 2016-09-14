@@ -2,9 +2,13 @@ buildscript {
     repositories {
         jcenter()
         mavenCentral()
+        maven {
+            url 'https://oss.sonatype.org/content/groups/staging'
+        }
     }
 
     dependencies {
+        classpath 'ch.raffael.gradlePlugins.preshadow:gradle-preshadow-plugin:1.0'
         classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
         classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'
     }
@@ -19,6 +23,7 @@ apply plugin: 'idea'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'license'
 apply plugin: 'maven'
+apply from: 'gradle/preshadow.gradle'
 
 // Methods to determine detailed version string
 def gitDescribe() {
@@ -62,7 +67,7 @@ repositories {
 }
 
 dependencies {
-    compile 'org.spacehq:mcprotocollib:1.8.8-SNAPSHOT'
+    preshadow 'org.spacehq:mcprotocollib:1.8.8-SNAPSHOT'
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'
     compile 'commons-cli:commons-cli:1.2'
@@ -89,8 +94,13 @@ license {
     exclude 'META-INF/*'
 }
 
+preshadowJar {
+    relocate 'io.netty', 'org.spacehq.netty'
+}
+
 shadowJar {
     append('META-INF/NOTICE.txt')
+    from(tasks.findByName('preshadowJar').outputs.files.collect {it.isDirectory() ? it : zipTree(it)})
 }
 
 eclipse.project {

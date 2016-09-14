@@ -32,12 +32,12 @@ import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.studio.protocol.StudioCodec;
 import com.replaymod.replaystudio.studio.protocol.StudioCompression;
 import com.replaymod.replaystudio.studio.protocol.StudioSession;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.handler.codec.EncoderException;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
+import org.spacehq.netty.buffer.ByteBuf;
+import org.spacehq.netty.buffer.ByteBufAllocator;
+import org.spacehq.netty.buffer.PooledByteBufAllocator;
+import org.spacehq.netty.handler.codec.EncoderException;
 import org.spacehq.packetlib.packet.Packet;
 
 import java.io.IOException;

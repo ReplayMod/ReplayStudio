@@ -24,8 +24,8 @@
  */
 package com.replaymod.replaystudio.studio.protocol;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandlerContext;
+import org.spacehq.netty.buffer.ByteBuf;
+import org.spacehq.netty.channel.ChannelHandlerContext;
 import org.spacehq.packetlib.Session;
 import org.spacehq.packetlib.tcp.TcpPacketCodec;
 
