@@ -31,9 +31,9 @@ import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.collection.ReplayPart;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.util.PacketUtils;
-import org.spacehq.mc.protocol.data.game.values.scoreboard.ObjectiveAction;
-import org.spacehq.mc.protocol.data.game.values.scoreboard.TeamAction;
-import org.spacehq.mc.protocol.packet.ingame.server.entity.ServerDestroyEntitiesPacket;
+import org.spacehq.mc.protocol.data.game.scoreboard.ObjectiveAction;
+import org.spacehq.mc.protocol.data.game.scoreboard.TeamAction;
+import org.spacehq.mc.protocol.packet.ingame.server.entity.ServerEntityDestroyPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.spawn.*;
 import org.spacehq.mc.protocol.packet.ingame.server.scoreboard.ServerScoreboardObjectivePacket;
 import org.spacehq.mc.protocol.packet.ingame.server.scoreboard.ServerTeamPacket;
@@ -63,7 +63,7 @@ public class NeutralizerFilter extends StreamFilterBase {
         studio.setParsing(ServerSpawnExpOrbPacket.class, true);
         studio.setParsing(ServerSpawnGlobalEntityPacket.class, true);
         studio.setParsing(ServerSpawnMobPacket.class, true);
-        studio.setParsing(ServerDestroyEntitiesPacket.class, true);
+        studio.setParsing(ServerEntityDestroyPacket.class, true);
         studio.setParsing(ServerTeamPacket.class, true);
         studio.setParsing(ServerScoreboardObjectivePacket.class, true);
     }
@@ -87,8 +87,8 @@ public class NeutralizerFilter extends StreamFilterBase {
             entities.add(PacketUtils.getEntityId(packet));
         }
 
-        if (packet instanceof ServerDestroyEntitiesPacket) {
-            entities.removeAll(Ints.asList(((ServerDestroyEntitiesPacket) packet).getEntityIds()));
+        if (packet instanceof ServerEntityDestroyPacket) {
+            entities.removeAll(Ints.asList(((ServerEntityDestroyPacket) packet).getEntityIds()));
         }
 
         if (packet instanceof ServerTeamPacket) {
@@ -114,7 +114,7 @@ public class NeutralizerFilter extends StreamFilterBase {
     @Override
     public void onEnd(PacketStream stream, long timestamp) {
         if (!entities.isEmpty()) {
-            stream.insert(new PacketData(timestamp, new ServerDestroyEntitiesPacket(Ints.toArray(entities))));
+            stream.insert(new PacketData(timestamp, new ServerEntityDestroyPacket(Ints.toArray(entities))));
         }
 
         for (String team : teams) {

@@ -27,7 +27,7 @@ package com.replaymod.replaystudio.util;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.replaymod.replaystudio.Studio;
-import org.spacehq.mc.protocol.data.game.values.entity.player.PositionElement;
+import org.spacehq.mc.protocol.data.game.entity.player.PositionElement;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerCombatPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerSwitchCameraPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.*;
@@ -37,10 +37,7 @@ import org.spacehq.mc.protocol.packet.ingame.server.entity.spawn.*;
 import org.spacehq.mc.protocol.packet.ingame.server.world.ServerBlockBreakAnimPacket;
 import org.spacehq.packetlib.packet.Packet;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Contains utilities for working with packets.
@@ -81,9 +78,9 @@ public class PacketUtils {
         studio.setParsing(ServerSpawnObjectPacket.class, true);
         studio.setParsing(ServerSpawnPaintingPacket.class, true);
         studio.setParsing(ServerSpawnPlayerPacket.class, true);
-        studio.setParsing(ServerAnimationPacket.class, true);
-        studio.setParsing(ServerCollectItemPacket.class, true);
-        studio.setParsing(ServerDestroyEntitiesPacket.class, true);
+        studio.setParsing(ServerEntityAnimationPacket.class, true);
+        studio.setParsing(ServerEntityCollectItemPacket.class, true);
+        studio.setParsing(ServerEntityDestroyPacket.class, true);
         studio.setParsing(ServerEntityAttachPacket.class, true);
         studio.setParsing(ServerEntityEffectPacket.class, true);
         studio.setParsing(ServerEntityEquipmentPacket.class, true);
@@ -93,9 +90,9 @@ public class PacketUtils {
         studio.setParsing(ServerEntityPositionRotationPacket.class, true);
         studio.setParsing(ServerEntityPositionPacket.class, true);
         studio.setParsing(ServerEntityRotationPacket.class, true);
-        studio.setParsing(ServerEntityNBTUpdatePacket.class, true);
         studio.setParsing(ServerEntityPropertiesPacket.class, true);
         studio.setParsing(ServerEntityRemoveEffectPacket.class, true);
+        studio.setParsing(ServerEntitySetPassengersPacket.class, true);
         studio.setParsing(ServerEntityStatusPacket.class, true);
         studio.setParsing(ServerEntityTeleportPacket.class, true);
         studio.setParsing(ServerEntityVelocityPacket.class, true);
@@ -133,13 +130,13 @@ public class PacketUtils {
         if (packet instanceof ServerSpawnPlayerPacket) {
             return ((ServerSpawnPlayerPacket) packet).getEntityId();
         }
-        if (packet instanceof ServerAnimationPacket) {
-            return ((ServerAnimationPacket) packet).getEntityId();
+        if (packet instanceof ServerEntityAnimationPacket) {
+            return ((ServerEntityAnimationPacket) packet).getEntityId();
         }
-        if (packet instanceof ServerCollectItemPacket) {
+        if (packet instanceof ServerEntityCollectItemPacket) {
             return -1;
         }
-        if (packet instanceof ServerDestroyEntitiesPacket) {
+        if (packet instanceof ServerEntityDestroyPacket) {
             return -1;
         }
         if (packet instanceof ServerEntityAttachPacket) {
@@ -160,14 +157,14 @@ public class PacketUtils {
         if (packet instanceof ServerEntityMovementPacket) {
             return ((ServerEntityMovementPacket) packet).getEntityId();
         }
-        if (packet instanceof ServerEntityNBTUpdatePacket) {
-            return ((ServerEntityNBTUpdatePacket) packet).getEntityId();
-        }
         if (packet instanceof ServerEntityPropertiesPacket) {
             return ((ServerEntityPropertiesPacket) packet).getEntityId();
         }
         if (packet instanceof ServerEntityRemoveEffectPacket) {
             return ((ServerEntityRemoveEffectPacket) packet).getEntityId();
+        }
+        if (packet instanceof ServerEntitySetPassengersPacket) {
+            return -1;
         }
         if (packet instanceof ServerEntityStatusPacket) {
             return ((ServerEntityStatusPacket) packet).getEntityId();
@@ -196,16 +193,22 @@ public class PacketUtils {
      * @return List of entity ids
      */
     public static List<Integer> getEntityIds(Packet packet) {
-        if (packet instanceof ServerCollectItemPacket) {
-            ServerCollectItemPacket p = (ServerCollectItemPacket) packet;
+        if (packet instanceof ServerEntityCollectItemPacket) {
+            ServerEntityCollectItemPacket p = (ServerEntityCollectItemPacket) packet;
             return Arrays.asList(p.getCollectedEntityId(), p.getCollectorEntityId());
         }
-        if (packet instanceof ServerDestroyEntitiesPacket) {
-            return Ints.asList(((ServerDestroyEntitiesPacket) packet).getEntityIds());
+        if (packet instanceof ServerEntityDestroyPacket) {
+            return Ints.asList(((ServerEntityDestroyPacket) packet).getEntityIds());
         }
         if (packet instanceof ServerEntityAttachPacket) {
             ServerEntityAttachPacket p = (ServerEntityAttachPacket) packet;
             return Arrays.asList(p.getEntityId(), p.getAttachedToId());
+        }
+        if (packet instanceof ServerEntitySetPassengersPacket) {
+            ServerEntitySetPassengersPacket p = (ServerEntitySetPassengersPacket) packet;
+            List<Integer> list = new ArrayList<>(Ints.asList(p.getPassengerIds()));
+            list.add(p.getEntityId());
+            return list;
         }
         if (packet instanceof ServerCombatPacket) {
             ServerCombatPacket p = (ServerCombatPacket) packet;
@@ -325,7 +328,7 @@ public class PacketUtils {
      * @param loc The location
      * @return The packet
      */
-    public static ServerPlayerPositionRotationPacket toServerPlayerPositionRotationPacket(Location loc) {
-        return new ServerPlayerPositionRotationPacket(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
+    public static ServerPlayerPositionRotationPacket toServerPlayerPositionRotationPacket(Location loc, int teleportId) {
+        return new ServerPlayerPositionRotationPacket(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch(), teleportId);
     }
 }

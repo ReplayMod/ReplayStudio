@@ -30,8 +30,8 @@ import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.collection.ReplayPart;
 import com.replaymod.replaystudio.util.PacketUtils;
-import org.spacehq.mc.protocol.data.game.values.entity.MobType;
-import org.spacehq.mc.protocol.packet.ingame.server.entity.ServerDestroyEntitiesPacket;
+import org.spacehq.mc.protocol.data.game.entity.type.MobType;
+import org.spacehq.mc.protocol.packet.ingame.server.entity.ServerEntityDestroyPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnMobPacket;
 import org.spacehq.packetlib.packet.Packet;
 
@@ -68,8 +68,8 @@ public class RemoveMobsFilter implements Filter {
                     removedEntities.add(p.getEntityId());
                 }
             }
-            if (packet instanceof ServerDestroyEntitiesPacket) {
-                ServerDestroyEntitiesPacket p = (ServerDestroyEntitiesPacket) packet;
+            if (packet instanceof ServerEntityDestroyPacket) {
+                ServerEntityDestroyPacket p = (ServerEntityDestroyPacket) packet;
                 for (int id : p.getEntityIds()) {
                     removedEntities.remove(id);
                 }

@@ -30,28 +30,30 @@ import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.util.Location;
 import com.replaymod.replaystudio.util.PacketUtils;
-import com.replaymod.replaystudio.util.Utils;
 import org.apache.commons.lang3.tuple.MutablePair;
-import org.spacehq.mc.protocol.data.game.Chunk;
-import org.spacehq.mc.protocol.data.game.Position;
-import org.spacehq.mc.protocol.data.game.values.entity.player.GameMode;
-import org.spacehq.mc.protocol.data.game.values.scoreboard.NameTagVisibility;
-import org.spacehq.mc.protocol.data.game.values.scoreboard.TeamAction;
-import org.spacehq.mc.protocol.data.game.values.scoreboard.TeamColor;
-import org.spacehq.mc.protocol.data.game.values.setting.Difficulty;
-import org.spacehq.mc.protocol.data.game.values.world.WorldType;
-import org.spacehq.mc.protocol.data.game.values.world.block.BlockChangeRecord;
-import org.spacehq.mc.protocol.data.game.values.world.notify.ClientNotification;
+import org.spacehq.mc.protocol.data.game.chunk.Chunk;
+import org.spacehq.mc.protocol.data.game.chunk.Column;
+import org.spacehq.mc.protocol.data.game.entity.metadata.Position;
+import org.spacehq.mc.protocol.data.game.entity.player.GameMode;
+import org.spacehq.mc.protocol.data.game.scoreboard.CollisionRule;
+import org.spacehq.mc.protocol.data.game.scoreboard.NameTagVisibility;
+import org.spacehq.mc.protocol.data.game.scoreboard.TeamAction;
+import org.spacehq.mc.protocol.data.game.scoreboard.TeamColor;
+import org.spacehq.mc.protocol.data.game.setting.Difficulty;
+import org.spacehq.mc.protocol.data.game.world.WorldType;
+import org.spacehq.mc.protocol.data.game.world.block.BlockChangeRecord;
+import org.spacehq.mc.protocol.data.game.world.notify.ClientNotification;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerDifficultyPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerJoinGamePacket;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerRespawnPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.*;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.player.ServerPlayerAbilitiesPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.player.ServerPlayerPositionRotationPacket;
-import org.spacehq.mc.protocol.packet.ingame.server.entity.player.ServerSetExperiencePacket;
+import org.spacehq.mc.protocol.packet.ingame.server.entity.player.ServerPlayerSetExperiencePacket;
 import org.spacehq.mc.protocol.packet.ingame.server.scoreboard.ServerTeamPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.window.*;
 import org.spacehq.mc.protocol.packet.ingame.server.world.*;
+import org.spacehq.opennbt.tag.builtin.CompoundTag;
 import org.spacehq.packetlib.packet.Packet;
 
 import java.util.*;
@@ -79,6 +81,7 @@ public class SquashFilter extends StreamFilterBase {
         private boolean friendlyFire;
         private boolean seeingFriendlyInvisibles;
         private NameTagVisibility nameTagVisibility;
+        private CollisionRule collisionRule;
         private TeamColor color;
         private final Set<String> added = new HashSet<>();
         private final Set<String> removed = new HashSet<>();
@@ -124,7 +127,7 @@ public class SquashFilter extends StreamFilterBase {
     private PacketData joinGame;
     private PacketData respawn;
     private PacketData mainInventory;
-    private ServerSetExperiencePacket experience = null;
+    private ServerPlayerSetExperiencePacket experience = null;
     private ServerPlayerAbilitiesPacket abilities = null;
 
     @Override
@@ -146,7 +149,7 @@ public class SquashFilter extends StreamFilterBase {
         if (entityId != null) { // Some entity is associated with this packet
             if (entityId == -1) { // Multiple entities in fact
                 for (int id : PacketUtils.getEntityIds(packet)) {
-                    if (packet instanceof ServerDestroyEntitiesPacket) {
+                    if (packet instanceof ServerEntityDestroyPacket) {
                         entities.remove(id);
                     } else {
                         getOrCreate(entities, id, Entity::new).packets.add(data);
@@ -193,8 +196,8 @@ public class SquashFilter extends StreamFilterBase {
             }
         }
 
-        if (packet instanceof ServerSetExperiencePacket) {
-            experience = (ServerSetExperiencePacket) packet;
+        if (packet instanceof ServerPlayerSetExperiencePacket) {
+            experience = (ServerPlayerSetExperiencePacket) packet;
             return false;
         }
 
@@ -237,14 +240,13 @@ public class SquashFilter extends StreamFilterBase {
 
         if (packet instanceof ServerChunkDataPacket) {
             ServerChunkDataPacket p = (ServerChunkDataPacket) packet;
-            updateChunk(data.getTime(), p.getX(), p.getZ(), p.getChunks(), p.getBiomeData());
+            updateChunk(data.getTime(), p.getColumn());
             return false;
         }
-        if (packet instanceof ServerMultiChunkDataPacket) {
-            ServerMultiChunkDataPacket p = (ServerMultiChunkDataPacket) packet;
-            for (int i = 0; i < p.getColumns(); i++) {
-                updateChunk(data.getTime(), p.getX(i), p.getZ(i), p.getChunks(i), p.getBiomeData(i));
-            }
+
+        if (packet instanceof ServerUnloadChunkPacket) {
+            ServerUnloadChunkPacket p = (ServerUnloadChunkPacket) packet;
+            unloadChunk(data.getTime(), p.getX(), p.getZ());
             return false;
         }
 
@@ -272,7 +274,6 @@ public class SquashFilter extends StreamFilterBase {
                 || instanceOf(packet, ServerPlaySoundPacket.class)
                 || instanceOf(packet, ServerSpawnParticlePacket.class)
                 || instanceOf(packet, ServerSpawnPositionPacket.class)
-                || instanceOf(packet, ServerUpdateSignPacket.class)
                 || instanceOf(packet, ServerUpdateTileEntityPacket.class)
                 || instanceOf(packet, ServerUpdateTimePacket.class)
                 || instanceOf(packet, ServerWorldBorderPacket.class)) {
@@ -345,6 +346,7 @@ public class SquashFilter extends StreamFilterBase {
                 team.friendlyFire = p.getFriendlyFire();
                 team.seeingFriendlyInvisibles = p.getSeeFriendlyInvisibles();
                 team.nameTagVisibility = p.getNameTagVisibility();
+                team.collisionRule = p.getCollisionRule();
                 team.color = p.getColor();
             }
             if (action == TeamAction.ADD_PLAYER || action == TeamAction.CREATE) {
@@ -454,11 +456,11 @@ public class SquashFilter extends StreamFilterBase {
         for (Map.Entry<Long, Long> e : unloadedChunks.entrySet()) {
             int x = ChunkData.longToX(e.getKey());
             int z = ChunkData.longToZ(e.getKey());
-            result.add(new PacketData(e.getValue(), new ServerChunkDataPacket(x, z)));
+            result.add(new PacketData(e.getValue(), new ServerUnloadChunkPacket(x, z)));
         }
 
         for (ChunkData chunk : chunks.values()) {
-            Packet packet = new ServerChunkDataPacket(chunk.x, chunk.z, chunk.changes, chunk.biomeData);
+            Packet packet = new ServerChunkDataPacket(new Column(chunk.x, chunk.z, chunk.changes, chunk.biomeData, chunk.tileEntities));
             result.add(new PacketData(chunk.firstAppearance, packet));
             for (Map<Short, MutablePair<Long, BlockChangeRecord>> e : chunk.blockChanges) {
                 if (e != null) {
@@ -479,11 +481,13 @@ public class SquashFilter extends StreamFilterBase {
             String[] removed = team.added.toArray(new String[team.removed.size()]);
             if (team.status == Team.Status.CREATED) {
                 add(stream, timestamp, new ServerTeamPacket(team.name, team.displayName, team.prefix, team.suffix,
-                        team.friendlyFire, team.seeingFriendlyInvisibles, team.nameTagVisibility, team.color, added));
+                        team.friendlyFire, team.seeingFriendlyInvisibles, team.nameTagVisibility,
+                        team.collisionRule, team.color, added));
             } else if (team.status == Team.Status.UPDATED) {
                 if (team.color != null) {
                     add(stream, timestamp, new ServerTeamPacket(team.name, team.displayName, team.prefix, team.suffix,
-                            team.friendlyFire, team.seeingFriendlyInvisibles, team.nameTagVisibility, team.color));
+                            team.friendlyFire, team.seeingFriendlyInvisibles, team.nameTagVisibility,
+                            team.collisionRule, team.color));
                 }
                 if (added.length > 0) {
                     add(stream, timestamp, new ServerTeamPacket(team.name, TeamAction.ADD_PLAYER, added));
@@ -511,7 +515,7 @@ public class SquashFilter extends StreamFilterBase {
         PacketUtils.registerAllEntityRelated(studio);
 
         studio.setParsing(ServerNotifyClientPacket.class, true);
-        studio.setParsing(ServerSetExperiencePacket.class, true);
+        studio.setParsing(ServerPlayerSetExperiencePacket.class, true);
         studio.setParsing(ServerPlayerAbilitiesPacket.class, true);
         studio.setParsing(ServerDifficultyPacket.class, true);
         studio.setParsing(ServerJoinGamePacket.class, true);
@@ -521,7 +525,7 @@ public class SquashFilter extends StreamFilterBase {
         studio.setParsing(ServerWindowItemsPacket.class, true);
         studio.setParsing(ServerSetSlotPacket.class, true);
         studio.setParsing(ServerChunkDataPacket.class, true);
-        studio.setParsing(ServerMultiChunkDataPacket.class, true);
+        studio.setParsing(ServerUnloadChunkPacket.class, true);
         studio.setParsing(ServerBlockChangePacket.class, true);
         studio.setParsing(ServerMultiBlockChangePacket.class, true);
         studio.setParsing(ServerMapDataPacket.class, true);
@@ -539,20 +543,21 @@ public class SquashFilter extends StreamFilterBase {
         }
     }
 
-    private void updateChunk(long time, int x, int z, Chunk[] chunkArray, byte[] biomeData) {
+    private void unloadChunk(long time, int x, int z) {
         long coord = ChunkData.coordToLong(x, z);
-        if (Utils.containsOnlyNull(chunkArray)) { // UNLOAD
-            if (chunks.remove(coord) == null) {
-                unloadedChunks.put(coord, time);
-            }
-        } else { // LOAD
-            unloadedChunks.remove(coord);
-            ChunkData chunk = chunks.get(coord);
-            if (chunk == null) {
-                chunks.put(coord, chunk = new ChunkData(time, x, z));
-            }
-            chunk.update(chunkArray, biomeData);
+        if (chunks.remove(coord) == null) {
+            unloadedChunks.put(coord, time);
         }
+    }
+
+    private void updateChunk(long time, Column column) {
+        long coord = ChunkData.coordToLong(column.getX(), column.getZ());
+        unloadedChunks.remove(coord);
+        ChunkData chunk = chunks.get(coord);
+        if (chunk == null) {
+            chunks.put(coord, chunk = new ChunkData(time, column.getX(), column.getZ()));
+        }
+        chunk.update(column.getChunks(), column.getBiomeData(), column.getTileEntities());
     }
 
     private static class ChunkData {
@@ -563,6 +568,7 @@ public class SquashFilter extends StreamFilterBase {
         private byte[] biomeData;
         @SuppressWarnings("unchecked")
         private Map<Short, MutablePair<Long, BlockChangeRecord>>[] blockChanges = new Map[16];
+        public CompoundTag[] tileEntities;
 
         public ChunkData(long firstAppearance, int x, int z) {
             this.firstAppearance = firstAppearance;
@@ -570,7 +576,7 @@ public class SquashFilter extends StreamFilterBase {
             this.z = z;
         }
 
-        public void update(Chunk[] newChunks, byte[] newBiomeData) {
+        public void update(Chunk[] newChunks, byte[] newBiomeData, CompoundTag[] newTileEntities) {
             for (int i = 0; i < newChunks.length; i++) {
                 if (newChunks[i] != null) {
                     changes[i] = newChunks[i];
@@ -579,6 +585,9 @@ public class SquashFilter extends StreamFilterBase {
 
             if (newBiomeData != null) {
                 this.biomeData = newBiomeData;
+            }
+            if (newTileEntities != null) {
+                this.tileEntities = newTileEntities;
             }
         }
 
