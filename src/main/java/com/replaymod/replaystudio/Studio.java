@@ -160,4 +160,13 @@ public interface Studio {
      */
     StreamFilter loadStreamFilter(String name);
 
+
+    /**
+     * Return whether the specified replay file version can be read (and if necessary be converted to the
+     * current version) by this Studio implementation.
+     * @param fileVersion The file version
+     * @return {@code true} if the specified version is supported, {@code false} otherwise
+     */
+    boolean isCompatible(int fileVersion);
+
 }
