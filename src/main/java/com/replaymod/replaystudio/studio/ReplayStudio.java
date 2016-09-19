@@ -222,4 +222,10 @@ public class ReplayStudio implements Studio {
     public void setWrappingEnabled(boolean wrappingEnabled) {
         this.wrappingEnabled = wrappingEnabled;
     }
+
+    @Override
+    public boolean isCompatible(int fileVersion) {
+        // File version 0 is not versioned (old MC1.8), version 1 is MC1.8
+        return fileVersion == 0 || fileVersion == 1;
+    }
 }
