@@ -31,6 +31,7 @@ import java.util.Objects;
  * Meta data for replay files.
  */
 public class ReplayMetaData {
+    public static final int CURRENT_FILE_FORMAT_VERSION = 2;
 
     /**
      * Whether this is a singleplayer recording.
