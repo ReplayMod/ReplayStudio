@@ -222,10 +222,4 @@ public class ReplayStudio implements Studio {
     public void setWrappingEnabled(boolean wrappingEnabled) {
         this.wrappingEnabled = wrappingEnabled;
     }
-
-    @Override
-    public boolean isCompatible(int fileVersion) {
-        // Currently only compatible with 1.9.4 replays
-        return fileVersion == 2;
-    }
 }
