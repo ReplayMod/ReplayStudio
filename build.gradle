@@ -42,7 +42,7 @@ def gitDescribe() {
 
 group = 'com.replaymod'
 description = 'ReplayStudio'
-version = '0.0.1-SNAPSHOT'
+version = gitDescribe()
 mainClassName = 'com.replaymod.replaystudio.launcher.Launcher'
 
 ext.projectName = 'ReplayStudio'
