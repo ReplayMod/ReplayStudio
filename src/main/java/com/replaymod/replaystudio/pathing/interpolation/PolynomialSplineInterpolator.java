@@ -127,7 +127,7 @@ public abstract class PolynomialSplineInterpolator extends AbstractInterpolator 
             double lastValue = mod(firstValue, bound);
             for (int i = 1; i < ys.length; i++) {
                 double value = mod(ys[i], bound);
-                if (value < halfBound ^ lastValue < halfBound) {
+                if (Math.abs(value - lastValue) > halfBound) {
                     // We can wrap around to get to the new value quicker
                     if (lastValue < halfBound) {
                         offset--; // Wrap around the bottom
@@ -136,6 +136,7 @@ public abstract class PolynomialSplineInterpolator extends AbstractInterpolator 
                     }
                 }
                 ys[i] = value + offset * bound;
+                lastValue = value;
             }
             yOffset = 0; // Everything should be approximately around 0
         }
