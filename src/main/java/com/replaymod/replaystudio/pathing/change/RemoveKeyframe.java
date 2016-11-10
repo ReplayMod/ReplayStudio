@@ -68,7 +68,13 @@ public final class RemoveKeyframe implements Change {
         Preconditions.checkState(!applied, "Already applied!");
 
         Path path = timeline.getPaths().get(this.path);
-        if (index < path.getSegments().size()) {
+        // By default we keep the interpolator of the left-hand side and and store the right-hand side for undoing
+        // however if this is the last keyframe, we have to store the left-hand side as it will otherwise be lost
+        if (index == path.getSegments().size()) {
+            // This is the last keyframe, save the previous interpolator
+            removedInterpolator = Iterables.get(path.getSegments(), index - 1).getInterpolator();
+        } else {
+            // Save the next interpolator
             removedInterpolator = Iterables.get(path.getSegments(), index).getInterpolator();
         }
         path.remove(removedKeyframe = Iterables.get(path.getKeyframes(), index), true);
@@ -83,7 +89,13 @@ public final class RemoveKeyframe implements Change {
         Path path = timeline.getPaths().get(this.path);
         path.insert(removedKeyframe);
         if (removedInterpolator != null) {
-            Iterables.get(path.getSegments(), index).setInterpolator(removedInterpolator);
+            if (index == path.getSegments().size()) {
+                // The keyframe is the last one, restore the previous interpolator
+                Iterables.get(path.getSegments(), index - 1).setInterpolator(removedInterpolator);
+            } else {
+                // Save the next iterpolator
+                Iterables.get(path.getSegments(), index).setInterpolator(removedInterpolator);
+            }
         }
 
         applied = false;
