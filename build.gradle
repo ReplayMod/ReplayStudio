@@ -67,7 +67,7 @@ repositories {
 }
 
 dependencies {
-    preshadow 'org.spacehq:mcprotocollib:1.10.2-SNAPSHOT'
+    preshadow 'org.spacehq:mcprotocollib:1.11-SNAPSHOT'
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'
     compile 'commons-cli:commons-cli:1.2'
