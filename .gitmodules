@@ -1,0 +1,12 @@
+[submodule "deps/OpenNBT"]
+	path = deps/OpenNBT
+	url = https://github.com/Steveice10/OpenNBT.git
+[submodule "deps/MCProtocolLib"]
+	path = deps/MCProtocolLib
+	url = https://github.com/ReplayMod/MCProtocolLib.git
+[submodule "deps/PacketLib"]
+	path = deps/PacketLib
+	url = https://github.com/Steveice10/PacketLib.git
+[submodule "deps/MCAuthLib"]
+	path = deps/MCAuthLib
+	url = https://github.com/Steveice10/MCAuthLib.git
