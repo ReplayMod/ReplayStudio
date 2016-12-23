@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -94,7 +95,6 @@ public class EntityPositionTracker {
     }
 
     private void saveToCache() throws IOException {
-        String json = new Gson().toJson(entityPositions);
         synchronized (replayFile) {
             Optional<InputStream> cached = replayFile.get(CACHE_ENTRY);
             if (cached.isPresent()) {
@@ -103,8 +103,9 @@ public class EntityPositionTracker {
                 return;
             }
 
-            try (OutputStream out = replayFile.write(CACHE_ENTRY)) {
-                out.write(json.getBytes(Charsets.UTF_8));
+            try (OutputStream out = replayFile.write(CACHE_ENTRY);
+                 OutputStreamWriter writer = new OutputStreamWriter(out, Charsets.UTF_8)) {
+                new Gson().toJson(entityPositions, writer);
             }
         }
     }
