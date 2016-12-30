@@ -94,6 +94,8 @@ public class CatmullRomSplineInterpolator extends AbstractInterpolator {
             Set<Keyframe> keyframes = e.getValue();
 
             for (PropertyPart<?> part : property.getParts()) {
+                if (!part.isInterpolatable()) continue;
+
                 Polynomial[] polynomials = new Polynomial[keyframes.size()-1];
 
                 for (int i=0; i<keyframes.size()-1; i++) {
@@ -114,27 +116,25 @@ public class CatmullRomSplineInterpolator extends AbstractInterpolator {
                         k3 = k2;
                     }
 
-                    if (part.isInterpolatable()) {
-                        double p0 = getValueAsDouble(k0, part);
-                        double p1 = getValueAsDouble(k1, part);
-                        double p2 = getValueAsDouble(k2, part);
-                        double p3 = getValueAsDouble(k3, part);
+                    double p0 = getValueAsDouble(k0, part);
+                    double p1 = getValueAsDouble(k1, part);
+                    double p2 = getValueAsDouble(k2, part);
+                    double p3 = getValueAsDouble(k3, part);
 
-                        double t0 = alpha * (p2 - p0);
-                        double t1 = alpha * (p3 - p1);
+                    double t0 = alpha * (p2 - p0);
+                    double t1 = alpha * (p3 - p1);
 
-                        double[] c = new double[] {
-                                2* p1 - 2* p2 + t0 + t1,
-                                -3* p1 + 3* p2 - 2*t0 - t1,
-                                t0,
-                                p1
-                        };
+                    double[] c = new double[] {
+                            2* p1 - 2* p2 + t0 + t1,
+                            -3* p1 + 3* p2 - 2*t0 - t1,
+                            t0,
+                            p1
+                    };
 
-                        polynomials[i] = new Polynomial(c);
-                    }
-
-                    cubicPolynomials.put(part, polynomials);
+                    polynomials[i] = new Polynomial(c);
                 }
+
+                cubicPolynomials.put(part, polynomials);
             }
         }
     }
@@ -178,11 +178,10 @@ public class CatmullRomSplineInterpolator extends AbstractInterpolator {
         T interpolated = valueBefore;
 
         for (PropertyPart<T> part : property.getParts()) {
-            Polynomial[] polynomials = cubicPolynomials.get(part);
+            if (!part.isInterpolatable()) continue;
 
-            if (part.isInterpolatable()) {
-                interpolated = part.fromDouble(interpolated, polynomials[index].eval(fraction));
-            }
+            Polynomial[] polynomials = cubicPolynomials.get(part);
+            interpolated = part.fromDouble(interpolated, polynomials[index].eval(fraction));
         }
         return Optional.of(interpolated);
     }
