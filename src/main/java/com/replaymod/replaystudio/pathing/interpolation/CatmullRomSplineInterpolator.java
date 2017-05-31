@@ -24,7 +24,6 @@
  */
 package com.replaymod.replaystudio.pathing.interpolation;
 
-import com.google.common.collect.Iterables;
 import com.replaymod.replaystudio.pathing.interpolation.PolynomialSplineInterpolator.Polynomial;
 import com.replaymod.replaystudio.pathing.path.Keyframe;
 import com.replaymod.replaystudio.pathing.path.PathSegment;
@@ -96,30 +95,63 @@ public class CatmullRomSplineInterpolator extends AbstractInterpolator {
             for (PropertyPart<?> part : property.getParts()) {
                 if (!part.isInterpolatable()) continue;
 
-                Polynomial[] polynomials = new Polynomial[keyframes.size()-1];
+                List<Double> values = new ArrayList<>();
 
-                for (int i=0; i<keyframes.size()-1; i++) {
-                    Keyframe k0, k1, k2, k3;
+                if (Double.isNaN(part.getUpperBound())) {
+                    for (Keyframe k : keyframes) {
+                        values.add(getValueAsDouble(k, part));
+                    }
+                } else {
+                    double bound = part.getUpperBound();
+                    double halfBound = bound / 2;
 
-                    k1 = Iterables.get(keyframes, i);
-                    k2 = Iterables.get(keyframes, i+1);
+                    Iterator<Keyframe> it = keyframes.iterator();
+
+                    Double lastValue = null;
+                    Integer offset = null;
+
+                    while (it.hasNext()) {
+                        Keyframe keyframe = it.next();
+                        double value = mod(getValueAsDouble(keyframe, part), bound);
+
+                        if (lastValue == null) {
+                            lastValue = value;
+                            offset = (int) Math.floor(value / bound);
+                        }
+
+                        if (Math.abs(value - lastValue) > halfBound) {
+                            // We can wrap around to get to the new value quicker
+                            if (lastValue < halfBound) {
+                                offset--; // Wrap around the bottom
+                            } else {
+                                offset++; // Wrap around the top
+                            }
+                        }
+
+                        values.add(value + offset * bound);
+                        lastValue = value;
+                    }
+                }
+
+                Polynomial[] polynomials = new Polynomial[values.size()-1];
+
+                for (int i=0; i<values.size()-1; i++) {
+                    double p0, p1, p2, p3;
+
+                    p1 = values.get(i);
+                    p2 = values.get(i+1);
 
                     if (i > 0) {
-                        k0 = Iterables.get(keyframes, i-1);
+                        p0 = values.get(i-1);
                     } else {
-                        k0 = k1;
+                        p0 = p1;
                     }
 
                     if (i < keyframes.size() - 2) {
-                        k3 = Iterables.get(keyframes, i+2);
+                        p3 = values.get(i+2);
                     } else {
-                        k3 = k2;
+                        p3 = p2;
                     }
-
-                    double p0 = getValueAsDouble(k0, part);
-                    double p1 = getValueAsDouble(k1, part);
-                    double p2 = getValueAsDouble(k2, part);
-                    double p3 = getValueAsDouble(k3, part);
 
                     double t0 = alpha * (p2 - p0);
                     double t1 = alpha * (p3 - p1);
@@ -137,6 +169,12 @@ public class CatmullRomSplineInterpolator extends AbstractInterpolator {
                 cubicPolynomials.put(part, polynomials);
             }
         }
+    }
+
+    // copied from PolynomialSplineInterpolator - move this in a utils class?
+    private double mod(double val, double m) {
+        double off = Math.floor(val / m);
+        return val - off * m;
     }
 
     // Helper method because generics cannot be defined on blocks
