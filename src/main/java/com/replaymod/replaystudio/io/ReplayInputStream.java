@@ -24,21 +24,21 @@
  */
 package com.replaymod.replaystudio.io;
 
+import com.github.steveice10.mc.protocol.data.SubProtocol;
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerKeepAlivePacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
+import com.github.steveice10.mc.protocol.packet.login.server.LoginSetCompressionPacket;
+import com.github.steveice10.mc.protocol.packet.login.server.LoginSuccessPacket;
+import com.github.steveice10.netty.buffer.ByteBuf;
+import com.github.steveice10.netty.buffer.ByteBufAllocator;
+import com.github.steveice10.netty.buffer.PooledByteBufAllocator;
+import com.github.steveice10.packetlib.packet.Packet;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.collection.PacketList;
 import com.replaymod.replaystudio.studio.protocol.StudioCodec;
 import com.replaymod.replaystudio.studio.protocol.StudioCompression;
 import com.replaymod.replaystudio.studio.protocol.StudioSession;
-import org.spacehq.mc.protocol.data.SubProtocol;
-import org.spacehq.mc.protocol.packet.ingame.server.ServerKeepAlivePacket;
-import org.spacehq.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
-import org.spacehq.mc.protocol.packet.login.server.LoginSetCompressionPacket;
-import org.spacehq.mc.protocol.packet.login.server.LoginSuccessPacket;
-import org.spacehq.netty.buffer.ByteBuf;
-import org.spacehq.netty.buffer.ByteBufAllocator;
-import org.spacehq.netty.buffer.PooledByteBufAllocator;
-import org.spacehq.packetlib.packet.Packet;
 
 import java.io.EOFException;
 import java.io.IOException;

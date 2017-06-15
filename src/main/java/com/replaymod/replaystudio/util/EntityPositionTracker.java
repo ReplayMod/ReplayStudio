@@ -24,6 +24,7 @@
  */
 package com.replaymod.replaystudio.util;
 
+import com.github.steveice10.packetlib.packet.Packet;
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.gson.Gson;
@@ -33,7 +34,6 @@ import com.replaymod.replaystudio.io.IWrappedPacket;
 import com.replaymod.replaystudio.io.ReplayInputStream;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import com.replaymod.replaystudio.studio.ReplayStudio;
-import org.spacehq.packetlib.packet.Packet;
 
 import java.io.IOException;
 import java.io.InputStream;

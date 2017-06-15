@@ -24,6 +24,12 @@
  */
 package com.replaymod.replaystudio.io;
 
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
+import com.github.steveice10.netty.buffer.ByteBuf;
+import com.github.steveice10.netty.buffer.ByteBufAllocator;
+import com.github.steveice10.netty.buffer.PooledByteBufAllocator;
+import com.github.steveice10.netty.handler.codec.EncoderException;
+import com.github.steveice10.packetlib.packet.Packet;
 import com.google.gson.Gson;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
@@ -33,12 +39,6 @@ import com.replaymod.replaystudio.studio.protocol.StudioCodec;
 import com.replaymod.replaystudio.studio.protocol.StudioCompression;
 import com.replaymod.replaystudio.studio.protocol.StudioSession;
 import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.spacehq.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
-import org.spacehq.netty.buffer.ByteBuf;
-import org.spacehq.netty.buffer.ByteBufAllocator;
-import org.spacehq.netty.buffer.PooledByteBufAllocator;
-import org.spacehq.netty.handler.codec.EncoderException;
-import org.spacehq.packetlib.packet.Packet;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -48,7 +48,7 @@ import java.util.zip.ZipOutputStream;
 import static com.replaymod.replaystudio.util.Utils.writeInt;
 
 /**
- * Output stream capable of writing {@link org.spacehq.packetlib.packet.Packet}s and (optionally)
+ * Output stream capable of writing {@link Packet}s and (optionally)
  * {@link ReplayMetaData}.
  */
 public class ReplayOutputStream extends OutputStream {
@@ -146,7 +146,7 @@ public class ReplayOutputStream extends OutputStream {
      * @param data The packet data
      * @throws IOException - if an I/O error occurs.
      *      In particular, an IOException may be thrown if the output stream has been closed.
-     * @see #write(long, org.spacehq.packetlib.packet.Packet)
+     * @see #write(long, Packet)
      */
     public void write(PacketData data) throws IOException {
         write(data.getTime(), data.getPacket());

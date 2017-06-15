@@ -24,6 +24,7 @@
  */
 package com.replaymod.replaystudio.studio;
 
+import com.github.steveice10.packetlib.packet.Packet;
 import com.google.common.base.Optional;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
@@ -33,7 +34,6 @@ import com.replaymod.replaystudio.io.ReplayOutputStream;
 import com.replaymod.replaystudio.replay.Replay;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import com.replaymod.replaystudio.replay.ReplayMetaData;
-import org.spacehq.packetlib.packet.Packet;
 
 import java.io.*;
 import java.util.Collection;

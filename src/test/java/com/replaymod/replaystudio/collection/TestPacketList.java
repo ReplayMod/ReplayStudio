@@ -25,6 +25,8 @@
 package com.replaymod.replaystudio.collection;
 
 
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerChatPacket;
+import com.github.steveice10.packetlib.packet.Packet;
 import com.google.common.collect.testing.*;
 import com.google.common.collect.testing.features.CollectionFeature;
 import com.google.common.collect.testing.features.CollectionSize;
@@ -35,8 +37,6 @@ import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
-import org.spacehq.mc.protocol.packet.ingame.server.ServerChatPacket;
-import org.spacehq.packetlib.packet.Packet;
 
 import java.util.ArrayList;
 import java.util.Arrays;

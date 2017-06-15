@@ -24,7 +24,7 @@
  */
 package com.replaymod.replaystudio.util;
 
-import org.spacehq.mc.protocol.packet.ingame.server.entity.ServerEntityVelocityPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityVelocityPacket;
 
 /**
  * Motion data for entities.

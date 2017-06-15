@@ -25,13 +25,14 @@
 package com.replaymod.replaystudio.mock;
 
 
+import com.github.steveice10.mc.protocol.MinecraftProtocol;
+import com.github.steveice10.packetlib.Session;
+import com.github.steveice10.packetlib.event.session.SessionEvent;
+import com.github.steveice10.packetlib.event.session.SessionListener;
+import com.github.steveice10.packetlib.packet.Packet;
 import com.google.common.base.Function;
-import org.spacehq.mc.protocol.MinecraftProtocol;
-import org.spacehq.packetlib.Session;
-import org.spacehq.packetlib.event.session.SessionEvent;
-import org.spacehq.packetlib.event.session.SessionListener;
-import org.spacehq.packetlib.packet.Packet;
 
+import java.net.SocketAddress;
 import java.util.List;
 import java.util.Map;
 
@@ -62,6 +63,16 @@ public class SessionMock<P extends MinecraftProtocol> implements Session {
     @Override
     public int getPort() {
         return 0;
+    }
+
+    @Override
+    public SocketAddress getLocalAddress() {
+        return null;
+    }
+
+    @Override
+    public SocketAddress getRemoteAddress() {
+        return null;
     }
 
     @Override

@@ -24,14 +24,14 @@
  */
 package com.replaymod.replaystudio.studio.protocol;
 
+import com.github.steveice10.mc.protocol.MinecraftProtocol;
+import com.github.steveice10.mc.protocol.data.SubProtocol;
+import com.github.steveice10.packetlib.Session;
+import com.github.steveice10.packetlib.packet.Packet;
+import com.github.steveice10.packetlib.packet.PacketProtocol;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.io.WrappedPacket;
 import com.replaymod.replaystudio.util.Reflection;
-import org.spacehq.mc.protocol.MinecraftProtocol;
-import org.spacehq.mc.protocol.data.SubProtocol;
-import org.spacehq.packetlib.Session;
-import org.spacehq.packetlib.packet.Packet;
-import org.spacehq.packetlib.packet.PacketProtocol;
 
 import java.util.HashMap;
 

@@ -24,10 +24,10 @@
  */
 package com.replaymod.replaystudio.studio.protocol;
 
-import org.spacehq.netty.buffer.ByteBuf;
-import org.spacehq.netty.channel.ChannelHandlerContext;
-import org.spacehq.packetlib.Session;
-import org.spacehq.packetlib.tcp.TcpPacketCompression;
+import com.github.steveice10.netty.buffer.ByteBuf;
+import com.github.steveice10.netty.channel.ChannelHandlerContext;
+import com.github.steveice10.packetlib.Session;
+import com.github.steveice10.packetlib.tcp.TcpPacketCompression;
 
 import java.util.List;
 

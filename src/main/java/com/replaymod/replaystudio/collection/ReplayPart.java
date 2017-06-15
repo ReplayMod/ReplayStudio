@@ -24,8 +24,8 @@
  */
 package com.replaymod.replaystudio.collection;
 
+import com.github.steveice10.packetlib.packet.Packet;
 import com.replaymod.replaystudio.PacketData;
-import org.spacehq.packetlib.packet.Packet;
 
 import java.util.Collection;
 import java.util.ListIterator;

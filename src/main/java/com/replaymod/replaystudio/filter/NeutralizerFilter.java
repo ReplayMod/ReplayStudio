@@ -24,6 +24,17 @@
  */
 package com.replaymod.replaystudio.filter;
 
+import com.github.steveice10.mc.protocol.data.game.scoreboard.ObjectiveAction;
+import com.github.steveice10.mc.protocol.data.game.scoreboard.TeamAction;
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityDestroyPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnExpOrbPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnGlobalEntityPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnMobPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnObjectPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnPlayerPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.scoreboard.ServerScoreboardObjectivePacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.scoreboard.ServerTeamPacket;
+import com.github.steveice10.packetlib.packet.Packet;
 import com.google.common.primitives.Ints;
 import com.google.gson.JsonObject;
 import com.replaymod.replaystudio.PacketData;
@@ -31,13 +42,6 @@ import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.collection.ReplayPart;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.util.PacketUtils;
-import org.spacehq.mc.protocol.data.game.scoreboard.ObjectiveAction;
-import org.spacehq.mc.protocol.data.game.scoreboard.TeamAction;
-import org.spacehq.mc.protocol.packet.ingame.server.entity.ServerEntityDestroyPacket;
-import org.spacehq.mc.protocol.packet.ingame.server.entity.spawn.*;
-import org.spacehq.mc.protocol.packet.ingame.server.scoreboard.ServerScoreboardObjectivePacket;
-import org.spacehq.mc.protocol.packet.ingame.server.scoreboard.ServerTeamPacket;
-import org.spacehq.packetlib.packet.Packet;
 
 import java.util.HashSet;
 import java.util.Set;

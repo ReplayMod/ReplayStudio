@@ -24,7 +24,7 @@
  */
 package com.replaymod.replaystudio;
 
-import org.spacehq.packetlib.packet.Packet;
+import com.github.steveice10.packetlib.packet.Packet;
 
 import java.util.Objects;
 

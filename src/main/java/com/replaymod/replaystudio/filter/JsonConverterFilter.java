@@ -24,13 +24,13 @@
  */
 package com.replaymod.replaystudio.filter;
 
+import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerChunkDataPacket;
+import com.github.steveice10.packetlib.packet.Packet;
 import com.google.gson.*;
 import com.google.gson.stream.JsonWriter;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.stream.PacketStream;
-import org.spacehq.mc.protocol.packet.ingame.server.world.ServerChunkDataPacket;
-import org.spacehq.packetlib.packet.Packet;
 
 import java.io.File;
 import java.io.FileWriter;

@@ -24,6 +24,7 @@
  */
 package com.replaymod.replaystudio;
 
+import com.github.steveice10.packetlib.packet.Packet;
 import com.replaymod.replaystudio.collection.ReplayPart;
 import com.replaymod.replaystudio.filter.Filter;
 import com.replaymod.replaystudio.filter.StreamFilter;
@@ -31,7 +32,6 @@ import com.replaymod.replaystudio.replay.Replay;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.stream.PacketStream;
-import org.spacehq.packetlib.packet.Packet;
 
 import java.io.IOException;
 import java.io.InputStream;

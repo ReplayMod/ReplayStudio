@@ -24,9 +24,9 @@
  */
 package com.replaymod.replaystudio.stream;
 
+import com.github.steveice10.packetlib.packet.Packet;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.filter.StreamFilter;
-import org.spacehq.packetlib.packet.Packet;
 
 import java.util.Collection;
 import java.util.List;
@@ -119,7 +119,7 @@ public interface PacketStream {
      * that is being processed. This behavior can be changed by canceling the packet that is being processed and
      * inserting it manually using this method.
      * @param packet The packet
-     * @see #insert(long, org.spacehq.packetlib.packet.Packet)
+     * @see #insert(long, Packet)
      */
     void insert(PacketData packet);
 

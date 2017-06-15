@@ -24,10 +24,10 @@
  */
 package com.replaymod.replaystudio.mock;
 
+import com.github.steveice10.packetlib.packet.Packet;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.filter.StreamFilter;
 import com.replaymod.replaystudio.stream.PacketStream;
-import org.spacehq.packetlib.packet.Packet;
 
 import java.util.Collection;
 import java.util.List;

@@ -24,13 +24,13 @@
  */
 package com.replaymod.replaystudio.studio;
 
+import com.github.steveice10.packetlib.packet.Packet;
 import com.google.common.collect.Iterators;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.collection.ReplayPart;
 import com.replaymod.replaystudio.collection.ReplayPartView;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.Validate;
-import org.spacehq.packetlib.packet.Packet;
 
 import java.util.Collection;
 import java.util.ListIterator;

@@ -61,38 +61,16 @@ compileJava {
 repositories {
     mavenCentral()
     maven {
-        url 'deps/maven_repo'
+        url 'https://jitpack.io'
     }
 }
-
-def mavenBuild(project) {
-    task "build$project" (type: Exec) {
-        commandLine 'mvn', '-B', 'install', '-DskipTests', '-Dmaven.repo.local=../maven_repo'
-        workingDir "deps/$project"
-    }
-
-    clean {
-        delete "deps/$project/target"
-    }
-}
-clean {
-    delete 'deps/maven_repo/org/spacehq'
-}
-
-mavenBuild 'PacketLib'
-mavenBuild 'OpenNBT'
-mavenBuild 'MCAuthLib'
-mavenBuild 'MCProtocolLib'
-tasks.buildMCProtocolLib.dependsOn tasks.buildPacketLib, tasks.buildOpenNBT, tasks.buildMCAuthLib
-
-tasks.preshadowJar.dependsOn tasks.buildMCProtocolLib
 
 dependencies {
-    preshadow files('deps/MCProtocolLib/target/mcprotocollib-1.11.2-SNAPSHOT.jar')
+    preshadow 'com.github.replaymod:MCProtocolLib:d4e4037'
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'
     compile 'commons-cli:commons-cli:1.2'
-    compile 'com.google.guava:guava:18.0'
+    compile 'com.google.guava:guava:21.0'
     compile "org.projectlombok:lombok:1.16.6"
     testCompile 'junit:junit:4.11'
     testCompile 'com.google.guava:guava-testlib:18.0'
@@ -116,7 +94,7 @@ license {
 }
 
 preshadowJar {
-    relocate 'io.netty', 'org.spacehq.netty'
+    relocate 'io.netty', 'com.github.steveice10.netty'
 }
 
 shadowJar {

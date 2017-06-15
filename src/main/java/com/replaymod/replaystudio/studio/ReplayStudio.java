@@ -24,6 +24,10 @@
  */
 package com.replaymod.replaystudio.studio;
 
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerKeepAlivePacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
+import com.github.steveice10.mc.protocol.packet.login.server.LoginSetCompressionPacket;
+import com.github.steveice10.packetlib.packet.Packet;
 import com.google.gson.Gson;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
@@ -37,10 +41,6 @@ import com.replaymod.replaystudio.replay.ReplayFile;
 import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.util.Utils;
-import org.spacehq.mc.protocol.packet.ingame.server.ServerKeepAlivePacket;
-import org.spacehq.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
-import org.spacehq.mc.protocol.packet.login.server.LoginSetCompressionPacket;
-import org.spacehq.packetlib.packet.Packet;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -225,7 +225,7 @@ public class ReplayStudio implements Studio {
 
     @Override
     public boolean isCompatible(int fileVersion) {
-        // Currently only supports 1.11.2
-        return fileVersion == 5;
+        // Currently only supports 1.12
+        return fileVersion == 6;
     }
 }

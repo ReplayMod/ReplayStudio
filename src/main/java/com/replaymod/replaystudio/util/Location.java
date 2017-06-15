@@ -24,8 +24,8 @@
  */
 package com.replaymod.replaystudio.util;
 
-import org.spacehq.mc.protocol.data.game.entity.metadata.Position;
-import org.spacehq.mc.protocol.packet.ingame.server.entity.ServerEntityTeleportPacket;
+import com.github.steveice10.mc.protocol.data.game.entity.metadata.Position;
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityTeleportPacket;
 
 /**
  * Position and rotation (pitch and yaw, no roll) in three dimensional space.

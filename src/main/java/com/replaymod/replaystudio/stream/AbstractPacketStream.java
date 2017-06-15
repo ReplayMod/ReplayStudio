@@ -24,11 +24,11 @@
  */
 package com.replaymod.replaystudio.stream;
 
+import com.github.steveice10.packetlib.packet.Packet;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.filter.StreamFilter;
-import org.spacehq.packetlib.packet.Packet;
 
 import java.util.*;
 
