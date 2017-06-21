@@ -63,10 +63,17 @@ repositories {
     maven {
         url 'https://jitpack.io'
     }
+    maven {
+        url 'https://repo.viaversion.com'
+    }
+    maven {
+        url = "https://oss.sonatype.org/content/repositories/snapshots/"
+    }
 }
 
 dependencies {
     preshadow 'com.github.replaymod:MCProtocolLib:d4e4037'
+    preshadow 'us.myles:viaversion:1.1.2-SNAPSHOT'
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'
     compile 'commons-cli:commons-cli:1.2'

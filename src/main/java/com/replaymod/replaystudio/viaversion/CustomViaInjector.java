@@ -22,45 +22,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.replaymod.replaystudio.studio;
+package com.replaymod.replaystudio.viaversion;
 
-import com.replaymod.replaystudio.Studio;
-import com.replaymod.replaystudio.collection.PacketList;
-import com.replaymod.replaystudio.io.ReplayInputStream;
-import com.replaymod.replaystudio.stream.AbstractPacketStream;
+import com.replaymod.replaystudio.replay.ReplayMetaData;
+import us.myles.ViaVersion.api.platform.ViaInjector;
 
-import java.io.IOException;
-import java.io.InputStream;
+public class CustomViaInjector implements ViaInjector {
+	@Override
+	public void inject() throws Exception {}
 
-public class StudioPacketStream extends AbstractPacketStream {
+	@Override
+	public void uninject() throws Exception {}
 
-    private final ReplayInputStream in;
+	@Override
+	public int getServerProtocolVersion() throws Exception {
+		return ReplayMetaData.FILEFORMAT_PROTOCOL.get(ReplayMetaData.CURRENT_FILE_FORMAT_VERSION);
+	}
 
-    public StudioPacketStream(Studio studio, InputStream in, int fileformatversion) {
-        this.in = new ReplayInputStream(studio, in, fileformatversion);
-    }
+	@Override
+	public String getEncoderName() {
+		return null;
+	}
 
-    @Override
-    protected PacketList nextInput() {
-        try {
-            return in.readPacket();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void start() {
-
-    }
-
-    @Override
-    protected void cleanup() {
-        try {
-            in.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
+	@Override
+	public String getDecoderName() {
+		return null;
+	}
 }

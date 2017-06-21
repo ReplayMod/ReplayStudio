@@ -96,7 +96,7 @@ public abstract class AbstractReplayFile implements ReplayFile {
         if (!in.isPresent()) {
             return null;
         }
-        return new ReplayInputStream(studio, in.get());
+        return new ReplayInputStream(studio, in.get(), this.getMetaData().getFileFormatVersion());
     }
 
     @Override

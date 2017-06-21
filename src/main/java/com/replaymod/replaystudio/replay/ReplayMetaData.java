@@ -25,6 +25,8 @@
 package com.replaymod.replaystudio.replay;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -32,6 +34,27 @@ import java.util.Objects;
  */
 public class ReplayMetaData {
     public static final int CURRENT_FILE_FORMAT_VERSION = 6;
+    public static final Map<Integer, Integer> FILEFORMAT_PROTOCOL = new HashMap<>();
+    static {
+        FILEFORMAT_PROTOCOL.put(0, 47);
+        FILEFORMAT_PROTOCOL.put(1, 47);
+        FILEFORMAT_PROTOCOL.put(2, 110);
+        FILEFORMAT_PROTOCOL.put(3, 210);
+        FILEFORMAT_PROTOCOL.put(4, 315);
+        FILEFORMAT_PROTOCOL.put(5, 316);
+        FILEFORMAT_PROTOCOL.put(6, 335);
+    }
+
+    public static final Map<Integer, Integer> PROTOCOL_FILEFORMAT = new HashMap<>();
+    static {
+        PROTOCOL_FILEFORMAT.put(47, 1);
+        PROTOCOL_FILEFORMAT.put(110, 2);
+        PROTOCOL_FILEFORMAT.put(210, 3);
+        PROTOCOL_FILEFORMAT.put(315, 4);
+        PROTOCOL_FILEFORMAT.put(316, 5);
+        PROTOCOL_FILEFORMAT.put(335, 6);
+
+    }
 
     /**
      * Whether this is a singleplayer recording.

@@ -24,6 +24,8 @@
  */
 package com.replaymod.replaystudio.util;
 
+import com.github.steveice10.netty.buffer.ByteBuf;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -61,6 +63,27 @@ public class Utils {
         out.write((x >>> 16) & 0xFF);
         out.write((x >>>  8) & 0xFF);
         out.write(x & 0xFF);
+    }
+
+    /**
+     * Reads a VarInt from a ByteBuf
+     * @param buffer The ByteBuf
+     * @return The VarInt
+     */
+    public static int readVarInt(ByteBuf buffer) {
+        int number = 0;
+        int round = 0;
+        byte currentByte;
+
+        do {
+            currentByte = buffer.readByte();
+            number |= (currentByte & 127) << round++ * 7;
+
+            if (round > 5) {
+                throw new RuntimeException("VarInt is too big");
+            }
+        } while ((currentByte & 128) == 128);
+        return number;
     }
 
     /**
