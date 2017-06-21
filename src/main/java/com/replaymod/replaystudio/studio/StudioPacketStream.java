@@ -24,8 +24,8 @@
  */
 package com.replaymod.replaystudio.studio;
 
-import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
+import com.replaymod.replaystudio.collection.PacketList;
 import com.replaymod.replaystudio.io.ReplayInputStream;
 import com.replaymod.replaystudio.stream.AbstractPacketStream;
 
@@ -41,7 +41,7 @@ public class StudioPacketStream extends AbstractPacketStream {
     }
 
     @Override
-    protected PacketData nextInput() {
+    protected PacketList nextInput() {
         try {
             return in.readPacket();
         } catch (IOException e) {

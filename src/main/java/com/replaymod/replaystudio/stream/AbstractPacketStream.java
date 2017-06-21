@@ -28,6 +28,7 @@ import com.github.steveice10.packetlib.packet.Packet;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 import com.replaymod.replaystudio.PacketData;
+import com.replaymod.replaystudio.collection.PacketList;
 import com.replaymod.replaystudio.filter.StreamFilter;
 
 import java.util.*;
@@ -36,14 +37,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public abstract class AbstractPacketStream implements PacketStream {
 
-    public static AbstractPacketStream of(Supplier<PacketData> supplier) {
+    public static AbstractPacketStream of(Supplier<PacketList> supplier) {
         return new AbstractPacketStreamImpl(supplier);
     }
 
     private static final class AbstractPacketStreamImpl extends AbstractPacketStream {
-        private final Supplier<PacketData> supplier;
+        private final Supplier<PacketList> supplier;
 
-        public AbstractPacketStreamImpl(Supplier<PacketData> supplier) {
+        public AbstractPacketStreamImpl(Supplier<PacketList> supplier) {
             this.supplier = supplier;
         }
 
@@ -58,7 +59,7 @@ public abstract class AbstractPacketStream implements PacketStream {
         }
 
         @Override
-        protected PacketData nextInput() {
+        protected PacketList nextInput() {
             return supplier.get();
         }
     }
@@ -252,16 +253,14 @@ public abstract class AbstractPacketStream implements PacketStream {
         buildPipe();
     }
 
-    protected abstract PacketData nextInput();
+    protected abstract PacketList nextInput();
 
     @Override
     public PacketData next() {
         while (inserted.isEmpty()) {
-            PacketData next = nextInput();
-            if (next == null) {
-                break;
-            }
-            firstElement.process(next);
+            PacketList next = nextInput();
+            if (next == null || next.isEmpty()) {break;}
+            next.forEach(p -> firstElement.process(p));
         }
         return inserted.poll();
     }
