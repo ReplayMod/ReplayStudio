@@ -32,6 +32,7 @@ import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.collection.ReplayPart;
 import com.replaymod.replaystudio.filter.Filter;
 import com.replaymod.replaystudio.replay.Replay;
+import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.studio.ReplayStudio;
 import org.apache.commons.cli.*;
 import org.apache.commons.lang3.StringUtils;
@@ -182,7 +183,12 @@ public class Launcher {
             System.out.print(String.format("Reading input %d of %d...", i, inputs.size()));
             long time = System.nanoTime();
             try (FileInputStream in = new FileInputStream(new File(entry.getValue()))) {
-                Replay replay = studio.createReplay(in, entry.getKey().charAt(0) == 'r');
+                Replay replay;
+                if (entry.getKey().charAt(0) == 'r') {
+                    replay = studio.createReplay(in, ReplayMetaData.CURRENT_FILE_FORMAT_VERSION);
+                } else {
+                    replay = studio.createReplay(in);
+                }
                 replays.put(entry.getKey(), replay);
             } catch (Throwable t) {
                 System.out.println("Exception while reading input from " + entry.getValue());

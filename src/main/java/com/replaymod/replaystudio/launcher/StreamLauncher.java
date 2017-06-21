@@ -101,7 +101,7 @@ public class StreamLauncher {
         ReplayMetaData meta = studio.readReplayMetaData(in);
         in.close();
         in = new BufferedInputStream(new FileInputStream(input));
-        PacketStream stream = studio.createReplayStream(in, false);
+        PacketStream stream = studio.createReplayStream(in);
 
         // Process stream
         stream.start();

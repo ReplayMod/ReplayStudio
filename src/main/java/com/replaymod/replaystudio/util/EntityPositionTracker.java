@@ -123,7 +123,7 @@ public class EntityPositionTracker {
         }
 
         Map<Integer, NavigableMap<Long, Location>> entityPositions = new HashMap<>();
-        try (ReplayInputStream in = new ReplayInputStream(studio, origIn)) {
+        try (ReplayInputStream in = new ReplayInputStream(studio, origIn, replayFile.getMetaData().getFileFormatVersion())) {
             PacketData packetData;
             while ((packetData = in.readPacket()) != null) {
                 Packet packet = packetData.getPacket();

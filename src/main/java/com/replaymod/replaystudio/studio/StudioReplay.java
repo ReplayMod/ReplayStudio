@@ -50,8 +50,8 @@ public class StudioReplay extends StudioReplayPart implements Replay {
         this.replayFile = Optional.absent();
     }
 
-    public StudioReplay(Studio studio, InputStream in) throws IOException {
-        this(studio, ReplayInputStream.readPackets(studio, in));
+    public StudioReplay(Studio studio, InputStream in, int fileformatversion) throws IOException {
+        this(studio, ReplayInputStream.readPackets(studio, in, fileformatversion));
     }
 
     public StudioReplay(Studio studio, ReplayFile replayFile) throws IOException {

@@ -89,10 +89,10 @@ public interface Studio {
     /**
      * Creates a new replay from the specified input stream.
      * @param in The InputStream to read from
-     * @param raw True if {@code in} does not contain meta data but only the packet data itself
+     * @param fileformatversion The FileFormatVersion
      * @return The created replay
      */
-    Replay createReplay(InputStream in, boolean raw) throws IOException;
+    Replay createReplay(InputStream in, int fileformatversion) throws IOException;
 
     /**
      * Creates a new replay from the specified replay part.
@@ -111,10 +111,17 @@ public interface Studio {
     /**
      * Creates a new packet stream from the specified input stream.
      * @param in The InputStream to read from
-     * @param raw True if {@code in} does not contain meta data but only the packet data itself
      * @return The packet stream
      */
-    PacketStream createReplayStream(InputStream in, boolean raw) throws IOException;
+    PacketStream createReplayStream(InputStream in) throws IOException;
+
+    /**
+     * Creates a new packet stream from the specified input stream.
+     * @param in The InputStream to read from
+     * @param fileformatversion The FileFormatVersion
+     * @return The packet stream
+     */
+    PacketStream createReplayStream(InputStream in, int fileformatversion) throws IOException;
 
     /**
      * For increased performance every packet not registered with {@link #setParsing(Class, boolean)} will be
