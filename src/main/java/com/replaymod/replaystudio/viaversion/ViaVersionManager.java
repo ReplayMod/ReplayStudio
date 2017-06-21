@@ -22,45 +22,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.replaymod.replaystudio.studio;
+package com.replaymod.replaystudio.viaversion;
 
-import com.replaymod.replaystudio.Studio;
-import com.replaymod.replaystudio.collection.PacketList;
-import com.replaymod.replaystudio.io.ReplayInputStream;
-import com.replaymod.replaystudio.stream.AbstractPacketStream;
+import us.myles.ViaVersion.ViaManager;
+import us.myles.ViaVersion.api.Via;
+import us.myles.ViaVersion.protocols.protocol1_9to1_8.providers.BulkChunkTranslatorProvider;
 
-import java.io.IOException;
-import java.io.InputStream;
+public class ViaVersionManager {
+	private static boolean initiated = false;
 
-public class StudioPacketStream extends AbstractPacketStream {
-
-    private final ReplayInputStream in;
-
-    public StudioPacketStream(Studio studio, InputStream in, int fileformatversion) {
-        this.in = new ReplayInputStream(studio, in, fileformatversion);
-    }
-
-    @Override
-    protected PacketList nextInput() {
-        try {
-            return in.readPacket();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void start() {
-
-    }
-
-    @Override
-    protected void cleanup() {
-        try {
-            in.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
+	public static void init() {
+		if (initiated) return;
+		initiated = true;
+		Via.init(ViaManager.builder().platform(new CustomViaPlatform()).injector(new CustomViaInjector()).build());
+		Via.getManager().getProviders().use(BulkChunkTranslatorProvider.class, new BulkChunkTranslatorProvider() {
+			@Override
+			public boolean isFiltered(Class<?> packet) {
+				return true;
+			}
+		});
+	}
 }

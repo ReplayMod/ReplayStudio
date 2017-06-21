@@ -10,3 +10,6 @@
 [submodule "deps/MCAuthLib"]
 	path = deps/MCAuthLib
 	url = https://github.com/Steveice10/MCAuthLib.git
+[submodule "deps/ViaVersion"]
+	path = deps/ViaVersion
+	url = https://github.com/MylesIsCool/ViaVersion.git

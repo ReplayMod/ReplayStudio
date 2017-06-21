@@ -42,10 +42,7 @@ import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.util.Utils;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -130,7 +127,30 @@ public class ReplayStudio implements Studio {
 
     @Override
     public Replay createReplay(InputStream in) throws IOException {
-        return createReplay(in, false);
+        Replay replay = null;
+        ReplayMetaData meta;
+
+        ZipInputStream zipIn = new ZipInputStream(new BufferedInputStream(in));
+        meta = readReplayMetaData(in);
+        zipIn.close();
+
+        zipIn = new ZipInputStream(new BufferedInputStream(in));
+        {
+            ZipEntry entry;
+            while ((entry = zipIn.getNextEntry()) != null) {
+                if (entry.getName().equals("recording.tmcpr")) {
+                    replay = new StudioReplay(this, Utils.notCloseable(zipIn), meta.getFileFormatVersion());
+                    break;
+                }
+            }
+        }
+
+        if (replay != null) {
+            replay.setMetaData(meta);
+            return replay;
+        } else {
+            throw new IOException("ZipInputStream did not contain \"recording.tmcpr\"");
+        }
     }
 
     @Override
@@ -139,32 +159,8 @@ public class ReplayStudio implements Studio {
     }
 
     @Override
-    public Replay createReplay(InputStream in, boolean raw) throws IOException {
-        if (raw) {
-            return new StudioReplay(this, in);
-        } else {
-            Replay replay = null;
-            ReplayMetaData meta = null;
-            try (ZipInputStream zipIn = new ZipInputStream(new BufferedInputStream(in))) {
-                ZipEntry entry;
-                while ((entry = zipIn.getNextEntry()) != null) {
-                    if ("metaData.json".equals(entry.getName())) {
-                        meta = GSON.fromJson(new InputStreamReader(Utils.notCloseable(zipIn)), ReplayMetaData.class);
-                    }
-                    if ("recording.tmcpr".equals(entry.getName())) {
-                        replay = new StudioReplay(this, Utils.notCloseable(zipIn));
-                    }
-                }
-            }
-            if (replay != null) {
-                if (meta != null) {
-                    replay.setMetaData(meta);
-                }
-                return replay;
-            } else {
-                throw new IOException("ZipInputStream did not contain \"recording.tmcpr\"");
-            }
-        }
+    public Replay createReplay(InputStream in, int fileformatversion) throws IOException {
+        return new StudioReplay(this, in, fileformatversion);
     }
 
     @Override
@@ -186,19 +182,28 @@ public class ReplayStudio implements Studio {
     }
 
     @Override
-    public PacketStream createReplayStream(InputStream in, boolean raw) throws IOException {
-        if (raw) {
-            return new StudioPacketStream(this, in);
-        } else {
-            ZipInputStream zipIn = new ZipInputStream(new BufferedInputStream(in));
+    public PacketStream createReplayStream(InputStream in, int fileformatversion) throws IOException {
+        return new StudioPacketStream(this, in, fileformatversion);
+    }
+
+    @Override
+    public PacketStream createReplayStream(InputStream in) throws IOException {
+        ReplayMetaData meta;
+
+        ZipInputStream zipIn = new ZipInputStream(new BufferedInputStream(in));
+        meta = readReplayMetaData(in);
+        zipIn.close();
+
+        zipIn = new ZipInputStream(new BufferedInputStream(in));
+        {
             ZipEntry entry;
             while ((entry = zipIn.getNextEntry()) != null) {
-                if ("recording.tmcpr".equals(entry.getName())) {
-                    return new StudioPacketStream(this, zipIn);
+                if (entry.getName().equals("recording.tmcpr")) {
+                    return new StudioPacketStream(this, zipIn, meta.getFileFormatVersion());
                 }
             }
-            throw new IOException("ZipInputStream did not contain \"recording.tmcpr\"");
         }
+        throw new IOException("ZipInputStream did not contain \"recording.tmcpr\"");
     }
 
     @Override

@@ -30,6 +30,7 @@ import com.google.common.base.Optional;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.replaymod.replaystudio.PacketData;
+import com.replaymod.replaystudio.collection.PacketList;
 import com.replaymod.replaystudio.io.IWrappedPacket;
 import com.replaymod.replaystudio.io.ReplayInputStream;
 import com.replaymod.replaystudio.replay.ReplayFile;
@@ -123,30 +124,28 @@ public class EntityPositionTracker {
         }
 
         Map<Integer, NavigableMap<Long, Location>> entityPositions = new HashMap<>();
-        try (ReplayInputStream in = new ReplayInputStream(studio, origIn)) {
-            PacketData packetData;
-            while ((packetData = in.readPacket()) != null) {
-                Packet packet = packetData.getPacket();
+        try (ReplayInputStream in = new ReplayInputStream(studio, origIn, replayFile.getMetaData().getFileFormatVersion())) {
+            PacketList packetlist;
+            while ((packetlist = in.readPacket()) != null) {
+                for (PacketData data : packetlist) {
+                    Packet packet = data.getPacket();
+                    // Filter packets that are not of interest
+                    if (packet instanceof IWrappedPacket) continue;
 
-                // Filter packets that are not of interest
-                if (packet instanceof IWrappedPacket) continue;
+                    Integer entityID = PacketUtils.getEntityId(packet);
+                    if (entityID == null) continue;
 
-                Integer entityID = PacketUtils.getEntityId(packet);
-                if (entityID == null) continue;
+                    NavigableMap<Long, Location> positions = entityPositions.computeIfAbsent(entityID, k -> new TreeMap<>());
 
-                NavigableMap<Long, Location> positions = entityPositions.get(entityID);
-                if (positions == null) {
-                    entityPositions.put(entityID, positions = new TreeMap<>());
-                }
+                    Location oldPosition = positions.isEmpty() ? null : positions.lastEntry().getValue();
+                    Location newPosition = PacketUtils.updateLocation(oldPosition, packet);
 
-                Location oldPosition = positions.isEmpty() ? null : positions.lastEntry().getValue();
-                Location newPosition = PacketUtils.updateLocation(oldPosition, packet);
+                    if (newPosition != null) {
+                        positions.put(data.getTime(), newPosition);
 
-                if (newPosition != null) {
-                    positions.put(packetData.getTime(), newPosition);
-
-                    double progress = (double) packetData.getTime() / replayLength;
-                    progressMonitor.accept(Math.min(1, Math.max(0, progress)));
+                        double progress = (double) data.getTime() / replayLength;
+                        progressMonitor.accept(Math.min(1, Math.max(0, progress)));
+                    }
                 }
             }
         }
