@@ -225,7 +225,7 @@ public class ReplayStudio implements Studio {
 
     @Override
     public boolean isCompatible(int fileVersion) {
-        // Currently only supports 1.12
-        return fileVersion == 6;
+        // Currently only supports 1.12.1
+        return fileVersion == 7;
     }
 }
