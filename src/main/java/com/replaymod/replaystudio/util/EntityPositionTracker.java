@@ -27,6 +27,7 @@ package com.replaymod.replaystudio.util;
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.io.IWrappedPacket;
@@ -82,6 +83,13 @@ public class EntityPositionTracker {
         if (cached.isPresent()) {
             try (InputStream in = cached.get()) {
                 loadFromCache(in);
+            } catch (JsonSyntaxException e) {
+                // Cache contains invalid json, probably due to a previous crash / full disk
+                loadFromPacketData(progressMonitor);
+                synchronized (replayFile) {
+                    replayFile.remove(CACHE_ENTRY);
+                }
+                saveToCache();
             }
         } else {
             loadFromPacketData(progressMonitor);
