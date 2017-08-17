@@ -63,6 +63,12 @@ repositories {
     maven {
         url 'deps/maven_repo'
     }
+    maven {
+        url 'https://repo.viaversion.com'
+    }
+    maven {
+        url = "https://oss.sonatype.org/content/repositories/snapshots/"
+    }
 }
 
 def mavenBuild(project) {
@@ -89,6 +95,7 @@ tasks.preshadowJar.dependsOn tasks.buildMCProtocolLib
 
 dependencies {
     preshadow files('deps/MCProtocolLib/target/mcprotocollib-1.8.8-SNAPSHOT.jar')
+    preshadow 'us.myles:viaversion:1.2.0'
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'
     compile 'commons-cli:commons-cli:1.2'
@@ -117,6 +124,7 @@ license {
 
 preshadowJar {
     relocate 'io.netty', 'org.spacehq.netty'
+    relocate 'us.myles.ViaVersion', 'com.replaymod.replaystudio.us.myles.ViaVersion'
 }
 
 shadowJar {
