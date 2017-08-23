@@ -69,6 +69,9 @@ repositories {
     maven {
         url = "https://oss.sonatype.org/content/repositories/snapshots/"
     }
+    maven {
+        url 'https://jitpack.io'
+    }
 }
 
 def mavenBuild(project) {
@@ -95,7 +98,7 @@ tasks.preshadowJar.dependsOn tasks.buildMCProtocolLib
 
 dependencies {
     preshadow files('deps/MCProtocolLib/target/mcprotocollib-1.8.8-SNAPSHOT.jar')
-    preshadow 'us.myles:viaversion:1.2.0'
+    preshadow 'com.github.replaymod.viaversion:viaversion:be356b6'
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'
     compile 'commons-cli:commons-cli:1.2'
