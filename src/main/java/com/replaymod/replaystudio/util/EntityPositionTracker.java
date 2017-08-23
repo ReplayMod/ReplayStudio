@@ -127,7 +127,7 @@ public class EntityPositionTracker {
         ReplayInputStream origIn;
         synchronized (replayFile) {
             replayLength = Math.max(1, replayFile.getMetaData().getDuration());
-            origIn = replayFile.getPacketData();
+            origIn = replayFile.getPacketData(studio);
         }
 
         Map<Integer, NavigableMap<Long, Location>> entityPositions = new HashMap<>();

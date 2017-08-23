@@ -92,6 +92,11 @@ public abstract class AbstractReplayFile implements ReplayFile {
 
     @Override
     public ReplayInputStream getPacketData() throws IOException {
+        return getPacketData(studio);
+    }
+
+    @Override
+    public ReplayInputStream getPacketData(Studio studio) throws IOException {
         Optional<InputStream> in = get(ENTRY_RECORDING);
         if (!in.isPresent()) {
             return null;
