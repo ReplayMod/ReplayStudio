@@ -98,9 +98,11 @@ preshadowJar {
 }
 
 shadowJar {
+    archiveName = "${baseName}-${version}.${extension}"
     append('META-INF/NOTICE.txt')
     from(tasks.findByName('preshadowJar').outputs.files.collect {it.isDirectory() ? it : zipTree(it)})
 }
+build.dependsOn shadowJar
 
 eclipse.project {
         name = 'ReplayStudio'
