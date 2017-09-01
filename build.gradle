@@ -61,34 +61,12 @@ compileJava {
 repositories {
     mavenCentral()
     maven {
-        url 'deps/maven_repo'
+        url 'https://jitpack.io'
     }
 }
-
-def mavenBuild(project) {
-    task "build$project" (type: Exec) {
-        commandLine 'mvn', '-B', 'install', '-DskipTests', '-Dmaven.repo.local=../maven_repo'
-        workingDir "deps/$project"
-    }
-
-    clean {
-        delete "deps/$project/target"
-    }
-}
-clean {
-    delete 'deps/maven_repo/org/spacehq'
-}
-
-mavenBuild 'PacketLib'
-mavenBuild 'OpenNBT'
-mavenBuild 'MCAuthLib'
-mavenBuild 'MCProtocolLib'
-tasks.buildMCProtocolLib.dependsOn tasks.buildPacketLib, tasks.buildOpenNBT, tasks.buildMCAuthLib
-
-tasks.preshadowJar.dependsOn tasks.buildMCProtocolLib
 
 dependencies {
-    preshadow files('deps/MCProtocolLib/target/mcprotocollib-1.8.8-SNAPSHOT.jar')
+    preshadow 'com.github.ReplayMod:MCProtocolLib:77f8698'
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'
     compile 'commons-cli:commons-cli:1.2'
