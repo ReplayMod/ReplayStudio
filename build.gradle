@@ -5,12 +5,14 @@ buildscript {
         maven {
             url 'https://oss.sonatype.org/content/groups/staging'
         }
+        maven { url 'https://jitpack.io' }
     }
 
     dependencies {
         classpath 'ch.raffael.gradlePlugins.preshadow:gradle-preshadow-plugin:1.0'
         classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
         classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'
+        classpath 'com.github.johni0702:gradle-reproducible-builds-plugin:3dbf20d'
     }
 }
 
@@ -24,6 +26,7 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'license'
 apply plugin: 'maven'
 apply plugin: 'ch.raffael.preshadow'
+apply plugin: 'de.johni0702.reproducible-builds'
 
 // Methods to determine detailed version string
 def gitDescribe() {
