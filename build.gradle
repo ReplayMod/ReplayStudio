@@ -23,7 +23,7 @@ apply plugin: 'idea'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'license'
 apply plugin: 'maven'
-apply from: 'gradle/preshadow.gradle'
+apply plugin: 'ch.raffael.preshadow'
 
 // Methods to determine detailed version string
 def gitDescribe() {
