@@ -5,12 +5,14 @@ buildscript {
         maven {
             url 'https://oss.sonatype.org/content/groups/staging'
         }
+        maven { url 'https://jitpack.io' }
     }
 
     dependencies {
         classpath 'ch.raffael.gradlePlugins.preshadow:gradle-preshadow-plugin:1.0'
         classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
         classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'
+        classpath 'com.github.johni0702:gradle-reproducible-builds-plugin:3dbf20d'
     }
 }
 
@@ -23,15 +25,14 @@ apply plugin: 'idea'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'license'
 apply plugin: 'maven'
-apply from: 'gradle/preshadow.gradle'
+apply plugin: 'ch.raffael.preshadow'
+apply plugin: 'de.johni0702.reproducible-builds'
 
-// Methods to determine detailed version string
-def gitDescribe() {
+def gitCommitHash() {
     try {
-        // determine git-describe output
         def out = new ByteArrayOutputStream()
         exec {
-            commandLine 'git', 'describe', '--always', '--dirty=*'
+            commandLine 'git', 'rev-parse', '--short', 'HEAD'
             standardOutput = out
         }
         return out.toString().trim()
@@ -42,7 +43,7 @@ def gitDescribe() {
 
 group = 'com.replaymod'
 description = 'ReplayStudio'
-version = gitDescribe()
+version = gitCommitHash()
 mainClassName = 'com.replaymod.replaystudio.launcher.Launcher'
 
 ext.projectName = 'ReplayStudio'
@@ -61,34 +62,12 @@ compileJava {
 repositories {
     mavenCentral()
     maven {
-        url 'deps/maven_repo'
+        url 'https://jitpack.io'
     }
 }
-
-def mavenBuild(project) {
-    task "build$project" (type: Exec) {
-        commandLine 'mvn', '-B', 'install', '-DskipTests', '-Dmaven.repo.local=../maven_repo'
-        workingDir "deps/$project"
-    }
-
-    clean {
-        delete "deps/$project/target"
-    }
-}
-clean {
-    delete 'deps/maven_repo/org/spacehq'
-}
-
-mavenBuild 'PacketLib'
-mavenBuild 'OpenNBT'
-mavenBuild 'MCAuthLib'
-mavenBuild 'MCProtocolLib'
-tasks.buildMCProtocolLib.dependsOn tasks.buildPacketLib, tasks.buildOpenNBT, tasks.buildMCAuthLib
-
-tasks.preshadowJar.dependsOn tasks.buildMCProtocolLib
 
 dependencies {
-    preshadow files('deps/MCProtocolLib/target/mcprotocollib-1.11.2-SNAPSHOT.jar')
+    preshadow 'com.github.ReplayMod:MCProtocolLib:57cb568'
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'
     compile 'commons-cli:commons-cli:1.2'
@@ -120,9 +99,11 @@ preshadowJar {
 }
 
 shadowJar {
+    archiveName = "${baseName}-${version}.${extension}"
     append('META-INF/NOTICE.txt')
     from(tasks.findByName('preshadowJar').outputs.files.collect {it.isDirectory() ? it : zipTree(it)})
 }
+build.dependsOn shadowJar
 
 eclipse.project {
         name = 'ReplayStudio'
@@ -131,5 +112,5 @@ eclipse.project {
 jar.manifest.mainAttributes(
         'Main-Class': mainClassName,
         'Implementation-Title': description,
-        'Implementation-Version': gitDescribe()
+        'Implementation-Version': gitCommitHash()
 )
