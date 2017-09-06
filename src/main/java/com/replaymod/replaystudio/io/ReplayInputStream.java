@@ -28,12 +28,9 @@ import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.collection.PacketList;
 import com.replaymod.replaystudio.studio.protocol.StudioCodec;
-import com.replaymod.replaystudio.studio.protocol.StudioCompression;
 import com.replaymod.replaystudio.studio.protocol.StudioSession;
-import org.spacehq.mc.protocol.data.SubProtocol;
+import org.spacehq.mc.protocol.ProtocolMode;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerKeepAlivePacket;
-import org.spacehq.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
-import org.spacehq.mc.protocol.packet.login.server.LoginSetCompressionPacket;
 import org.spacehq.mc.protocol.packet.login.server.LoginSuccessPacket;
 import org.spacehq.netty.buffer.ByteBuf;
 import org.spacehq.netty.buffer.ByteBufAllocator;
@@ -69,11 +66,6 @@ public class ReplayInputStream extends InputStream {
      * The studio codec.
      */
     private final StudioCodec codec;
-
-    /**
-     * The studio compression. May be null if no compression is applied at the moment.
-     */
-    private StudioCompression compression = null;
 
     /**
      * Creates a new replay input stream for reading raw packet data.
@@ -121,53 +113,21 @@ public class ReplayInputStream extends InputStream {
                 length -= read;
             }
 
-            ByteBuf decompressed;
-            if (compression != null) {
-                List<Object> out = new LinkedList<>();
-                try {
-                    compression.decode(null, buf, out);
-                } catch (Exception e) {
-                    throw e instanceof IOException ? (IOException) e : new IOException("decompressing", e);
-                }
-                buf.release();
-                decompressed = (ByteBuf) out.get(0);
-            } else {
-                decompressed = buf;
-            }
-
             List<Object> decoded = new LinkedList<>();
             try {
-                codec.decode(null, decompressed, decoded);
+                codec.decode(null, buf, decoded);
             } catch (Exception e) {
                 throw e instanceof IOException ? (IOException) e : new IOException("decoding", e);
             }
-            decompressed.release();
+            buf.release();
 
             for (Object o : decoded) {
                 if (o instanceof ServerKeepAlivePacket) {
                     continue; // They aren't needed in a replay
                 }
 
-                if (o instanceof LoginSetCompressionPacket) {
-                    int threshold = ((LoginSetCompressionPacket) o).getThreshold();
-                    if (threshold == -1) {
-                        compression = null;
-                    } else {
-                        session.setCompressionThreshold(threshold);
-                        compression = new StudioCompression(session);
-                    }
-                }
-                if (o instanceof ServerSetCompressionPacket) {
-                    int threshold = ((ServerSetCompressionPacket) o).getThreshold();
-                    if (threshold == -1) {
-                        compression = null;
-                    } else {
-                        session.setCompressionThreshold(threshold);
-                        compression = new StudioCompression(session);
-                    }
-                }
                 if (o instanceof LoginSuccessPacket) {
-                    session.getPacketProtocol().setSubProtocol(SubProtocol.GAME, true, session);
+                    session.getPacketProtocol().setMode(ProtocolMode.GAME, true, session);
                 }
                 return new PacketData(next, (Packet) o);
             }

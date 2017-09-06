@@ -28,7 +28,7 @@ import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.io.WrappedPacket;
 import com.replaymod.replaystudio.util.Reflection;
 import org.spacehq.mc.protocol.MinecraftProtocol;
-import org.spacehq.mc.protocol.data.SubProtocol;
+import org.spacehq.mc.protocol.ProtocolMode;
 import org.spacehq.packetlib.Session;
 import org.spacehq.packetlib.packet.Packet;
 import org.spacehq.packetlib.packet.PacketProtocol;
@@ -38,16 +38,16 @@ import java.util.HashMap;
 public class StudioMinecraftProtocol extends MinecraftProtocol {
 
     public StudioMinecraftProtocol() {
-        super(SubProtocol.LOGIN);
+        super(ProtocolMode.LOGIN);
     }
 
     public StudioMinecraftProtocol(Studio studio, Session session, boolean client) {
-        super(SubProtocol.LOGIN);
+        super(ProtocolMode.LOGIN);
 
-        init(studio, session, client, SubProtocol.GAME);
+        init(studio, session, client, ProtocolMode.GAME);
     }
 
-    public void init(Studio studio, Session session, boolean client, SubProtocol mode) {
+    public void init(Studio studio, Session session, boolean client, ProtocolMode mode) {
         Reflection.setField(PacketProtocol.class, "incoming", this, new HashMap() {
             @Override
             @SuppressWarnings("unchecked")
@@ -73,12 +73,12 @@ public class StudioMinecraftProtocol extends MinecraftProtocol {
             }
         });
 
-        setSubProtocol(mode, client, session);
+        setMode(mode, client, session);
     }
 
     @Override
-    public void setSubProtocol(SubProtocol mode, boolean client, Session session) {
-        super.setSubProtocol(mode, client, session);
+    public void setMode(ProtocolMode mode, boolean client, Session session) {
+        super.setMode(mode, client, session);
     }
 
     private Class<?> getPacketClass(Studio studio, Class<? extends Packet> cls) {

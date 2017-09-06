@@ -27,7 +27,7 @@ package com.replaymod.replaystudio.mock;
 import com.google.common.base.Function;
 import com.replaymod.replaystudio.util.Reflection;
 import org.spacehq.mc.protocol.MinecraftProtocol;
-import org.spacehq.mc.protocol.data.SubProtocol;
+import org.spacehq.mc.protocol.ProtocolMode;
 import org.spacehq.packetlib.Session;
 import org.spacehq.packetlib.packet.Packet;
 import org.spacehq.packetlib.packet.PacketProtocol;
@@ -43,15 +43,15 @@ public class MinecraftProtocolMock extends MinecraftProtocol {
     public MinecraftProtocolMock(Session session, boolean client,
                                  Function<Class<? extends Packet>, Class<? extends Packet>> incoming,
                                  Function<Class<? extends Packet>, Class<? extends Packet>> outgoing) {
-        super(SubProtocol.LOGIN);
+        super(ProtocolMode.LOGIN);
 
         this.incoming = incoming;
         this.outgoing = outgoing;
 
-        init(session, client, SubProtocol.GAME);
+        init(session, client, ProtocolMode.GAME);
     }
 
-    public void init(Session session, boolean client, SubProtocol mode) {
+    public void init(Session session, boolean client, ProtocolMode mode) {
         Reflection.setField(PacketProtocol.class, "incoming", this, new HashMap() {
             @Override
             @SuppressWarnings("unchecked")
@@ -89,11 +89,11 @@ public class MinecraftProtocolMock extends MinecraftProtocol {
             }
         });
 
-        setSubProtocol(mode, client, session);
+        setMode(mode, client, session);
     }
 
     @Override
-    public void setSubProtocol(SubProtocol mode, boolean client, Session session) {
-        super.setSubProtocol(mode, client, session);
+    public void setMode(ProtocolMode mode, boolean client, Session session) {
+        super.setMode(mode, client, session);
     }
 }

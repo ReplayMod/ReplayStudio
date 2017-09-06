@@ -79,7 +79,7 @@ public abstract class AbstractReplayFile implements ReplayFile {
     @Override
     public void writeMetaData(ReplayMetaData metaData) throws IOException {
         metaData.setFileFormat("MCPR");
-        metaData.setFileFormatVersion(1);
+        metaData.setFileFormatVersion(8);
         if (metaData.getGenerator() == null) {
             metaData.setGenerator("ReplayStudio v" + studio.getVersion());
         }

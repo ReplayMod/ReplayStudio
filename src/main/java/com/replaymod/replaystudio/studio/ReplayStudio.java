@@ -38,15 +38,17 @@ import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.util.Utils;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerKeepAlivePacket;
-import org.spacehq.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
-import org.spacehq.mc.protocol.packet.login.server.LoginSetCompressionPacket;
 import org.spacehq.packetlib.packet.Packet;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -66,8 +68,6 @@ public class ReplayStudio implements Studio {
 
     public ReplayStudio() {
         // Required for importing / exporting
-        setParsing(LoginSetCompressionPacket.class, true);
-        setParsing(ServerSetCompressionPacket.class, true);
         setParsing(ServerKeepAlivePacket.class, true);
     }
 
@@ -226,6 +226,6 @@ public class ReplayStudio implements Studio {
     @Override
     public boolean isCompatible(int fileVersion) {
         // File version 0 is not versioned (old MC1.8), version 1 is MC1.8
-        return fileVersion == 0 || fileVersion == 1;
+        return fileVersion == 8;
     }
 }

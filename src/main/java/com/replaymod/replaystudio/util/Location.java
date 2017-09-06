@@ -24,7 +24,6 @@
  */
 package com.replaymod.replaystudio.util;
 
-import org.spacehq.mc.protocol.data.game.Position;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.ServerEntityTeleportPacket;
 
 /**
@@ -40,11 +39,11 @@ public class Location {
     private final double x, y, z;
     private final float yaw, pitch;
 
-    public Location(Position position) {
+    public Location(DPosition position) {
         this(position, 0, 0);
     }
 
-    public Location(Position position, float yaw, float pitch) {
+    public Location(DPosition position, float yaw, float pitch) {
         this(position.getX(), position.getY(), position.getZ(), yaw, pitch);
     }
 
@@ -64,12 +63,12 @@ public class Location {
         return new Location(p.getX(), p.getY(), p.getZ(), p.getYaw(), p.getPitch());
     }
 
-    public ServerEntityTeleportPacket toServerEntityTeleportPacket(int entityId, boolean onGround) {
-        return new ServerEntityTeleportPacket(entityId, x, y, z, yaw, pitch, onGround);
+    public ServerEntityTeleportPacket toServerEntityTeleportPacket(int entityId) {
+        return new ServerEntityTeleportPacket(entityId, x, y, z, yaw, pitch);
     }
 
-    public Position getPosition() {
-        return new Position((int) x, (int) y, (int) z);
+    public DPosition getPosition() {
+        return new DPosition((int) x, (int) y, (int) z);
     }
 
     public double getX() {

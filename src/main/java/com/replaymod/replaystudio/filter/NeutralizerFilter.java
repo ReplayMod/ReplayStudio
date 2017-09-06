@@ -31,8 +31,6 @@ import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.collection.ReplayPart;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.util.PacketUtils;
-import org.spacehq.mc.protocol.data.game.values.scoreboard.ObjectiveAction;
-import org.spacehq.mc.protocol.data.game.values.scoreboard.TeamAction;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.ServerDestroyEntitiesPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.spawn.*;
 import org.spacehq.mc.protocol.packet.ingame.server.scoreboard.ServerScoreboardObjectivePacket;
@@ -93,7 +91,7 @@ public class NeutralizerFilter extends StreamFilterBase {
 
         if (packet instanceof ServerTeamPacket) {
             ServerTeamPacket p = (ServerTeamPacket) packet;
-            if (p.getAction() == TeamAction.REMOVE) {
+            if (p.getAction() == ServerTeamPacket.Action.REMOVE) {
                 teams.remove(p.getTeamName());
             } else {
                 teams.add(p.getTeamName());
@@ -102,7 +100,7 @@ public class NeutralizerFilter extends StreamFilterBase {
 
         if (packet instanceof ServerScoreboardObjectivePacket) {
             ServerScoreboardObjectivePacket p = (ServerScoreboardObjectivePacket) packet;
-            if (p.getAction() == ObjectiveAction.REMOVE) {
+            if (p.getAction() == ServerScoreboardObjectivePacket.Action.REMOVE) {
                 scoreboards.remove(p.getName());
             } else {
                 scoreboards.add(p.getName());
@@ -122,7 +120,7 @@ public class NeutralizerFilter extends StreamFilterBase {
         }
 
         for (String scoreboard : scoreboards) {
-            stream.insert(new PacketData(timestamp, new ServerScoreboardObjectivePacket(scoreboard)));
+            stream.insert(new PacketData(timestamp, new ServerScoreboardObjectivePacket(scoreboard, "", ServerScoreboardObjectivePacket.Action.REMOVE)));
         }
     }
 

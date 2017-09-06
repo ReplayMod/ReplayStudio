@@ -30,10 +30,8 @@ import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.replay.Replay;
 import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.studio.protocol.StudioCodec;
-import com.replaymod.replaystudio.studio.protocol.StudioCompression;
 import com.replaymod.replaystudio.studio.protocol.StudioSession;
 import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.spacehq.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
 import org.spacehq.netty.buffer.ByteBuf;
 import org.spacehq.netty.buffer.ByteBufAllocator;
 import org.spacehq.netty.buffer.PooledByteBufAllocator;
@@ -81,11 +79,6 @@ public class ReplayOutputStream extends OutputStream {
      * The studio codec.
      */
     private final StudioCodec codec;
-
-    /**
-     * The studio compression. May be null if no compression is applied at the moment.
-     */
-    private StudioCompression compression = null;
 
     /**
      * Duration of the replay written. This gets updated with each packet and is afterwards used to set the
@@ -172,35 +165,12 @@ public class ReplayOutputStream extends OutputStream {
             throw new EncoderException(ToStringBuilder.reflectionToString(packet), e);
         }
 
-        ByteBuf compressed;
-        if (compression == null) {
-            compressed = encoded;
-        } else {
-            compressed = ALLOC.buffer();
-            try {
-                compression.encode(null, encoded, compressed);
-            } catch (Exception e) {
-                throw new EncoderException(ToStringBuilder.reflectionToString(packet), e);
-            }
-            encoded.release();
-        }
-
-        int length = compressed.readableBytes();
+        int length = encoded.readableBytes();
         writeInt(out, (int) time);
         writeInt(out, length);
-        compressed.readBytes(out, length);
+        encoded.readBytes(out, length);
 
-        compressed.release();
-
-        if (packet instanceof ServerSetCompressionPacket) {
-            int threshold = ((ServerSetCompressionPacket) packet).getThreshold();
-            if (threshold == -1) {
-                compression = null;
-            } else {
-                compression = new StudioCompression(session);
-                session.setCompressionThreshold(threshold);
-            }
-        }
+        encoded.release();
     }
 
     /**

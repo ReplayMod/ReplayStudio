@@ -30,9 +30,9 @@ import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.collection.ReplayPart;
 import com.replaymod.replaystudio.util.PacketUtils;
-import org.spacehq.mc.protocol.data.game.values.entity.MobType;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.ServerDestroyEntitiesPacket;
 import org.spacehq.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnMobPacket;
+import org.spacehq.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnMobPacket.Type;
 import org.spacehq.packetlib.packet.Packet;
 
 import java.util.EnumSet;
@@ -42,7 +42,7 @@ import java.util.Set;
 
 public class RemoveMobsFilter implements Filter {
 
-    private Set<MobType> filterTypes;
+    private Set<Type> filterTypes;
 
     @Override
     public String getName() {
@@ -51,9 +51,9 @@ public class RemoveMobsFilter implements Filter {
 
     @Override
     public void init(Studio studio, JsonObject config) {
-        filterTypes = EnumSet.noneOf(MobType.class);
+        filterTypes = EnumSet.noneOf(Type.class);
         for (JsonElement e : config.getAsJsonArray("Types")) {
-            filterTypes.add(MobType.valueOf(e.getAsString()));
+            filterTypes.add(Type.valueOf(e.getAsString()));
         }
     }
 

@@ -67,7 +67,7 @@ repositories {
 }
 
 dependencies {
-    preshadow 'com.github.ReplayMod:MCProtocolLib:77f8698'
+    preshadow 'com.github.ReplayMod:MCProtocolLib:5a7a2e9'
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'
     compile 'commons-cli:commons-cli:1.2'
