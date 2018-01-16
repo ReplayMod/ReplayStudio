@@ -30,7 +30,9 @@ import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.filter.StreamFilter;
 import com.replaymod.replaystudio.io.ReplayOutputStream;
+import com.replaymod.replaystudio.replay.ReplayFile;
 import com.replaymod.replaystudio.replay.ReplayMetaData;
+import com.replaymod.replaystudio.replay.ZipReplayFile;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.studio.ReplayStudio;
 import org.apache.commons.cli.CommandLine;
@@ -38,6 +40,8 @@ import org.apache.commons.cli.CommandLine;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.lang.System.in;
 
 public class StreamLauncher {
 
@@ -90,7 +94,7 @@ public class StreamLauncher {
         long start = System.nanoTime();
         System.out.println("Generating " + ("x".equals(output) ? 0 : 1) + " replay via 1 stream from 1 input applying " + filters.size() + " filter(s)");
 
-        InputStream in = new BufferedInputStream(new FileInputStream(input));
+        ReplayFile inFile = new ZipReplayFile(studio, new File(input));
         ReplayOutputStream out;
         if (!"x".equals(output)) {
             OutputStream buffOut = new BufferedOutputStream(new FileOutputStream(output));
@@ -98,10 +102,8 @@ public class StreamLauncher {
         } else {
             out = null;
         }
-        ReplayMetaData meta = studio.readReplayMetaData(in);
-        in.close();
-        in = new BufferedInputStream(new FileInputStream(input));
-        PacketStream stream = studio.createReplayStream(in, false);
+        ReplayMetaData meta = inFile.getMetaData();
+        PacketStream stream = inFile.getPacketData().asPacketStream();
 
         // Process stream
         stream.start();
