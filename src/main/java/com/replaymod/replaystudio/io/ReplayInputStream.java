@@ -27,9 +27,14 @@ package com.replaymod.replaystudio.io;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.collection.PacketList;
+import com.replaymod.replaystudio.replay.Replay;
+import com.replaymod.replaystudio.stream.PacketStream;
+import com.replaymod.replaystudio.studio.StudioPacketStream;
+import com.replaymod.replaystudio.studio.StudioReplay;
 import com.replaymod.replaystudio.studio.protocol.StudioCodec;
 import com.replaymod.replaystudio.studio.protocol.StudioCompression;
 import com.replaymod.replaystudio.studio.protocol.StudioSession;
+import com.replaymod.replaystudio.viaversion.ViaVersionPacketConverter;
 import org.spacehq.mc.protocol.data.SubProtocol;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerKeepAlivePacket;
 import org.spacehq.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
@@ -43,8 +48,10 @@ import org.spacehq.packetlib.packet.Packet;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayDeque;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 import static com.replaymod.replaystudio.util.Utils.readInt;
 
@@ -54,6 +61,8 @@ import static com.replaymod.replaystudio.util.Utils.readInt;
 public class ReplayInputStream extends InputStream {
 
     private static final ByteBufAllocator ALLOC = PooledByteBufAllocator.DEFAULT;
+
+    private final Studio studio;
 
     /**
      * The actual input stream.
@@ -76,14 +85,35 @@ public class ReplayInputStream extends InputStream {
     private StudioCompression compression = null;
 
     /**
+     * The instance of the ViaVersion packet converter in use.
+     */
+    private ViaVersionPacketConverter viaVersionConverter;
+
+    /**
+     * Packets which have already been read from the input but have not yet been requested via {@link #readPacket()}.
+     */
+    private Queue<PacketData> buffer = new ArrayDeque<>();
+
+    /**
+     * @deprecated Use {@link #ReplayInputStream(Studio, InputStream, int)} instead
+     */
+    @Deprecated
+    public ReplayInputStream(Studio studio, InputStream in) {
+        this(studio, in, studio.getCurrentFileFormatVersion());
+    }
+
+    /**
      * Creates a new replay input stream for reading raw packet data.
      * @param studio The studio
      * @param in The actual input stream.
+     * @param fileFormatVersion The file format version of the replay packet data
      */
-    public ReplayInputStream(Studio studio, InputStream in) {
+    public ReplayInputStream(Studio studio, InputStream in, int fileFormatVersion) {
+        this.studio = studio;
         this.session = new StudioSession(studio, true);
         this.codec = new StudioCodec(session);
         this.in = in;
+        this.viaVersionConverter = ViaVersionPacketConverter.createForFileVersion(fileFormatVersion, studio.getCurrentFileFormatVersion());
     }
 
     @Override
@@ -96,13 +126,22 @@ public class ReplayInputStream extends InputStream {
         in.close();
     }
 
+    public Studio getStudio() {
+        return studio;
+    }
+
     /**
      * Read the next packet from this input stream.
      * @return The packet
      * @throws IOException if an I/O error occurs.
      */
     public PacketData readPacket() throws IOException {
-        while (true) {
+        fillBuffer();
+        return buffer.poll();
+    }
+
+    private void fillBuffer() throws IOException {
+        while (buffer.isEmpty()) {
             int next = readInt(in);
             int length = readInt(in);
             if (next == -1 || length == -1) {
@@ -137,7 +176,10 @@ public class ReplayInputStream extends InputStream {
 
             List<Object> decoded = new LinkedList<>();
             try {
-                codec.decode(null, decompressed, decoded);
+                for (ByteBuf packet : viaVersionConverter.convertPacket(decompressed)) {
+                    codec.decode(null, packet, decoded);
+                    packet.release();
+                }
             } catch (Exception e) {
                 throw e instanceof IOException ? (IOException) e : new IOException("decoding", e);
             }
@@ -169,10 +211,9 @@ public class ReplayInputStream extends InputStream {
                 if (o instanceof LoginSuccessPacket) {
                     session.getPacketProtocol().setSubProtocol(SubProtocol.GAME, true, session);
                 }
-                return new PacketData(next, (Packet) o);
+                buffer.offer(new PacketData(next, (Packet) o));
             }
         }
-        return null;
     }
 
     /**
@@ -181,7 +222,9 @@ public class ReplayInputStream extends InputStream {
      * @param studio The studio
      * @param in The input stream to read from
      * @return The packet list
+     * @deprecated Use {@link #readAllAndClose()} instead
      */
+    @Deprecated
     public static PacketList readPackets(Studio studio, InputStream in) throws IOException {
         ReplayInputStream replayIn;
         if (in instanceof ReplayInputStream) {
@@ -189,16 +232,47 @@ public class ReplayInputStream extends InputStream {
         } else {
             replayIn = new ReplayInputStream(studio, in);
         }
+        return replayIn.readAllAndClose();
+    }
+
+    /**
+     * Reads all remaining packets from this input stream into a new packet list.
+     */
+    public PacketList readAll() throws IOException {
         List<PacketData> packets = new LinkedList<>();
 
         PacketData data;
-        while ((data = replayIn.readPacket()) != null) {
+        while ((data = readPacket()) != null) {
             packets.add(data);
         }
-
-        in.close();
 
         return new PacketList(packets);
     }
 
+    /**
+     * Reads all remaining packets from this input stream into a new packet list.
+     * Finally, close this input stream.
+     */
+    public PacketList readAllAndClose() throws IOException {
+        try {
+            return readAll();
+        } finally {
+            close();
+        }
+    }
+
+    /**
+     * Wraps this {@link ReplayInputStream} into a {@link PacketStream}.
+     * Closing the replay input stream will close the packet stream and vice versa.
+     */
+    public PacketStream asPacketStream() {
+        return new StudioPacketStream(this);
+    }
+
+    /**
+     * Reads all remaining packets into a {@link Replay} and closes this input stream.
+     */
+    public Replay toReplay() throws IOException {
+        return new StudioReplay(studio, readAllAndClose());
+    }
 }
