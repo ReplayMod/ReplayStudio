@@ -50,12 +50,16 @@ public class StudioReplay extends StudioReplayPart implements Replay {
         this.replayFile = Optional.absent();
     }
 
+    /**
+     * @deprecated Use {@link ReplayInputStream#toReplay()}
+     */
+    @Deprecated
     public StudioReplay(Studio studio, InputStream in) throws IOException {
         this(studio, ReplayInputStream.readPackets(studio, in));
     }
 
     public StudioReplay(Studio studio, ReplayFile replayFile) throws IOException {
-        super(ReplayInputStream.readPackets(studio, replayFile.getPacketData()));
+        super(replayFile.getPacketData().readAllAndClose());
         this.studio = studio;
         this.replayFile = Optional.of(replayFile);
     }
