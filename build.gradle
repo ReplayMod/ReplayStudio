@@ -64,10 +64,20 @@ repositories {
     maven {
         url 'https://jitpack.io'
     }
+    maven {
+        url 'https://repo.viaversion.com'
+    }
+    maven {
+        url = "https://oss.sonatype.org/content/repositories/snapshots/"
+    }
+    maven {
+        url 'https://jitpack.io'
+    }
 }
 
 dependencies {
     preshadow 'com.github.ReplayMod:MCProtocolLib:c349cd8'
+    preshadow 'com.github.replaymod.viaversion:viaversion:563dc3c'
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'
     compile 'commons-cli:commons-cli:1.2'
@@ -96,6 +106,7 @@ license {
 
 preshadowJar {
     relocate 'io.netty', 'org.spacehq.netty'
+    relocate 'us.myles.ViaVersion', 'com.replaymod.replaystudio.us.myles.ViaVersion'
 }
 
 shadowJar {
