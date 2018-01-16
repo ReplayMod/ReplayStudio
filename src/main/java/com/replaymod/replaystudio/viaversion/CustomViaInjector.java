@@ -22,53 +22,32 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.replaymod.replaystudio.studio;
+package com.replaymod.replaystudio.viaversion;
 
-import com.replaymod.replaystudio.PacketData;
-import com.replaymod.replaystudio.Studio;
-import com.replaymod.replaystudio.io.ReplayInputStream;
-import com.replaymod.replaystudio.stream.AbstractPacketStream;
+import com.replaymod.replaystudio.studio.ReplayStudio;
+import com.replaymod.replaystudio.us.myles.ViaVersion.api.platform.ViaInjector;
 
-import java.io.IOException;
-import java.io.InputStream;
+public class CustomViaInjector implements ViaInjector {
+    private final int serverProtocolVersion = new ReplayStudio().getCurrentFileFormatVersion();
 
-public class StudioPacketStream extends AbstractPacketStream {
+    @Override
+    public void inject() throws Exception {}
 
-    private final ReplayInputStream in;
+    @Override
+    public void uninject() throws Exception {}
 
-    /**
-     * @deprecated Use {@link ReplayInputStream#asPacketStream()} instead.
-     */
-    @Deprecated
-    public StudioPacketStream(Studio studio, InputStream in) {
-        this.in = new ReplayInputStream(studio, in);
-    }
-
-    public StudioPacketStream(ReplayInputStream in) {
-        this.in = in;
+    @Override
+    public int getServerProtocolVersion() throws Exception {
+        return serverProtocolVersion;
     }
 
     @Override
-    protected PacketData nextInput() {
-        try {
-            return in.readPacket();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public String getEncoderName() {
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    public void start() {
-
+    public String getDecoderName() {
+        throw new UnsupportedOperationException();
     }
-
-    @Override
-    protected void cleanup() {
-        try {
-            in.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
 }
