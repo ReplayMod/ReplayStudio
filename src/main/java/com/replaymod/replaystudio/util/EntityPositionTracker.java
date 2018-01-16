@@ -124,14 +124,14 @@ public class EntityPositionTracker {
         PacketUtils.registerAllMovementRelated(studio);
         // Get the packet data input stream
         int replayLength;
-        InputStream origIn;
+        ReplayInputStream origIn;
         synchronized (replayFile) {
             replayLength = Math.max(1, replayFile.getMetaData().getDuration());
-            origIn = replayFile.getPacketData();
+            origIn = replayFile.getPacketData(studio);
         }
 
         Map<Integer, NavigableMap<Long, Location>> entityPositions = new HashMap<>();
-        try (ReplayInputStream in = new ReplayInputStream(studio, origIn)) {
+        try (ReplayInputStream in = origIn) {
             PacketData packetData;
             while ((packetData = in.readPacket()) != null) {
                 Packet packet = packetData.getPacket();

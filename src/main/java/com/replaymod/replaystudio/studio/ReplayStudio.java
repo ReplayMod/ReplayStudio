@@ -36,11 +36,13 @@ import com.replaymod.replaystudio.collection.ReplayPart;
 import com.replaymod.replaystudio.filter.Filter;
 import com.replaymod.replaystudio.filter.SquashFilter;
 import com.replaymod.replaystudio.filter.StreamFilter;
+import com.replaymod.replaystudio.io.ReplayInputStream;
 import com.replaymod.replaystudio.replay.Replay;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.util.Utils;
+import com.replaymod.replaystudio.viaversion.ViaVersionPacketConverter;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -139,6 +141,11 @@ public class ReplayStudio implements Studio {
     }
 
     @Override
+    public Replay createReplay(InputStream in, int fileFormatVersion) throws IOException {
+        return new ReplayInputStream(this, in, fileFormatVersion).toReplay();
+    }
+
+    @Override
     public Replay createReplay(InputStream in, boolean raw) throws IOException {
         if (raw) {
             return new StudioReplay(this, in);
@@ -225,7 +232,11 @@ public class ReplayStudio implements Studio {
 
     @Override
     public boolean isCompatible(int fileVersion) {
-        // Currently only supports 1.12
-        return fileVersion == 6;
+        return ViaVersionPacketConverter.isFileVersionSupported(fileVersion, getCurrentFileFormatVersion());
+    }
+
+    @Override
+    public int getCurrentFileFormatVersion() {
+        return 6;
     }
 }

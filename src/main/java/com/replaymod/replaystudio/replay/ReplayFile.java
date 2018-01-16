@@ -25,6 +25,7 @@
 package com.replaymod.replaystudio.replay;
 
 import com.google.common.base.Optional;
+import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.data.Marker;
 import com.replaymod.replaystudio.data.ModInfo;
 import com.replaymod.replaystudio.data.ReplayAssetEntry;
@@ -34,7 +35,11 @@ import com.replaymod.replaystudio.pathing.PathingRegistry;
 import com.replaymod.replaystudio.pathing.path.Timeline;
 
 import java.awt.image.BufferedImage;
-import java.io.*;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -95,6 +100,7 @@ public interface ReplayFile extends Closeable {
     void writeMetaData(ReplayMetaData metaData) throws IOException;
 
     ReplayInputStream getPacketData() throws IOException;
+    ReplayInputStream getPacketData(Studio studio) throws IOException;
     ReplayOutputStream writePacketData() throws IOException;
 
     Replay toReplay() throws IOException;

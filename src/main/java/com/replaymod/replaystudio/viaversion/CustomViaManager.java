@@ -22,53 +22,40 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.replaymod.replaystudio.studio;
+package com.replaymod.replaystudio.viaversion;
 
-import com.replaymod.replaystudio.PacketData;
-import com.replaymod.replaystudio.Studio;
-import com.replaymod.replaystudio.io.ReplayInputStream;
-import com.replaymod.replaystudio.stream.AbstractPacketStream;
+import com.replaymod.replaystudio.us.myles.ViaVersion.ViaManager;
+import com.replaymod.replaystudio.us.myles.ViaVersion.api.Via;
+import com.replaymod.replaystudio.us.myles.ViaVersion.api.data.UserConnection;
+import com.replaymod.replaystudio.us.myles.ViaVersion.protocols.base.ProtocolInfo;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.util.Collections;
+import java.util.Map;
+import java.util.UUID;
 
-public class StudioPacketStream extends AbstractPacketStream {
-
-    private final ReplayInputStream in;
-
-    /**
-     * @deprecated Use {@link ReplayInputStream#asPacketStream()} instead.
-     */
-    @Deprecated
-    public StudioPacketStream(Studio studio, InputStream in) {
-        this.in = new ReplayInputStream(studio, in);
+class CustomViaManager extends ViaManager {
+    static synchronized void initialize() {
+        if (Via.getPlatform() != null) return;
+        Via.init(new CustomViaManager());
     }
 
-    public StudioPacketStream(ReplayInputStream in) {
-        this.in = in;
+    private CustomViaManager() {
+        super(new CustomViaPlatform(), new CustomViaInjector(), null, null);
     }
 
     @Override
-    protected PacketData nextInput() {
-        try {
-            return in.readPacket();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    public Map<UUID, UserConnection> getPortedPlayers() {
+        UserConnection user = CustomViaAPI.INSTANCE.get().user();
+        UUID uuid = user.get(ProtocolInfo.class).getUuid();
+        return Collections.singletonMap(uuid, user);
+    }
+
+    @Override
+    public UserConnection getConnection(UUID playerUUID) {
+        UserConnection user = CustomViaAPI.INSTANCE.get().user();
+        if (playerUUID.equals(user.get(ProtocolInfo.class).getUuid())) {
+            return user;
         }
+        throw new UnsupportedOperationException();
     }
-
-    @Override
-    public void start() {
-
-    }
-
-    @Override
-    protected void cleanup() {
-        try {
-            in.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
 }
