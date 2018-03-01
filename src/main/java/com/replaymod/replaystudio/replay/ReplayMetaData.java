@@ -31,7 +31,35 @@ import java.util.Objects;
  * Meta data for replay files.
  */
 public class ReplayMetaData {
+    //#if MC>=11202
     public static final int CURRENT_FILE_FORMAT_VERSION = 9;
+    //#else
+    //#if MC>=11201
+    //$$ public static final int CURRENT_FILE_FORMAT_VERSION = 7;
+    //#else
+    //#if MC>=11200
+    //$$ public static final int CURRENT_FILE_FORMAT_VERSION = 6;
+    //#else
+    //#if MC>=11102
+    //$$ public static final int CURRENT_FILE_FORMAT_VERSION = 5;
+    //#else
+    //#if MC>=11100
+    //$$ public static final int CURRENT_FILE_FORMAT_VERSION = 4;
+    //#else
+    //#if MC>=11002
+    //$$ public static final int CURRENT_FILE_FORMAT_VERSION = 3;
+    //#else
+    //#if MC>=10904
+    //$$ public static final int CURRENT_FILE_FORMAT_VERSION = 2;
+    //#else
+    //$$ public static final int CURRENT_FILE_FORMAT_VERSION = 1;
+    //#endif
+    //#endif
+    //#endif
+    //#endif
+    //#endif
+    //#endif
+    //#endif
 
     /**
      * Whether this is a singleplayer recording.

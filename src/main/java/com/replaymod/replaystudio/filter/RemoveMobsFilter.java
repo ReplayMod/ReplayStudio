@@ -24,8 +24,6 @@
  */
 package com.replaymod.replaystudio.filter;
 
-import com.github.steveice10.mc.protocol.data.game.entity.type.MobType;
-import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityDestroyPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnMobPacket;
 import com.github.steveice10.packetlib.packet.Packet;
 import com.google.gson.JsonElement;
@@ -34,6 +32,14 @@ import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.collection.ReplayPart;
 import com.replaymod.replaystudio.util.PacketUtils;
+
+//#if MC>=10904
+import com.github.steveice10.mc.protocol.data.game.entity.type.MobType;
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityDestroyPacket;
+//#else
+//$$ import com.github.steveice10.mc.protocol.data.game.entity.MobType;
+//$$ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerDestroyEntitiesPacket;
+//#endif
 
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -68,8 +74,13 @@ public class RemoveMobsFilter implements Filter {
                     removedEntities.add(p.getEntityId());
                 }
             }
+            //#if MC>=10904
             if (packet instanceof ServerEntityDestroyPacket) {
                 ServerEntityDestroyPacket p = (ServerEntityDestroyPacket) packet;
+            //#else
+            //$$ if (packet instanceof ServerDestroyEntitiesPacket) {
+            //$$     ServerDestroyEntitiesPacket p = (ServerDestroyEntitiesPacket) packet;
+            //#endif
                 for (int id : p.getEntityIds()) {
                     removedEntities.remove(id);
                 }

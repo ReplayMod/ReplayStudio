@@ -1,2 +1,17 @@
 rootProject.name = 'ReplayStudio'
 
+def versions = [
+        'core',
+        '1.8',
+        '1.9.4',
+        '1.10.2',
+        '1.11',
+        '1.11.2',
+        '1.12',
+        '1.12.1',
+        '1.12.2'
+]
+versions.each {
+    include ":$it"
+    project(":$it").projectDir = file("versions/$it")
+}

@@ -64,6 +64,7 @@ public class StudioSession implements Session {
         return 0;
     }
 
+    //#if MC>=11200
     @Override
     public SocketAddress getLocalAddress() {
         return null;
@@ -73,6 +74,7 @@ public class StudioSession implements Session {
     public SocketAddress getRemoteAddress() {
         return null;
     }
+    //#endif
 
     @Override
     public Map<String, Object> getFlags() {

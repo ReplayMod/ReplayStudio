@@ -65,6 +65,7 @@ public class SessionMock<P extends MinecraftProtocol> implements Session {
         return 0;
     }
 
+    //#if MC>=11200
     @Override
     public SocketAddress getLocalAddress() {
         return null;
@@ -74,6 +75,7 @@ public class SessionMock<P extends MinecraftProtocol> implements Session {
     public SocketAddress getRemoteAddress() {
         return null;
     }
+    //#endif
 
     @Override
     public Map<String, Object> getFlags() {

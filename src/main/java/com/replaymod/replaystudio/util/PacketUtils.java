@@ -27,10 +27,7 @@ package com.replaymod.replaystudio.util;
 import com.github.steveice10.mc.protocol.data.game.entity.player.PositionElement;
 import com.github.steveice10.mc.protocol.packet.ingame.server.ServerCombatPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.ServerSwitchCameraPacket;
-import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityAnimationPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityAttachPacket;
-import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityCollectItemPacket;
-import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityDestroyPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityEffectPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityEquipmentPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityHeadLookPacket;
@@ -41,7 +38,6 @@ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntit
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityPropertiesPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityRemoveEffectPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityRotationPacket;
-import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntitySetPassengersPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityStatusPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityTeleportPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityVelocityPacket;
@@ -59,7 +55,23 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.replaymod.replaystudio.Studio;
 
+//#if MC>=10904
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityAnimationPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityCollectItemPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityDestroyPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntitySetPassengersPacket;
+//#else
+//$$ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerAnimationPacket;
+//$$ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerCollectItemPacket;
+//$$ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerDestroyEntitiesPacket;
+//$$ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityNBTUpdatePacket;
+//#endif
+
 import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Contains utilities for working with packets.
@@ -100,9 +112,15 @@ public class PacketUtils {
         studio.setParsing(ServerSpawnObjectPacket.class, true);
         studio.setParsing(ServerSpawnPaintingPacket.class, true);
         studio.setParsing(ServerSpawnPlayerPacket.class, true);
+        //#if MC>=10904
         studio.setParsing(ServerEntityAnimationPacket.class, true);
         studio.setParsing(ServerEntityCollectItemPacket.class, true);
         studio.setParsing(ServerEntityDestroyPacket.class, true);
+        //#else
+        //$$ studio.setParsing(ServerAnimationPacket.class, true);
+        //$$ studio.setParsing(ServerCollectItemPacket.class, true);
+        //$$ studio.setParsing(ServerDestroyEntitiesPacket.class, true);
+        //#endif
         studio.setParsing(ServerEntityAttachPacket.class, true);
         studio.setParsing(ServerEntityEffectPacket.class, true);
         studio.setParsing(ServerEntityEquipmentPacket.class, true);
@@ -112,9 +130,15 @@ public class PacketUtils {
         studio.setParsing(ServerEntityPositionRotationPacket.class, true);
         studio.setParsing(ServerEntityPositionPacket.class, true);
         studio.setParsing(ServerEntityRotationPacket.class, true);
+        //#if MC>=10904
         studio.setParsing(ServerEntityPropertiesPacket.class, true);
         studio.setParsing(ServerEntityRemoveEffectPacket.class, true);
         studio.setParsing(ServerEntitySetPassengersPacket.class, true);
+        //#else
+        //$$ studio.setParsing(ServerEntityNBTUpdatePacket.class, true);
+        //$$ studio.setParsing(ServerEntityPropertiesPacket.class, true);
+        //$$ studio.setParsing(ServerEntityRemoveEffectPacket.class, true);
+        //#endif
         studio.setParsing(ServerEntityStatusPacket.class, true);
         studio.setParsing(ServerEntityTeleportPacket.class, true);
         studio.setParsing(ServerEntityVelocityPacket.class, true);
@@ -152,6 +176,7 @@ public class PacketUtils {
         if (packet instanceof ServerSpawnPlayerPacket) {
             return ((ServerSpawnPlayerPacket) packet).getEntityId();
         }
+        //#if MC>=10904
         if (packet instanceof ServerEntityAnimationPacket) {
             return ((ServerEntityAnimationPacket) packet).getEntityId();
         }
@@ -161,6 +186,17 @@ public class PacketUtils {
         if (packet instanceof ServerEntityDestroyPacket) {
             return -1;
         }
+        //#else
+        //$$ if (packet instanceof ServerAnimationPacket) {
+        //$$     return ((ServerAnimationPacket) packet).getEntityId();
+        //$$ }
+        //$$ if (packet instanceof ServerCollectItemPacket) {
+        //$$     return -1;
+        //$$ }
+        //$$ if (packet instanceof ServerDestroyEntitiesPacket) {
+        //$$     return -1;
+        //$$ }
+        //#endif
         if (packet instanceof ServerEntityAttachPacket) {
             return -1;
         }
@@ -179,15 +215,22 @@ public class PacketUtils {
         if (packet instanceof ServerEntityMovementPacket) {
             return ((ServerEntityMovementPacket) packet).getEntityId();
         }
+        //#if MC<10904
+        //$$ if (packet instanceof ServerEntityNBTUpdatePacket) {
+        //$$     return ((ServerEntityNBTUpdatePacket) packet).getEntityId();
+        //$$ }
+        //#endif
         if (packet instanceof ServerEntityPropertiesPacket) {
             return ((ServerEntityPropertiesPacket) packet).getEntityId();
         }
         if (packet instanceof ServerEntityRemoveEffectPacket) {
             return ((ServerEntityRemoveEffectPacket) packet).getEntityId();
         }
+        //#if MC>=10904
         if (packet instanceof ServerEntitySetPassengersPacket) {
             return -1;
         }
+        //#endif
         if (packet instanceof ServerEntityStatusPacket) {
             return ((ServerEntityStatusPacket) packet).getEntityId();
         }
@@ -215,6 +258,7 @@ public class PacketUtils {
      * @return List of entity ids
      */
     public static List<Integer> getEntityIds(Packet packet) {
+        //#if MC>=10904
         if (packet instanceof ServerEntityCollectItemPacket) {
             ServerEntityCollectItemPacket p = (ServerEntityCollectItemPacket) packet;
             return Arrays.asList(p.getCollectedEntityId(), p.getCollectorEntityId());
@@ -222,16 +266,27 @@ public class PacketUtils {
         if (packet instanceof ServerEntityDestroyPacket) {
             return Ints.asList(((ServerEntityDestroyPacket) packet).getEntityIds());
         }
+        //#else
+        //$$ if (packet instanceof ServerCollectItemPacket) {
+        //$$     ServerCollectItemPacket p = (ServerCollectItemPacket) packet;
+        //$$     return Arrays.asList(p.getCollectedEntityId(), p.getCollectorEntityId());
+        //$$ }
+        //$$ if (packet instanceof ServerDestroyEntitiesPacket) {
+        //$$     return Ints.asList(((ServerDestroyEntitiesPacket) packet).getEntityIds());
+        //$$ }
+        //#endif
         if (packet instanceof ServerEntityAttachPacket) {
             ServerEntityAttachPacket p = (ServerEntityAttachPacket) packet;
             return Arrays.asList(p.getEntityId(), p.getAttachedToId());
         }
+        //#if MC>=10904
         if (packet instanceof ServerEntitySetPassengersPacket) {
             ServerEntitySetPassengersPacket p = (ServerEntitySetPassengersPacket) packet;
             List<Integer> list = new ArrayList<>(Ints.asList(p.getPassengerIds()));
             list.add(p.getEntityId());
             return list;
         }
+        //#endif
         if (packet instanceof ServerCombatPacket) {
             ServerCombatPacket p = (ServerCombatPacket) packet;
             return Arrays.asList(p.getEntityId(), p.getPlayerId());
@@ -350,7 +405,13 @@ public class PacketUtils {
      * @param loc The location
      * @return The packet
      */
+    //#if MC>=10904
     public static ServerPlayerPositionRotationPacket toServerPlayerPositionRotationPacket(Location loc, int teleportId) {
         return new ServerPlayerPositionRotationPacket(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch(), teleportId);
     }
+    //#else
+    //$$ public static ServerPlayerPositionRotationPacket toServerPlayerPositionRotationPacket(Location loc) {
+    //$$     return new ServerPlayerPositionRotationPacket(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
+    //$$ }
+    //#endif
 }

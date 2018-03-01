@@ -237,6 +237,6 @@ public class ReplayStudio implements Studio {
 
     @Override
     public int getCurrentFileFormatVersion() {
-        return 9;
+        return ReplayMetaData.CURRENT_FILE_FORMAT_VERSION;
     }
 }

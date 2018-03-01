@@ -32,6 +32,10 @@ import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.stream.PacketStream;
 
+//#if MC<10904
+//$$ import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerMultiChunkDataPacket;
+//#endif
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -89,11 +93,24 @@ public class JsonConverterFilter extends StreamFilterBase {
             if (packet instanceof ServerChunkDataPacket && !dumpChunks) {
                 ServerChunkDataPacket p = (ServerChunkDataPacket) packet;
                 jsonWriter.beginObject();
+                //#if MC>=10904
                 jsonWriter.name("x").value(p.getColumn().getX());
                 jsonWriter.name("z").value(p.getColumn().getZ());
                 jsonWriter.name("chunks").value(p.getColumn().getChunks().length);
                 jsonWriter.name("biomeData").value(p.getColumn().getBiomeData().length);
-                jsonWriter.endObject();
+                //#else
+                //$$ jsonWriter.name("x").value(p.getX());
+                //$$ jsonWriter.name("z").value(p.getZ());
+                //$$ jsonWriter.name("chunks").value(p.getChunks().length);
+                //$$ jsonWriter.name("biomeData").value(p.getBiomeData().length);
+                //$$ jsonWriter.endObject();
+                //#endif
+            //#if MC<10904
+            //$$ } else if (packet instanceof ServerMultiChunkDataPacket && !dumpChunks) {
+            //$$     jsonWriter.beginObject();
+            //$$     jsonWriter.name("chunks").value(((ServerMultiChunkDataPacket) packet).getColumns());
+            //$$     jsonWriter.endObject();
+            //#endif
             } else {
                 gson.toJson(data.getPacket(), data.getPacket().getClass(), jsonWriter);
             }

@@ -26,7 +26,6 @@ package com.replaymod.replaystudio.filter;
 
 import com.github.steveice10.mc.protocol.data.game.scoreboard.ObjectiveAction;
 import com.github.steveice10.mc.protocol.data.game.scoreboard.TeamAction;
-import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityDestroyPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnExpOrbPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnGlobalEntityPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnMobPacket;
@@ -42,6 +41,12 @@ import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.collection.ReplayPart;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.util.PacketUtils;
+
+//#if MC>=10904
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityDestroyPacket;
+//#else
+//$$ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerDestroyEntitiesPacket;
+//#endif
 
 import java.util.HashSet;
 import java.util.Set;
@@ -67,7 +72,11 @@ public class NeutralizerFilter extends StreamFilterBase {
         studio.setParsing(ServerSpawnExpOrbPacket.class, true);
         studio.setParsing(ServerSpawnGlobalEntityPacket.class, true);
         studio.setParsing(ServerSpawnMobPacket.class, true);
+        //#if MC>=10904
         studio.setParsing(ServerEntityDestroyPacket.class, true);
+        //#else
+        //$$ studio.setParsing(ServerDestroyEntitiesPacket.class, true);
+        //#endif
         studio.setParsing(ServerTeamPacket.class, true);
         studio.setParsing(ServerScoreboardObjectivePacket.class, true);
     }
@@ -91,9 +100,15 @@ public class NeutralizerFilter extends StreamFilterBase {
             entities.add(PacketUtils.getEntityId(packet));
         }
 
+        //#if MC>=10904
         if (packet instanceof ServerEntityDestroyPacket) {
             entities.removeAll(Ints.asList(((ServerEntityDestroyPacket) packet).getEntityIds()));
         }
+        //#else
+        //$$ if (packet instanceof ServerDestroyEntitiesPacket) {
+        //$$     entities.removeAll(Ints.asList(((ServerDestroyEntitiesPacket) packet).getEntityIds()));
+        //$$ }
+        //#endif
 
         if (packet instanceof ServerTeamPacket) {
             ServerTeamPacket p = (ServerTeamPacket) packet;
@@ -118,7 +133,11 @@ public class NeutralizerFilter extends StreamFilterBase {
     @Override
     public void onEnd(PacketStream stream, long timestamp) {
         if (!entities.isEmpty()) {
+            //#if MC>=10904
             stream.insert(new PacketData(timestamp, new ServerEntityDestroyPacket(Ints.toArray(entities))));
+            //#else
+            //$$ stream.insert(new PacketData(timestamp, new ServerDestroyEntitiesPacket(Ints.toArray(entities))));
+            //#endif
         }
 
         for (String team : teams) {

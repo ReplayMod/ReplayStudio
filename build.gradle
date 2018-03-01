@@ -1,3 +1,19 @@
+defaultTasks 'clean', 'build', 'shadowJar', 'install'
+
+apply from: 'versions/preprocessor.gradle'
+
+task setCoreVersion() {
+    doLast {
+        def vars = [MC: project.mcVersion as int, DEV_ENV: 1]
+        if (![11202, 11201, 11200, 11102, 11100, 11002, 10904, 10800].contains(vars.MC)) {
+            throw new IllegalArgumentException("Unsupported MC version $vars.MC")
+        }
+        project.convertTree(vars, 'src/main/java')
+        project.convertTree(vars, 'src/main/resources')
+        project.file('versions/core/mcVersion').write(vars.MC.toString())
+    }
+}
+
 buildscript {
     repositories {
         jcenter()
@@ -16,112 +32,6 @@ buildscript {
     }
 }
 
-defaultTasks 'clean', 'build', 'shadowJar', 'install'
-
-apply plugin: 'java'
-apply plugin: 'application'
-apply plugin: 'eclipse'
-apply plugin: 'idea'
-apply plugin: 'com.github.johnrengelman.shadow'
-apply plugin: 'license'
-apply plugin: 'maven'
-apply plugin: 'ch.raffael.preshadow'
-apply plugin: 'de.johni0702.reproducible-builds'
-
-def gitCommitHash() {
-    try {
-        def out = new ByteArrayOutputStream()
-        exec {
-            commandLine 'git', 'rev-parse', '--short', 'HEAD'
-            standardOutput = out
-        }
-        return out.toString().trim()
-    } catch (e) {
-        return "unknown"
-    }
+subprojects {
+    apply from: '../common.gradle'
 }
-
-group = 'com.replaymod'
-description = 'ReplayStudio'
-version = gitCommitHash()
-mainClassName = 'com.replaymod.replaystudio.launcher.Launcher'
-
-ext.projectName = 'ReplayStudio'
-ext.packaging = 'jar'
-ext.author = 'johni0702'
-ext.authorUrl = 'https://github.com/johni0702'
-ext.inceptionYear = '2016'
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
-compileJava {
-    options.encoding = 'UTF-8'
-}
-
-repositories {
-    mavenCentral()
-    maven {
-        url 'https://jitpack.io'
-    }
-    maven {
-        url 'https://repo.viaversion.com'
-    }
-    maven {
-        url = "https://oss.sonatype.org/content/repositories/snapshots/"
-    }
-    maven {
-        url 'https://jitpack.io'
-    }
-}
-
-dependencies {
-    preshadow 'com.github.replaymod:MCProtocolLib:c4ec3b7'
-    preshadow 'com.github.replaymod.viaversion:viaversion:563dc3c'
-    compile 'org.apache.commons:commons-lang3:3.3.2'
-    compile 'org.apache.commons:commons-collections4:4.0'
-    compile 'commons-cli:commons-cli:1.2'
-    compile 'com.google.guava:guava:21.0'
-    compile "org.projectlombok:lombok:1.16.6"
-    testCompile 'junit:junit:4.11'
-    testCompile 'com.google.guava:guava-testlib:18.0'
-    testCompile 'pl.pragmatists:JUnitParams:1.0.4'
-}
-
-license {
-    ext.name = project.projectName
-    ext.author = project.author
-    ext.url = project.authorUrl
-    ext.year = project.inceptionYear
-    header new File(project.getProjectDir(), 'HEADER.txt')
-    sourceSets = project.sourceSets
-    ignoreFailures false
-    strictCheck true
-    mapping {
-        java = 'SLASHSTAR_STYLE'
-    }
-    exclude 'LICENSE.txt'
-    exclude 'META-INF/*'
-}
-
-preshadowJar {
-    relocate 'io.netty', 'com.github.steveice10.netty'
-    relocate 'us.myles.ViaVersion', 'com.replaymod.replaystudio.us.myles.ViaVersion'
-}
-
-shadowJar {
-    archiveName = "${baseName}-${version}.${extension}"
-    append('META-INF/NOTICE.txt')
-    from(tasks.findByName('preshadowJar').outputs.files.collect {it.isDirectory() ? it : zipTree(it)})
-}
-build.dependsOn shadowJar
-
-eclipse.project {
-        name = 'ReplayStudio'
-}
-
-jar.manifest.mainAttributes(
-        'Main-Class': mainClassName,
-        'Implementation-Title': description,
-        'Implementation-Version': gitCommitHash()
-)

@@ -1,0 +1,179 @@
+apply plugin: 'java'
+apply plugin: 'application'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'license'
+apply plugin: 'maven'
+apply plugin: 'ch.raffael.preshadow'
+apply plugin: 'de.johni0702.reproducible-builds'
+
+def gitCommitHash() {
+    try {
+        def out = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'rev-parse', '--short', 'HEAD'
+            standardOutput = out
+        }
+        return out.toString().trim()
+    } catch (e) {
+        return "unknown"
+    }
+}
+
+group = 'com.replaymod.replaystudio'
+description = 'ReplayStudio'
+version = gitCommitHash()
+mainClassName = 'com.replaymod.replaystudio.launcher.Launcher'
+
+ext.projectName = 'ReplayStudio'
+ext.packaging = 'jar'
+ext.author = 'johni0702'
+ext.authorUrl = 'https://github.com/johni0702'
+ext.inceptionYear = '2016'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+def mcVersion
+if (project.name != 'core') {
+    def (major, minor, patch) = project.name.tokenize('.')
+    mcVersion = "${major}${minor.padLeft(2, '0')}${(patch ?: '').padLeft(2, '0')}" as int
+} else {
+    def f = file('mcVersion')
+    mcVersion = f.exists() ? f.readLines().first() as int : 11202
+}
+
+compileJava {
+    options.encoding = 'UTF-8'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://jitpack.io'
+    }
+    maven {
+        url 'https://repo.viaversion.com'
+    }
+    maven {
+        url = "https://oss.sonatype.org/content/repositories/snapshots/"
+    }
+    maven {
+        url 'https://jitpack.io'
+    }
+}
+
+dependencies {
+    preshadow group: 'com.github.ReplayMod', name: 'MCProtocolLib', version: [
+        11202: 'c4ec3b7',
+        11201: '445cb6a',
+        11200: '92f8ae5',
+        11102: '57cb568',
+        11100: '3c7f539',
+        11002: 'c349cd8',
+        10904: '352a709',
+        10800: '77f8698'
+    ][mcVersion]
+    preshadow 'com.github.replaymod.viaversion:viaversion:563dc3c'
+    compile 'org.apache.commons:commons-lang3:3.3.2'
+    compile 'org.apache.commons:commons-collections4:4.0'
+    compile 'commons-cli:commons-cli:1.2'
+    compile "com.google.guava:guava:${mcVersion >= 11200 ? '21.0' : '18.0'}"
+    compile "org.projectlombok:lombok:1.16.6"
+    testCompile 'junit:junit:4.11'
+    testCompile 'com.google.guava:guava-testlib:18.0'
+    testCompile 'pl.pragmatists:JUnitParams:1.0.4'
+}
+
+license {
+    ext.name = project.projectName
+    ext.author = project.author
+    ext.url = project.authorUrl
+    ext.year = project.inceptionYear
+    header project.parent.file('HEADER.txt')
+    sourceSets = project.sourceSets
+    ignoreFailures false
+    strictCheck true
+    mapping {
+        java = 'SLASHSTAR_STYLE'
+    }
+    exclude 'LICENSE.txt'
+    exclude 'META-INF/*'
+}
+
+preshadowJar {
+    if (mcVersion < 10904) {
+        relocate 'org.spacehq.mc.protocol.data.game.values', 'com.github.steveice10.mc.protocol.data.game'
+    }
+    if (mcVersion < 11200) {
+        relocate 'org.spacehq', 'com.github.steveice10'
+    }
+    relocate 'io.netty', 'com.github.steveice10.netty'
+    relocate 'us.myles.ViaVersion', 'com.replaymod.replaystudio.us.myles.ViaVersion'
+}
+
+shadowJar {
+    archiveName = "${baseName}-${version}.${extension}"
+    append('META-INF/NOTICE.txt')
+    from(tasks.findByName('preshadowJar').outputs.files.collect {it.isDirectory() ? it : zipTree(it)})
+}
+build.dependsOn shadowJar
+
+jar.manifest.mainAttributes(
+        'Main-Class': mainClassName,
+        'Implementation-Title': description,
+        'Implementation-Version': gitCommitHash()
+)
+
+if (project.name != 'core') {
+    apply from: '../preprocessor.gradle'
+
+    def preprocessedSrc = 'build/preprocessed/src'
+    def preprocessedRes = 'build/preprocessed/res'
+    def preprocessedTestSrc = 'build/preprocessed/test'
+    def originalSrc = '../../src/main/java'
+    def originalRes = '../../src/main/resources'
+    def originalTestSrc = '../../src/test/java'
+    def vars = [MC: mcVersion]
+
+    sourceSets {
+        main.java.srcDir preprocessedSrc
+        main.resources.srcDir preprocessedRes
+        test.java.srcDir preprocessedTestSrc
+    }
+
+    task preprocessJava {
+        inputs.dir(originalSrc)
+        outputs.dir(preprocessedSrc)
+        doLast {
+            project.convertTree(vars, originalSrc, preprocessedSrc)
+        }
+    }
+
+    task preprocessResources {
+        inputs.dir(originalRes)
+        outputs.dir(preprocessedRes)
+        doLast {
+            project.convertTree(vars, originalRes, preprocessedRes)
+        }
+    }
+
+    task preprocessTestJava {
+        inputs.dir(originalTestSrc)
+        outputs.dir(preprocessedTestSrc)
+        doLast {
+            project.convertTree(vars, originalTestSrc, preprocessedTestSrc)
+        }
+    }
+
+    compileJava.dependsOn preprocessJava
+    processResources.dependsOn preprocessResources
+    compileTestJava.dependsOn preprocessTestJava
+} else {
+    sourceSets {
+        main.java.srcDirs = ['../../src/main/java']
+        main.resources.srcDirs = ['../../src/main/resources']
+        test.java.srcDirs = ['../../src/test/java']
+    }
+}
