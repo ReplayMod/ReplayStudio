@@ -25,7 +25,6 @@
 package com.replaymod.replaystudio.studio.protocol;
 
 import com.github.steveice10.mc.protocol.MinecraftProtocol;
-import com.github.steveice10.mc.protocol.data.SubProtocol;
 import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.packet.Packet;
 import com.github.steveice10.packetlib.packet.PacketProtocol;
@@ -33,21 +32,43 @@ import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.io.WrappedPacket;
 import com.replaymod.replaystudio.util.Reflection;
 
+//#if MC>=10800
+import com.github.steveice10.mc.protocol.data.SubProtocol;
+//#else
+//$$ import com.github.steveice10.mc.protocol.ProtocolMode;
+//#endif
+
 import java.util.HashMap;
 
 public class StudioMinecraftProtocol extends MinecraftProtocol {
 
     public StudioMinecraftProtocol() {
+        //#if MC>=10800
         super(SubProtocol.LOGIN);
+        //#else
+        //$$ super(ProtocolMode.LOGIN);
+        //#endif
     }
 
     public StudioMinecraftProtocol(Studio studio, Session session, boolean client) {
+        //#if MC>=10800
         super(SubProtocol.LOGIN);
+        //#else
+        //$$ super(ProtocolMode.LOGIN);
+        //#endif
 
+        //#if MC>=10800
         init(studio, session, client, SubProtocol.GAME);
+        //#else
+        //$$ init(studio, session, client, ProtocolMode.GAME);
+        //#endif
     }
 
+    //#if MC>=10800
     public void init(Studio studio, Session session, boolean client, SubProtocol mode) {
+    //#else
+    //$$ public void init(Studio studio, Session session, boolean client, ProtocolMode mode) {
+    //#endif
         Reflection.setField(PacketProtocol.class, "incoming", this, new HashMap() {
             @Override
             @SuppressWarnings("unchecked")
@@ -73,13 +94,24 @@ public class StudioMinecraftProtocol extends MinecraftProtocol {
             }
         });
 
+        //#if MC>=10800
         setSubProtocol(mode, client, session);
+        //#else
+        //$$ setMode(mode, client, session);
+        //#endif
     }
 
+    //#if MC>=10800
     @Override
     public void setSubProtocol(SubProtocol mode, boolean client, Session session) {
         super.setSubProtocol(mode, client, session);
     }
+    //#else
+    //$$ @Override
+    //$$ public void setMode(ProtocolMode mode, boolean client, Session session) {
+    //$$     super.setMode(mode, client, session);
+    //$$ }
+    //#endif
 
     private Class<?> getPacketClass(Studio studio, Class<? extends Packet> cls) {
         if (studio.isWrappingEnabled() && !studio.willBeParsed(cls)) {

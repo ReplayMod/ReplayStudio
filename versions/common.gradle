@@ -73,7 +73,8 @@ dependencies {
         11100: '3c7f539',
         11002: 'c349cd8',
         10904: '352a709',
-        10800: '77f8698'
+        10800: '77f8698',
+        10710: '5a7a2e9',
     ][mcVersion]
 
     def viaversion = 'com.github.replaymod.viaversion:viaversion:563dc3c'

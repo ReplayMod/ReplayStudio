@@ -52,7 +52,11 @@ public class ReplayMetaData {
     //#if MC>=10904
     //$$ public static final int CURRENT_FILE_FORMAT_VERSION = 2;
     //#else
+    //#if MC>=10800
     //$$ public static final int CURRENT_FILE_FORMAT_VERSION = 1;
+    //#else
+    //$$ public static final int CURRENT_FILE_FORMAT_VERSION = 8;
+    //#endif
     //#endif
     //#endif
     //#endif

@@ -24,8 +24,6 @@
  */
 package com.replaymod.replaystudio.filter;
 
-import com.github.steveice10.mc.protocol.data.game.scoreboard.ObjectiveAction;
-import com.github.steveice10.mc.protocol.data.game.scoreboard.TeamAction;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnExpOrbPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnGlobalEntityPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnMobPacket;
@@ -46,6 +44,11 @@ import com.replaymod.replaystudio.util.PacketUtils;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityDestroyPacket;
 //#else
 //$$ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerDestroyEntitiesPacket;
+//#endif
+
+//#if MC>=10800
+import com.github.steveice10.mc.protocol.data.game.scoreboard.ObjectiveAction;
+import com.github.steveice10.mc.protocol.data.game.scoreboard.TeamAction;
 //#endif
 
 import java.util.HashSet;
@@ -112,7 +115,11 @@ public class NeutralizerFilter extends StreamFilterBase {
 
         if (packet instanceof ServerTeamPacket) {
             ServerTeamPacket p = (ServerTeamPacket) packet;
+            //#if MC>=10800
             if (p.getAction() == TeamAction.REMOVE) {
+            //#else
+            //$$ if (p.getAction() == ServerTeamPacket.Action.REMOVE) {
+            //#endif
                 teams.remove(p.getTeamName());
             } else {
                 teams.add(p.getTeamName());
@@ -121,7 +128,11 @@ public class NeutralizerFilter extends StreamFilterBase {
 
         if (packet instanceof ServerScoreboardObjectivePacket) {
             ServerScoreboardObjectivePacket p = (ServerScoreboardObjectivePacket) packet;
+            //#if MC>=10800
             if (p.getAction() == ObjectiveAction.REMOVE) {
+            //#else
+            //$$ if (p.getAction() == ServerScoreboardObjectivePacket.Action.REMOVE) {
+            //#endif
                 scoreboards.remove(p.getName());
             } else {
                 scoreboards.add(p.getName());
@@ -145,7 +156,11 @@ public class NeutralizerFilter extends StreamFilterBase {
         }
 
         for (String scoreboard : scoreboards) {
-            stream.insert(new PacketData(timestamp, new ServerScoreboardObjectivePacket(scoreboard)));
+            stream.insert(new PacketData(timestamp, new ServerScoreboardObjectivePacket(scoreboard
+                    //#if MC<=10710
+                    //$$ , "", ServerScoreboardObjectivePacket.Action.REMOVE
+                    //#endif
+            )));
         }
     }
 

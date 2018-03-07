@@ -37,7 +37,11 @@ import com.replaymod.replaystudio.util.PacketUtils;
 import com.github.steveice10.mc.protocol.data.game.entity.type.MobType;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityDestroyPacket;
 //#else
+//#if MC>=10800
 //$$ import com.github.steveice10.mc.protocol.data.game.entity.MobType;
+//#else
+//$$ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnMobPacket.Type;
+//#endif
 //$$ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerDestroyEntitiesPacket;
 //#endif
 
@@ -48,7 +52,11 @@ import java.util.Set;
 
 public class RemoveMobsFilter implements Filter {
 
+    //#if MC>=10800
     private Set<MobType> filterTypes;
+    //#else
+    //$$ private Set<Type> filterTypes;
+    //#endif
 
     @Override
     public String getName() {
@@ -57,9 +65,17 @@ public class RemoveMobsFilter implements Filter {
 
     @Override
     public void init(Studio studio, JsonObject config) {
+        //#if MC>=10800
         filterTypes = EnumSet.noneOf(MobType.class);
+        //#else
+        //$$ filterTypes = EnumSet.noneOf(Type.class);
+        //#endif
         for (JsonElement e : config.getAsJsonArray("Types")) {
+            //#if MC>=10800
             filterTypes.add(MobType.valueOf(e.getAsString()));
+            //#else
+            //$$ filterTypes.add(Type.valueOf(e.getAsString()));
+            //#endif
         }
     }
 

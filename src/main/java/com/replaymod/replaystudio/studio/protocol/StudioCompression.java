@@ -22,6 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+//#if MC>=10800
 package com.replaymod.replaystudio.studio.protocol;
 
 import com.github.steveice10.netty.buffer.ByteBuf;
@@ -43,3 +44,4 @@ public class StudioCompression extends TcpPacketCompression {
     }
 
 }
+//#endif

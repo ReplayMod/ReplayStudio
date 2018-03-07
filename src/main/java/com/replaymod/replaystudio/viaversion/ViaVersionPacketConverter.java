@@ -61,6 +61,7 @@ public class ViaVersionPacketConverter {
         PROTOCOL_FOR_FILE_FORMAT.put(5, 316);
         PROTOCOL_FOR_FILE_FORMAT.put(6, 335);
         PROTOCOL_FOR_FILE_FORMAT.put(7, 338);
+        PROTOCOL_FOR_FILE_FORMAT.put(8, 5);
         PROTOCOL_FOR_FILE_FORMAT.put(9, 340);
     }
 

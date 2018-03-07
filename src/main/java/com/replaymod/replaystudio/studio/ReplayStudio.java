@@ -25,8 +25,6 @@
 package com.replaymod.replaystudio.studio;
 
 import com.github.steveice10.mc.protocol.packet.ingame.server.ServerKeepAlivePacket;
-import com.github.steveice10.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
-import com.github.steveice10.mc.protocol.packet.login.server.LoginSetCompressionPacket;
 import com.github.steveice10.packetlib.packet.Packet;
 import com.google.gson.Gson;
 import com.replaymod.replaystudio.PacketData;
@@ -43,6 +41,11 @@ import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.util.Utils;
 import com.replaymod.replaystudio.viaversion.ViaVersionPacketConverter;
+
+//#if MC>=10800
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
+import com.github.steveice10.mc.protocol.packet.login.server.LoginSetCompressionPacket;
+//#endif
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -68,8 +71,10 @@ public class ReplayStudio implements Studio {
 
     public ReplayStudio() {
         // Required for importing / exporting
+        //#if MC>=10800
         setParsing(LoginSetCompressionPacket.class, true);
         setParsing(ServerSetCompressionPacket.class, true);
+        //#endif
         setParsing(ServerKeepAlivePacket.class, true);
     }
 

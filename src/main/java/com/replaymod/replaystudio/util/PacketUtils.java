@@ -24,9 +24,6 @@
  */
 package com.replaymod.replaystudio.util;
 
-import com.github.steveice10.mc.protocol.data.game.entity.player.PositionElement;
-import com.github.steveice10.mc.protocol.packet.ingame.server.ServerCombatPacket;
-import com.github.steveice10.mc.protocol.packet.ingame.server.ServerSwitchCameraPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityAttachPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityEffectPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityEquipmentPacket;
@@ -64,7 +61,15 @@ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntit
 //$$ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerAnimationPacket;
 //$$ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerCollectItemPacket;
 //$$ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerDestroyEntitiesPacket;
+//#if MC>=10800
 //$$ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityNBTUpdatePacket;
+//#endif
+//#endif
+
+//#if MC>=10800
+import com.github.steveice10.mc.protocol.data.game.entity.player.PositionElement;
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerCombatPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerSwitchCameraPacket;
 //#endif
 
 import java.util.*;
@@ -135,7 +140,9 @@ public class PacketUtils {
         studio.setParsing(ServerEntityRemoveEffectPacket.class, true);
         studio.setParsing(ServerEntitySetPassengersPacket.class, true);
         //#else
+        //#if MC>=10800
         //$$ studio.setParsing(ServerEntityNBTUpdatePacket.class, true);
+        //#endif
         //$$ studio.setParsing(ServerEntityPropertiesPacket.class, true);
         //$$ studio.setParsing(ServerEntityRemoveEffectPacket.class, true);
         //#endif
@@ -143,8 +150,10 @@ public class PacketUtils {
         studio.setParsing(ServerEntityTeleportPacket.class, true);
         studio.setParsing(ServerEntityVelocityPacket.class, true);
         studio.setParsing(ServerBlockBreakAnimPacket.class, true);
+        //#if MC>=10800
         studio.setParsing(ServerCombatPacket.class, true);
         studio.setParsing(ServerSwitchCameraPacket.class, true);
+        //#endif
     }
 
     /**
@@ -216,9 +225,11 @@ public class PacketUtils {
             return ((ServerEntityMovementPacket) packet).getEntityId();
         }
         //#if MC<10904
+        //#if MC>=10800
         //$$ if (packet instanceof ServerEntityNBTUpdatePacket) {
         //$$     return ((ServerEntityNBTUpdatePacket) packet).getEntityId();
         //$$ }
+        //#endif
         //#endif
         if (packet instanceof ServerEntityPropertiesPacket) {
             return ((ServerEntityPropertiesPacket) packet).getEntityId();
@@ -243,12 +254,14 @@ public class PacketUtils {
         if (packet instanceof ServerBlockBreakAnimPacket) {
             return ((ServerBlockBreakAnimPacket) packet).getBreakerEntityId();
         }
+        //#if MC>=10800
         if (packet instanceof ServerCombatPacket) {
             return -1;
         }
         if (packet instanceof ServerSwitchCameraPacket) {
             return ((ServerSwitchCameraPacket) packet).getCameraEntityId();
         }
+        //#endif
         return null;
     }
 
@@ -287,10 +300,12 @@ public class PacketUtils {
             return list;
         }
         //#endif
+        //#if MC>=10800
         if (packet instanceof ServerCombatPacket) {
             ServerCombatPacket p = (ServerCombatPacket) packet;
             return Arrays.asList(p.getEntityId(), p.getPlayerId());
         }
+        //#endif
         Integer id = getEntityId(packet);
         if (id == null) {
             return Collections.emptyList();
@@ -333,6 +348,7 @@ public class PacketUtils {
      * @return The new location
      */
     public static Location updateLocation(Location loc, ServerPlayerPositionRotationPacket packet) {
+        //#if MC>=10800
         if (loc == null) {
             loc = Location.NULL;
         }
@@ -350,6 +366,9 @@ public class PacketUtils {
         pitch = (relative.contains(PositionElement.PITCH) ? pitch : 0) + packet.getPitch();
 
         return new Location(x, y, z, yaw, pitch);
+        //#else
+        //$$ return new Location(packet.getX(), packet.getY(), packet.getZ(), packet.getYaw(), packet.getPitch());
+        //#endif
     }
 
     /**
@@ -385,7 +404,11 @@ public class PacketUtils {
 
         if (packet instanceof ServerSpawnPaintingPacket) {
             ServerSpawnPaintingPacket p = (ServerSpawnPaintingPacket) packet;
+            //#if MC>=10800
             return new Location(p.getPosition().getX(), p.getPosition().getY(), p.getPosition().getZ(), 0, 0);
+            //#else
+            //$$ return new Location(p.getX(), p.getY(), p.getZ(), 0, 0);
+            //#endif
         }
 
         if (packet instanceof ServerEntityMovementPacket) {
@@ -410,8 +433,14 @@ public class PacketUtils {
         return new ServerPlayerPositionRotationPacket(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch(), teleportId);
     }
     //#else
+    //#if MC>=10800
     //$$ public static ServerPlayerPositionRotationPacket toServerPlayerPositionRotationPacket(Location loc) {
     //$$     return new ServerPlayerPositionRotationPacket(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
     //$$ }
+    //#else
+    //$$ public static ServerPlayerPositionRotationPacket toServerPlayerPositionRotationPacket(Location loc, boolean onGround) {
+    //$$     return new ServerPlayerPositionRotationPacket(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch(), onGround);
+    //$$ }
+    //#endif
     //#endif
 }

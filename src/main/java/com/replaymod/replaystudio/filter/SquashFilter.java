@@ -24,15 +24,6 @@
  */
 package com.replaymod.replaystudio.filter;
 
-import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode;
-import com.github.steveice10.mc.protocol.data.game.scoreboard.NameTagVisibility;
-import com.github.steveice10.mc.protocol.data.game.scoreboard.TeamAction;
-import com.github.steveice10.mc.protocol.data.game.scoreboard.TeamColor;
-import com.github.steveice10.mc.protocol.data.game.setting.Difficulty;
-import com.github.steveice10.mc.protocol.data.game.world.WorldType;
-import com.github.steveice10.mc.protocol.data.game.world.block.BlockChangeRecord;
-import com.github.steveice10.mc.protocol.data.game.world.notify.ClientNotification;
-import com.github.steveice10.mc.protocol.packet.ingame.server.ServerDifficultyPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.ServerJoinGamePacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.ServerRespawnPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityMovementPacket;
@@ -64,7 +55,6 @@ import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerSpawnP
 import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerSpawnPositionPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerUpdateTileEntityPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerUpdateTimePacket;
-import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerWorldBorderPacket;
 import com.github.steveice10.packetlib.packet.Packet;
 import com.google.gson.JsonObject;
 import com.replaymod.replaystudio.PacketData;
@@ -85,12 +75,32 @@ import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerUnload
 import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 //#else
 //$$ import com.github.steveice10.mc.protocol.data.game.Chunk;
+//#if MC>=10800
 //$$ import com.github.steveice10.mc.protocol.data.game.Position;
+//#endif
 //$$ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerDestroyEntitiesPacket;
 //$$ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerSetExperiencePacket;
 //$$ import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerMultiChunkDataPacket;
 //$$ import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerUpdateSignPacket;
 //$$ import com.replaymod.replaystudio.util.Utils;
+//#endif
+
+//#if MC>=10800
+import com.github.steveice10.mc.protocol.data.game.entity.player.GameMode;
+import com.github.steveice10.mc.protocol.data.game.scoreboard.NameTagVisibility;
+import com.github.steveice10.mc.protocol.data.game.scoreboard.TeamAction;
+import com.github.steveice10.mc.protocol.data.game.scoreboard.TeamColor;
+import com.github.steveice10.mc.protocol.data.game.setting.Difficulty;
+import com.github.steveice10.mc.protocol.data.game.world.WorldType;
+import com.github.steveice10.mc.protocol.data.game.world.block.BlockChangeRecord;
+import com.github.steveice10.mc.protocol.data.game.world.notify.ClientNotification;
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerDifficultyPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerWorldBorderPacket;
+//#else
+//$$ import com.github.steveice10.mc.protocol.data.game.BlockChangeRecord;
+//$$ import com.github.steveice10.mc.protocol.packet.ingame.server.ServerJoinGamePacket.Difficulty;
+//$$ import com.github.steveice10.mc.protocol.packet.ingame.server.ServerJoinGamePacket.GameMode;
+//$$ import com.github.steveice10.mc.protocol.packet.ingame.server.ServerJoinGamePacket.WorldType;
 //#endif
 
 import java.util.*;
@@ -115,6 +125,7 @@ public class SquashFilter extends StreamFilterBase {
         private String displayName;
         private String prefix;
         private String suffix;
+        //#if MC>=10800
         private boolean friendlyFire;
         private boolean seeingFriendlyInvisibles;
         private NameTagVisibility nameTagVisibility;
@@ -122,6 +133,9 @@ public class SquashFilter extends StreamFilterBase {
         private CollisionRule collisionRule;
         //#endif
         private TeamColor color;
+        //#else
+        //$$ private ServerTeamPacket.FriendlyFireMode friendlyFire;
+        //#endif
         private final Set<String> added = new HashSet<>();
         private final Set<String> removed = new HashSet<>();
 
@@ -139,7 +153,9 @@ public class SquashFilter extends StreamFilterBase {
         private long dz = 0;
         private Float yaw = null;
         private Float pitch = null;
+        //#if MC>=10800
         private boolean onGround = false;
+        //#endif
     }
 
     private final List<PacketData> unhandled = new ArrayList<>();
@@ -162,7 +178,9 @@ public class SquashFilter extends StreamFilterBase {
     private Integer dimension = null;
     private Difficulty difficulty = null;
     private WorldType worldType = null;
+    //#if MC>=10800
     private Boolean reducedDebugInfo = null;
+    //#endif
     private PacketData joinGame;
     private PacketData respawn;
     private PacketData mainInventory;
@@ -209,7 +227,9 @@ public class SquashFilter extends StreamFilterBase {
                     double mx = p.getMovementX();
                     double my = p.getMovementY();
                     double mz = p.getMovementZ();
+                    //#if MC>=10800
                     entity.onGround = p.isOnGround();
+                    //#endif
 
                     if (p instanceof ServerEntityPositionPacket || p instanceof ServerEntityPositionRotationPacket) {
                         entity.dx += mx * 32;
@@ -225,7 +245,9 @@ public class SquashFilter extends StreamFilterBase {
                     entity.loc = Location.from(p);
                     entity.dx = entity.dy = entity.dz = 0;
                     entity.yaw = entity.pitch = null;
+                    //#if MC>=10800
                     entity.onGround = p.isOnGround();
+                    //#endif
                 } else {
                     entity.packets.add(data);
                 }
@@ -237,8 +259,13 @@ public class SquashFilter extends StreamFilterBase {
         // World
         if (packet instanceof ServerNotifyClientPacket) {
             ServerNotifyClientPacket p = (ServerNotifyClientPacket) packet;
+            //#if MC>=10800
             if (p.getNotification() == ClientNotification.CHANGE_GAMEMODE) {
                 gameMode = (GameMode) p.getValue();
+            //#else
+            //$$ if (p.getNotification() == ServerNotifyClientPacket.Notification.CHANGE_GAMEMODE) {
+            //$$     gameMode = GameMode.valueOf(p.getValue().toString());
+            //#endif
                 return false;
             }
         }
@@ -258,10 +285,12 @@ public class SquashFilter extends StreamFilterBase {
             return false;
         }
 
+        //#if MC>=10800
         if (packet instanceof ServerDifficultyPacket) {
             difficulty = ((ServerDifficultyPacket) packet).getDifficulty();
             return false;
         }
+        //#endif
 
         if (packet instanceof ServerJoinGamePacket) {
             ServerJoinGamePacket p = (ServerJoinGamePacket) packet;
@@ -269,7 +298,9 @@ public class SquashFilter extends StreamFilterBase {
             dimension = p.getDimension();
             difficulty = p.getDifficulty();
             worldType = p.getWorldType();
+            //#if MC>=10800
             reducedDebugInfo = p.getReducedDebugInfo();
+            //#endif
             joinGame = data;
             return false;
         }
@@ -277,9 +308,15 @@ public class SquashFilter extends StreamFilterBase {
         if (packet instanceof ServerRespawnPacket) {
             ServerRespawnPacket p = (ServerRespawnPacket) packet;
             dimension = p.getDimension();
+            //#if MC>=10800
             difficulty = p.getDifficulty();
             worldType = p.getWorldType();
             gameMode = p.getGameMode();
+            //#else
+            //$$ difficulty = Difficulty.valueOf(p.getDifficulty().toString());
+            //$$ worldType = WorldType.valueOf(p.getWorldType().toString());
+            //$$ gameMode = GameMode.valueOf(p.getGameMode().toString());
+            //#endif
             currentWorld.clear();
             chunks.clear();
             unloadedChunks.clear();
@@ -345,7 +382,10 @@ public class SquashFilter extends StreamFilterBase {
                 //#endif
                 || instanceOf(packet, ServerUpdateTileEntityPacket.class)
                 || instanceOf(packet, ServerUpdateTimePacket.class)
-                || instanceOf(packet, ServerWorldBorderPacket.class)) {
+                //#if MC>=10800
+                || instanceOf(packet, ServerWorldBorderPacket.class)
+                //#endif
+                ) {
             currentWorld.add(data);
             return false;
         }
@@ -390,12 +430,27 @@ public class SquashFilter extends StreamFilterBase {
         // Teams
         if (packet instanceof ServerTeamPacket) {
             ServerTeamPacket p = (ServerTeamPacket) packet;
+            //#if MC>=10800
+            TeamAction CREATE = TeamAction.CREATE;
+            TeamAction REMOVE = TeamAction.REMOVE;
+            TeamAction UPDATE = TeamAction.UPDATE;
+            TeamAction ADD_PLAYER = TeamAction.ADD_PLAYER;
+            TeamAction REMOVE_PLAYER = TeamAction.REMOVE_PLAYER;
+            TeamAction action = p.getAction();
+            //#else
+            //$$ ServerTeamPacket.Action CREATE = ServerTeamPacket.Action.CREATE;
+            //$$ ServerTeamPacket.Action REMOVE = ServerTeamPacket.Action.REMOVE;
+            //$$ ServerTeamPacket.Action UPDATE = ServerTeamPacket.Action.UPDATE;
+            //$$ ServerTeamPacket.Action ADD_PLAYER = ServerTeamPacket.Action.ADD_PLAYER;
+            //$$ ServerTeamPacket.Action REMOVE_PLAYER = ServerTeamPacket.Action.REMOVE_PLAYER;
+            //$$ ServerTeamPacket.Action action = p.getAction();
+            //#endif
             Team team = teams.get(p.getTeamName());
             if (team == null) {
                 Team.Status status;
-                if (p.getAction() == TeamAction.CREATE) {
+                if (action == CREATE) {
                     status = Team.Status.CREATED;
-                } else if (p.getAction() == TeamAction.REMOVE) {
+                } else if (action == REMOVE) {
                     status = Team.Status.REMOVED;
                 } else {
                     status = Team.Status.UPDATED;
@@ -404,30 +459,31 @@ public class SquashFilter extends StreamFilterBase {
                 team.name = p.getTeamName();
                 teams.put(team.name, team);
             }
-            TeamAction action = p.getAction();
-            if (action == TeamAction.REMOVE && team.status == Team.Status.CREATED) {
+            if (action == REMOVE && team.status == Team.Status.CREATED) {
                 teams.remove(team.name);
             }
-            if (action == TeamAction.CREATE || action == TeamAction.UPDATE) {
+            if (action == CREATE || action == UPDATE) {
                 team.displayName = p.getDisplayName();
                 team.prefix = p.getPrefix();
                 team.suffix = p.getSuffix();
                 team.friendlyFire = p.getFriendlyFire();
+                //#if MC>=10800
                 team.seeingFriendlyInvisibles = p.getSeeFriendlyInvisibles();
                 team.nameTagVisibility = p.getNameTagVisibility();
                 //#if MC>=10904
                 team.collisionRule = p.getCollisionRule();
                 //#endif
                 team.color = p.getColor();
+                //#endif
             }
-            if (action == TeamAction.ADD_PLAYER || action == TeamAction.CREATE) {
+            if (action == ADD_PLAYER || action == CREATE) {
                 for (String player : p.getPlayers()) {
                     if (!team.removed.remove(player)) {
                         team.added.add(player);
                     }
                 }
             }
-            if (action == TeamAction.REMOVE_PLAYER) {
+            if (action == REMOVE_PLAYER) {
                 for (String player : p.getPlayers()) {
                     if (!team.added.remove(player)) {
                         team.removed.add(player);
@@ -465,17 +521,36 @@ public class SquashFilter extends StreamFilterBase {
         if (joinGame != null) {
             ServerJoinGamePacket org = (ServerJoinGamePacket) joinGame.getPacket();
             Packet packet = new ServerJoinGamePacket(org.getEntityId(), org.getHardcore(), gameMode, dimension,
-                    difficulty, org.getMaxPlayers(), worldType, reducedDebugInfo);
+                    difficulty, org.getMaxPlayers(), worldType
+                    //#if MC>=10800
+                    , reducedDebugInfo
+                    //#endif
+            );
             result.add(new PacketData(joinGame.getTime(), packet));
         } else if (respawn != null) {
-            Packet packet = new ServerRespawnPacket(dimension, difficulty, gameMode, worldType);
+            Packet packet = new ServerRespawnPacket(dimension,
+                    //#if MC>=10800
+                    difficulty, gameMode, worldType
+                    //#else
+                    //$$ ServerRespawnPacket.Difficulty.valueOf(difficulty.toString()),
+                    //$$ ServerRespawnPacket.GameMode.valueOf(gameMode.toString()),
+                    //$$ ServerRespawnPacket.WorldType.valueOf(worldType.toString())
+                    //#endif
+            );
             result.add(new PacketData(respawn.getTime(), packet));
         } else {
+            //#if MC>=10800
             if (difficulty != null) {
                 result.add(new PacketData(lastTimestamp, new ServerDifficultyPacket(difficulty)));
             }
+            //#endif
             if (gameMode != null) {
+                //#if MC>=10800
                 Packet packet = new ServerNotifyClientPacket(ClientNotification.CHANGE_GAMEMODE, gameMode);
+                //#else
+                //$$ Packet packet = new ServerNotifyClientPacket(ServerNotifyClientPacket.Notification.CHANGE_GAMEMODE,
+                //$$         ServerNotifyClientPacket.GameModeValue.valueOf(gameMode.toString()));
+                //#endif
                 result.add(new PacketData(lastTimestamp, packet));
             }
         }
@@ -506,7 +581,11 @@ public class SquashFilter extends StreamFilterBase {
             }
 
             if (entity.loc != null) {
-                result.add(new PacketData(entity.lastTimestamp, entity.loc.toServerEntityTeleportPacket(e.getKey(), entity.onGround)));
+                result.add(new PacketData(entity.lastTimestamp, entity.loc.toServerEntityTeleportPacket(e.getKey()
+                        //#if MC>=10800
+                        , entity.onGround
+                        //#endif
+                )));
             }
             while (entity.dx != 0 && entity.dy != 0 && entity.dz != 0) {
                 long mx = within(entity.dx, POS_MIN, POS_MAX);
@@ -515,11 +594,19 @@ public class SquashFilter extends StreamFilterBase {
                 entity.dx -= mx;
                 entity.dy -= my;
                 entity.dz -= mz;
-                ServerEntityPositionPacket p = new ServerEntityPositionPacket(e.getKey(), mx / 32d, my / 32d, mz / 32d, entity.onGround);
+                ServerEntityPositionPacket p = new ServerEntityPositionPacket(e.getKey(), mx / 32d, my / 32d, mz / 32d
+                        //#if MC>=10800
+                        , entity.onGround
+                        //#endif
+                );
                 result.add(new PacketData(entity.lastTimestamp, p));
             }
             if (entity.yaw != null && entity.pitch != null) {
-                ServerEntityRotationPacket p = new ServerEntityRotationPacket(e.getKey(), entity.yaw, entity.pitch, entity.onGround);
+                ServerEntityRotationPacket p = new ServerEntityRotationPacket(e.getKey(), entity.yaw, entity.pitch
+                        //#if MC>=10800
+                        , entity.onGround
+                        //#endif
+                );
                 result.add(new PacketData(entity.lastTimestamp, p));
             }
         }
@@ -560,12 +647,19 @@ public class SquashFilter extends StreamFilterBase {
             String[] removed = team.added.toArray(new String[team.removed.size()]);
             if (team.status == Team.Status.CREATED) {
                 add(stream, timestamp, new ServerTeamPacket(team.name, team.displayName, team.prefix, team.suffix,
-                        team.friendlyFire, team.seeingFriendlyInvisibles, team.nameTagVisibility,
+                        team.friendlyFire,
+                        //#if MC>=10800
+                        team.seeingFriendlyInvisibles, team.nameTagVisibility,
+                        //#endif
                         //#if MC>=10904
                         team.collisionRule,
                         //#endif
-                        team.color, added));
+                        //#if MC>=10800
+                        team.color,
+                        //#endif
+                        added));
             } else if (team.status == Team.Status.UPDATED) {
+                //#if MC>=10800
                 if (team.color != null) {
                     add(stream, timestamp, new ServerTeamPacket(team.name, team.displayName, team.prefix, team.suffix,
                             team.friendlyFire, team.seeingFriendlyInvisibles, team.nameTagVisibility,
@@ -574,11 +668,24 @@ public class SquashFilter extends StreamFilterBase {
                             //#endif
                             team.color));
                 }
+                //#endif
                 if (added.length > 0) {
-                    add(stream, timestamp, new ServerTeamPacket(team.name, TeamAction.ADD_PLAYER, added));
+                    add(stream, timestamp, new ServerTeamPacket(team.name,
+                            //#if MC>=10800
+                            TeamAction.ADD_PLAYER,
+                            //#else
+                            //$$ ServerTeamPacket.Action.ADD_PLAYER,
+                            //#endif
+                            added));
                 }
                 if (removed.length > 0) {
-                    add(stream, timestamp, new ServerTeamPacket(team.name, TeamAction.REMOVE_PLAYER, removed));
+                    add(stream, timestamp, new ServerTeamPacket(team.name,
+                            //#if MC>=10800
+                            TeamAction.REMOVE_PLAYER,
+                            //#else
+                            //$$ ServerTeamPacket.Action.REMOVE_PLAYER,
+                            //#endif
+                            removed));
                 }
             } else if (team.status == Team.Status.REMOVED) {
                 add(stream, timestamp, new ServerTeamPacket(team.name));
@@ -606,7 +713,9 @@ public class SquashFilter extends StreamFilterBase {
         //$$ studio.setParsing(ServerSetExperiencePacket.class, true);
         //#endif
         studio.setParsing(ServerPlayerAbilitiesPacket.class, true);
+        //#if MC>=10800
         studio.setParsing(ServerDifficultyPacket.class, true);
+        //#endif
         studio.setParsing(ServerJoinGamePacket.class, true);
         studio.setParsing(ServerRespawnPacket.class, true);
         studio.setParsing(ServerTeamPacket.class, true);
@@ -629,7 +738,11 @@ public class SquashFilter extends StreamFilterBase {
     }
 
     private void updateBlock(long time, BlockChangeRecord record) {
+        //#if MC>=10800
         Position pos = record.getPosition();
+        //#else
+        //$$ BlockChangeRecord pos = record;
+        //#endif
         ChunkData data = chunks.get(ChunkData.coordToLong(pos.getX(), pos.getZ()));
         if (data != null) {
             data.updateBlock(time, record);
@@ -710,12 +823,19 @@ public class SquashFilter extends StreamFilterBase {
             //#endif
         }
 
+        //#if MC>=10800
         private MutablePair<Long, BlockChangeRecord> blockChanges(Position pos) {
+            int x = pos.getX();
             int y = pos.getY() / 16;
+            int z = pos.getZ();
+        //#else
+        //$$ private MutablePair<Long, BlockChangeRecord> blockChanges(int x, int y, int z) {
+        //$$     y = y / 16;
+        //#endif
             if (blockChanges[y] == null) {
                 blockChanges[y] = new HashMap<>();
             }
-            short index = (short) ((pos.getX() % 16) << 10 | (pos.getY() % 16) << 5 | (pos.getZ() % 16));
+            short index = (short) ((x % 16) << 10 | (y % 16) << 5 | (z % 16));
             MutablePair<Long, BlockChangeRecord> pair = blockChanges[y].get(index);
             if (pair == null) {
                 blockChanges[y].put(index, pair = MutablePair.of(0l, null));
@@ -724,7 +844,13 @@ public class SquashFilter extends StreamFilterBase {
         }
 
         public void updateBlock(long time, BlockChangeRecord record) {
-            MutablePair<Long, BlockChangeRecord> pair = blockChanges(record.getPosition());
+            MutablePair<Long, BlockChangeRecord> pair = blockChanges(
+                    //#if MC>=10800
+                    record.getPosition()
+                    //#else
+                    //$$ record.getX(), record.getY(), record.getZ()
+                    //#endif
+            );
             if (pair.getLeft() < time) {
                 pair.setLeft(time);
                 pair.setRight(record);

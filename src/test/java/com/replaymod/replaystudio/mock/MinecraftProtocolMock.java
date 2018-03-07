@@ -25,12 +25,17 @@
 package com.replaymod.replaystudio.mock;
 
 import com.github.steveice10.mc.protocol.MinecraftProtocol;
-import com.github.steveice10.mc.protocol.data.SubProtocol;
 import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.packet.Packet;
 import com.github.steveice10.packetlib.packet.PacketProtocol;
 import com.google.common.base.Function;
 import com.replaymod.replaystudio.util.Reflection;
+
+//#if MC>=10800
+import com.github.steveice10.mc.protocol.data.SubProtocol;
+//#else
+//$$ import com.github.steveice10.mc.protocol.ProtocolMode;
+//#endif
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
@@ -43,15 +48,27 @@ public class MinecraftProtocolMock extends MinecraftProtocol {
     public MinecraftProtocolMock(Session session, boolean client,
                                  Function<Class<? extends Packet>, Class<? extends Packet>> incoming,
                                  Function<Class<? extends Packet>, Class<? extends Packet>> outgoing) {
+        //#if MC>=10800
         super(SubProtocol.LOGIN);
+        //#else
+        //$$ super(ProtocolMode.LOGIN);
+        //#endif
 
         this.incoming = incoming;
         this.outgoing = outgoing;
 
+        //#if MC>=10800
         init(session, client, SubProtocol.GAME);
+        //#else
+        //$$ init(session, client, ProtocolMode.GAME);
+        //#endif
     }
 
+    //#if MC>=10800
     public void init(Session session, boolean client, SubProtocol mode) {
+    //#else
+    //$$ public void init(Session session, boolean client, ProtocolMode mode) {
+    //#endif
         Reflection.setField(PacketProtocol.class, "incoming", this, new HashMap() {
             @Override
             @SuppressWarnings("unchecked")
@@ -89,11 +106,22 @@ public class MinecraftProtocolMock extends MinecraftProtocol {
             }
         });
 
+        //#if MC>=10800
         setSubProtocol(mode, client, session);
+        //#else
+        //$$ setMode(mode, client, session);
+        //#endif
     }
 
+    //#if MC>=10800
     @Override
     public void setSubProtocol(SubProtocol mode, boolean client, Session session) {
         super.setSubProtocol(mode, client, session);
     }
+    //#else
+    //$$ @Override
+    //$$ public void setMode(ProtocolMode mode, boolean client, Session session) {
+    //$$     super.setMode(mode, client, session);
+    //$$ }
+    //#endif
 }

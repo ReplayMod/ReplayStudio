@@ -24,10 +24,7 @@
  */
 package com.replaymod.replaystudio.io;
 
-import com.github.steveice10.mc.protocol.data.SubProtocol;
 import com.github.steveice10.mc.protocol.packet.ingame.server.ServerKeepAlivePacket;
-import com.github.steveice10.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
-import com.github.steveice10.mc.protocol.packet.login.server.LoginSetCompressionPacket;
 import com.github.steveice10.mc.protocol.packet.login.server.LoginSuccessPacket;
 import com.github.steveice10.netty.buffer.ByteBuf;
 import com.github.steveice10.netty.buffer.ByteBufAllocator;
@@ -41,9 +38,17 @@ import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.studio.StudioPacketStream;
 import com.replaymod.replaystudio.studio.StudioReplay;
 import com.replaymod.replaystudio.studio.protocol.StudioCodec;
-import com.replaymod.replaystudio.studio.protocol.StudioCompression;
 import com.replaymod.replaystudio.studio.protocol.StudioSession;
 import com.replaymod.replaystudio.viaversion.ViaVersionPacketConverter;
+
+//#if MC>=10800
+import com.github.steveice10.mc.protocol.data.SubProtocol;
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
+import com.github.steveice10.mc.protocol.packet.login.server.LoginSetCompressionPacket;
+import com.replaymod.replaystudio.studio.protocol.StudioCompression;
+//#else
+//$$ import com.github.steveice10.mc.protocol.ProtocolMode;
+//#endif
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -79,10 +84,12 @@ public class ReplayInputStream extends InputStream {
      */
     private final StudioCodec codec;
 
+    //#if MC>=10800
     /**
      * The studio compression. May be null if no compression is applied at the moment.
      */
     private StudioCompression compression = null;
+    //#endif
 
     /**
      * The instance of the ViaVersion packet converter in use.
@@ -161,6 +168,7 @@ public class ReplayInputStream extends InputStream {
             }
 
             ByteBuf decompressed;
+            //#if MC>=10800
             if (compression != null) {
                 List<Object> out = new LinkedList<>();
                 try {
@@ -173,6 +181,9 @@ public class ReplayInputStream extends InputStream {
             } else {
                 decompressed = buf;
             }
+            //#else
+            //$$ decompressed = buf;
+            //#endif
 
             List<Object> decoded = new LinkedList<>();
             try {
@@ -190,6 +201,7 @@ public class ReplayInputStream extends InputStream {
                     continue; // They aren't needed in a replay
                 }
 
+                //#if MC>=10800
                 if (o instanceof LoginSetCompressionPacket) {
                     int threshold = ((LoginSetCompressionPacket) o).getThreshold();
                     if (threshold == -1) {
@@ -208,8 +220,13 @@ public class ReplayInputStream extends InputStream {
                         compression = new StudioCompression(session);
                     }
                 }
+                //#endif
                 if (o instanceof LoginSuccessPacket) {
+                    //#if MC>=10800
                     session.getPacketProtocol().setSubProtocol(SubProtocol.GAME, true, session);
+                    //#else
+                    //$$ session.getPacketProtocol().setMode(ProtocolMode.GAME, true, session);
+                    //#endif
                 }
                 buffer.offer(new PacketData(next, (Packet) o));
             }

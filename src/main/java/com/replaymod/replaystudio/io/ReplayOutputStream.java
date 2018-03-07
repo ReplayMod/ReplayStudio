@@ -24,7 +24,6 @@
  */
 package com.replaymod.replaystudio.io;
 
-import com.github.steveice10.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
 import com.github.steveice10.netty.buffer.ByteBuf;
 import com.github.steveice10.netty.buffer.ByteBufAllocator;
 import com.github.steveice10.netty.buffer.PooledByteBufAllocator;
@@ -36,9 +35,13 @@ import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.replay.Replay;
 import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.studio.protocol.StudioCodec;
-import com.replaymod.replaystudio.studio.protocol.StudioCompression;
 import com.replaymod.replaystudio.studio.protocol.StudioSession;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+
+//#if MC>=10800
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
+import com.replaymod.replaystudio.studio.protocol.StudioCompression;
+//#endif
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -82,10 +85,12 @@ public class ReplayOutputStream extends OutputStream {
      */
     private final StudioCodec codec;
 
+    //#if MC>=10800
     /**
      * The studio compression. May be null if no compression is applied at the moment.
      */
     private StudioCompression compression = null;
+    //#endif
 
     /**
      * Duration of the replay written. This gets updated with each packet and is afterwards used to set the
@@ -173,6 +178,7 @@ public class ReplayOutputStream extends OutputStream {
         }
 
         ByteBuf compressed;
+        //#if MC>=10800
         if (compression == null) {
             compressed = encoded;
         } else {
@@ -184,6 +190,9 @@ public class ReplayOutputStream extends OutputStream {
             }
             encoded.release();
         }
+        //#else
+        //$$ compressed = encoded;
+        //#endif
 
         int length = compressed.readableBytes();
         writeInt(out, (int) time);
@@ -192,6 +201,7 @@ public class ReplayOutputStream extends OutputStream {
 
         compressed.release();
 
+        //#if MC>=10800
         if (packet instanceof ServerSetCompressionPacket) {
             int threshold = ((ServerSetCompressionPacket) packet).getThreshold();
             if (threshold == -1) {
@@ -201,6 +211,7 @@ public class ReplayOutputStream extends OutputStream {
                 session.setCompressionThreshold(threshold);
             }
         }
+        //#endif
     }
 
     /**
