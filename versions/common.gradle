@@ -92,6 +92,10 @@ dependencies {
     compile 'com.google.guava:guava:17.0' // for ViaVersion
     // ViaVersion will use the relocated netty of MCProtocolLib
 
+    // un-shaded from MCAuthLib (is shaded into MCProtocolLib) and ViaVersion (has gson shaded with relocation)
+    // see configuration of preshadowJar task
+    compile 'com.google.code.gson:gson:2.3.1'
+
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'
     compile 'commons-cli:commons-cli:1.2'
@@ -126,6 +130,12 @@ preshadowJar {
     }
     relocate 'io.netty', 'com.github.steveice10.netty'
     relocate 'us.myles.ViaVersion', 'com.replaymod.replaystudio.us.myles.ViaVersion'
+
+    // un-shading from MCAuthLib (see dependencies)
+    exclude 'com/google/gson/**'
+    // also un-shading (and un-relocating) from ViaVersion
+    exclude 'us/myles/viaversion/libs/gson/**'
+    relocate 'us.myles.viaversion.libs.gson', 'com.google.gson'
 }
 
 shadowJar {

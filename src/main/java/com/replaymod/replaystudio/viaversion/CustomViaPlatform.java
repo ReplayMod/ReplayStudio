@@ -24,13 +24,13 @@
  */
 package com.replaymod.replaystudio.viaversion;
 
+import com.google.gson.JsonObject;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.ViaAPI;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.ViaVersionConfig;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.command.ViaCommandSender;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.configuration.ConfigurationProvider;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.platform.TaskId;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.platform.ViaPlatform;
-import us.myles.viaversion.libs.gson.JsonObject;
 
 import java.util.UUID;
 import java.util.logging.Logger;
