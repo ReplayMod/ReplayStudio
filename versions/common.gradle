@@ -64,16 +64,25 @@ repositories {
     }
 }
 
+configurations.preshadow.resolutionStrategy.eachDependency { dep ->
+    def req = dep.requested
+    if (req.group == 'com.github.steveice10' && req.name == 'opennbt' && req.version == '1.0') {
+        // Need to use commit hash because there's a conflicting version in maven central
+        // This might still get the wrong sources artifact but we don't care about that
+        dep.useVersion '659bda0'
+    }
+}
+
 dependencies {
     preshadow group: 'com.github.ReplayMod', name: 'MCProtocolLib', version: [
-        11202: 'c4ec3b7',
-        11201: '445cb6a',
-        11200: '92f8ae5',
-        11102: '57cb568',
-        11100: '3c7f539',
-        11002: 'c349cd8',
-        10904: '352a709',
-        10800: '77f8698',
+        11202: 'afec15b',
+        11201: 'd1d1419',
+        11200: 'a405c98',
+        11102: 'de38aff',
+        11100: '049c39a',
+        11002: '0a4a2a4',
+        10904: 'dd854db',
+        10800: 'f57455c',
         10710: '5a7a2e9',
     ][mcVersion]
 
@@ -83,6 +92,10 @@ dependencies {
     }
     compile 'com.google.guava:guava:17.0' // for ViaVersion
     // ViaVersion will use the relocated netty of MCProtocolLib
+
+    // un-shaded from MCAuthLib (is shaded into MCProtocolLib) and ViaVersion (has gson shaded with relocation)
+    // see configuration of preshadowJar task
+    compile 'com.google.code.gson:gson:2.3.1'
 
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'
@@ -118,6 +131,12 @@ preshadowJar {
     }
     relocate 'io.netty', 'com.github.steveice10.netty'
     relocate 'us.myles.ViaVersion', 'com.replaymod.replaystudio.us.myles.ViaVersion'
+
+    // un-shading from MCAuthLib (see dependencies)
+    exclude 'com/google/gson/**'
+    // also un-shading (and un-relocating) from ViaVersion
+    exclude 'us/myles/viaversion/libs/gson/**'
+    relocate 'us.myles.viaversion.libs.gson', 'com.google.gson'
 }
 
 shadowJar {
