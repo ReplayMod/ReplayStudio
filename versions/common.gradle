@@ -75,15 +75,15 @@ configurations.preshadow.resolutionStrategy.eachDependency { dep ->
 
 dependencies {
     preshadow group: 'com.github.ReplayMod', name: 'MCProtocolLib', version: [
-        11202: 'afec15b',
-        11201: 'd1d1419',
-        11200: 'a405c98',
-        11102: 'de38aff',
-        11100: '049c39a',
-        11002: '0a4a2a4',
-        10904: 'dd854db',
-        10800: 'f57455c',
-        10710: '961ffb2',
+        11202: '86fa11a',
+        11201: 'ef8c9f5',
+        11200: 'c47b8ca',
+        11102: '673be0a',
+        11100: 'e70dc3e',
+        11002: '675520e',
+        10904: '5b7c728',
+        10800: 'b5dcc87',
+        10710: '2ac83bf',
     ][mcVersion]
 
     def viaversion = 'com.github.replaymod.viaversion:viaversion:563dc3c'
