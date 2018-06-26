@@ -26,11 +26,25 @@ buildscript {
     }
 
     dependencies {
+        classpath 'io.spring.gradle:dependency-management-plugin:1.0.3.RELEASE'
         classpath 'ch.raffael.gradlePlugins.preshadow:gradle-preshadow-plugin:1.0'
         classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
         classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'
         classpath 'com.github.johni0702:gradle-reproducible-builds-plugin:3dbf20d'
     }
+}
+
+apply plugin: 'io.spring.dependency-management'
+
+dependencyManagement {
+  imports {
+        mavenBom 'com.amazonaws:aws-java-sdk-bom:1.11.228'
+        mavenBom 'org.apache.logging.log4j:log4j-bom:2.8.1'    
+  }
+}
+
+dependencies {
+    shade 'com.amazonaws:aws-java-sdk-kinesis:1.11.228' 
 }
 
 subprojects {
