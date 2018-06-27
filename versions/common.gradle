@@ -7,6 +7,13 @@ apply plugin: 'license'
 apply plugin: 'maven'
 apply plugin: 'ch.raffael.preshadow'
 apply plugin: 'de.johni0702.reproducible-builds'
+apply plugin: 'io.spring.dependency-management'
+
+dependencyManagement {
+  imports {
+        mavenBom 'com.amazonaws:aws-java-sdk-bom:1.11.228'
+  }
+}
 
 def gitCommitHash() {
     try {
@@ -96,6 +103,8 @@ dependencies {
     // un-shaded from MCAuthLib (is shaded into MCProtocolLib) and ViaVersion (has gson shaded with relocation)
     // see configuration of preshadowJar task
     compile 'com.google.code.gson:gson:2.3.1'
+
+    compile  'com.amazonaws:aws-java-sdk-kinesis:1.11.228' 
 
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'
