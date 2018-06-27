@@ -189,6 +189,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     public void save() throws IOException {
         // Make sure that we have all the needed infromation
         writeMetaData(getMetaData());
+        flushToStream();
     }
 
     @Override
@@ -199,6 +200,8 @@ public class StreamReplayFile extends AbstractReplayFile {
     @Override
     public void close() throws IOException {
         // TODO Send MC server return firehose key command
+        flushToStream();
+        
 
     }
 
@@ -298,6 +301,21 @@ public class StreamReplayFile extends AbstractReplayFile {
 
         // Put record into the DeliveryStream
         firehoseClient.putRecord(this.putRecordRequest);
+    }
+
+    private void flushToStream(){
+        if( streamBuffer.position() != 0){
+            // Put records on stream
+            Record record = new Record().withData(streamBuffer);
+            this.putRecordRequest.setRecord(record);
+
+            // Put record into the DeliveryStream
+            // TODO measure performace of put_record 
+            firehoseClient.putRecord(putRecordRequest);
+
+            // Clear the dependent data buffer
+            streamBuffer.clear();
+        }
     }
 
     @Override
