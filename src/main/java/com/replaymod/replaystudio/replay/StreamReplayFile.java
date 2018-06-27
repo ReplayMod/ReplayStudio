@@ -300,7 +300,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         firehoseClient.putRecord(this.putRecordRequest);
     }
 
-    public void writePacketData(int timestamp, int length, byte[] data) throws IOException {
+    public void writePackets(int timestamp, int length, byte[] data) throws IOException {
         sendToStream(ENTRY_RECORDING, timestamp, length, data);
     }
 
