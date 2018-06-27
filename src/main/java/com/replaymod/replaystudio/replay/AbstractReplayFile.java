@@ -109,6 +109,10 @@ public abstract class AbstractReplayFile implements ReplayFile {
         return new ReplayOutputStream(studio, write(ENTRY_RECORDING));
     }
 
+    public void writePackets(int timestamp, int length, byte[] data) throws IOException {
+        throw(new IOException("Method not supported"));
+    }
+
     @Override
     public Replay toReplay() throws IOException {
         return studio.createReplay(this);
