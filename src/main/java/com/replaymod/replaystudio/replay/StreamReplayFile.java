@@ -161,7 +161,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     @Override
     public OutputStream write(String entry) throws IOException {
-        return null;
+        throw(new IOException("Write is supported for replay type StreamReplayFile"));
         // // Record packet in the buffer and flush if near capacity
         // if (bytes.length + streamBuffer.position() < streamBuffer.capacity())
         // {
