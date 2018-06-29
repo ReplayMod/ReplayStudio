@@ -188,8 +188,8 @@ public class StreamReplayFile extends AbstractReplayFile {
     @Override
     public void save() throws IOException {
         // Make sure that we have all the needed infromation
-        writeMetaData(getMetaData());
-        flushToStream();
+        //writeMetaData(getMetaData());
+        //flushToStream();
     }
 
     @Override
