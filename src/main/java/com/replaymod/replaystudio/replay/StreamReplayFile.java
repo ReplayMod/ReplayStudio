@@ -201,8 +201,6 @@ public class StreamReplayFile extends AbstractReplayFile {
     public void close() throws IOException {
         // TODO Send MC server return firehose key command
         flushToStream();
-        
-
     }
 
 
@@ -247,6 +245,9 @@ public class StreamReplayFile extends AbstractReplayFile {
             // Add the data that didn't fit
             streamBuffer.putInt(length);
             streamBuffer.put(buff);
+
+            System.out.println("Wrote " + Integer.toString(length) + " bytes");
+
         }
 
        
