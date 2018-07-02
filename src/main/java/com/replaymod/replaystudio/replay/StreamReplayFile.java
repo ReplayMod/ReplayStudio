@@ -88,6 +88,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     private static final int ENTRY_MARKERS             = 7;
     private static final int ENTRY_ASSET               = 8;
     private static final int ENTRY_MODS                = 9;
+    private static final int ENTRY_END_OF_FILE         = 10;
 
     private static final byte[] THUMB_MAGIC_NUMBERS = {0, 1, 1, 2, 3, 5, 8};
 
@@ -190,6 +191,10 @@ public class StreamReplayFile extends AbstractReplayFile {
     public void close() throws IOException {
         logger.info("Closing stream");
         // TODO Send MC server return firehose key command
+
+        byte[] EOF = "This is the end.".getBytes();
+
+        sendToStream(ENTRY_END_OF_FILE, 0, EOF.length, EOF);
         flushToStream();
     }
 
@@ -228,8 +233,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         } else if (length + overhead < streamBuffer.capacity()) {
             logger.info("Sending firehose record (" + Integer.toString(streamBuffer.position()) + ") bytes");
             // Put records on stream
-            //Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
-            Record record = new Record().withData(streamBuffer);
+            Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
             PutRecordRequest recordRequest = new PutRecordRequest();
             recordRequest.setRecord(record);
             recordRequest.setDeliveryStreamName(streamName);
