@@ -104,6 +104,8 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private ZipFile zipFile;
 
+    private int bytesWritten = 0;
+
     private final Logger logger;
 
     //TODO add a gzip compression step before streaming to firehose
@@ -173,6 +175,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     @Override
     public void save() throws IOException {
         logger.info("Ignoring Save");
+        logger.info("Wrote " + Integer.toString(bytesWritten) + " bytes in total");
         // Make sure that we have all the needed infromation
         //writeMetaData(getMetaData());
         //flushToStream();
@@ -204,7 +207,6 @@ public class StreamReplayFile extends AbstractReplayFile {
     *
     */
     synchronized private void sendToStream(int entry, int timestamp,  int length, byte[] data) throws IOException {
-        logger.info("Sending data to the stream!");
         // Wrap Data
         ByteBuffer buff = ByteBuffer.wrap(data);
 
@@ -215,7 +217,6 @@ public class StreamReplayFile extends AbstractReplayFile {
 
         if (buff.position() + streamBuffer.position() + overhead < streamBuffer.capacity())
         {
-            logger.info("Putting data on queue");
             // TODO evaluate posibility of race condition in buffer write
             this.streamBuffer.putInt(entry);
             this.streamBuffer.putInt(timestamp);
@@ -223,14 +224,18 @@ public class StreamReplayFile extends AbstractReplayFile {
             this.streamBuffer.put(buff);
             return;
         } else if (length + overhead < streamBuffer.capacity()) {
-            logger.info("Sending firehose record");
+            logger.info("Sending firehose record (" + Integer.toString(length) + ") bytes");
             // Put records on stream
             Record record = new Record().withData(streamBuffer);
-            this.putRecordRequest.setRecord(record);
+            PutRecordRequest recordRequest = new PutRecordRequest();
+            recordRequest.setRecord(record);
+            recordRequest.setDeliveryStreamName(streamName);
+
+            
 
             // Put record into the DeliveryStream
             // TODO measure performace of put_record 
-            firehoseClient.putRecord(putRecordRequest);
+            firehoseClient.putRecord(recordRequest);
 
             // Clear the dependent data buffer
             streamBuffer.clear();
@@ -238,6 +243,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             // Add the data that didn't fit
             streamBuffer.putInt(length);
             streamBuffer.put(buff);
+            bytesWritten += length;
         } else {
             logger.error("Record was too long");
             throw(new IOException("Record was too long!!"));
