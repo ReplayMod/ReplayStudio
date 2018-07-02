@@ -215,6 +215,8 @@ public class StreamReplayFile extends AbstractReplayFile {
         overhead    += Integer.BYTES; //Timestamp
         overhead    += Integer.BYTES; //Length
 
+        bytesWritten += length + overhead;
+
         if (buff.position() + streamBuffer.position() + overhead < streamBuffer.capacity())
         {
             // TODO evaluate posibility of race condition in buffer write
@@ -224,7 +226,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             this.streamBuffer.put(buff);
             return;
         } else if (length + overhead < streamBuffer.capacity()) {
-            logger.info("Sending firehose record (" + Integer.toString(length) + ") bytes");
+            logger.info("Sending firehose record (" + Integer.toString(buff.position()) + ") bytes");
             // Put records on stream
             Record record = new Record().withData(streamBuffer);
             PutRecordRequest recordRequest = new PutRecordRequest();
@@ -238,12 +240,13 @@ public class StreamReplayFile extends AbstractReplayFile {
             firehoseClient.putRecord(recordRequest);
 
             // Clear the dependent data buffer
-            streamBuffer.clear();
+            streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
 
             // Add the data that didn't fit
             streamBuffer.putInt(length);
+            streamBuffer.putInt(timestamp);
             streamBuffer.put(buff);
-            bytesWritten += length;
+            
         } else {
             logger.error("Record was too long");
             throw(new IOException("Record was too long!!"));
