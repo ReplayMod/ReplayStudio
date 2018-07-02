@@ -228,7 +228,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         } else if (length + overhead < streamBuffer.capacity()) {
             logger.info("Sending firehose record (" + Integer.toString(streamBuffer.position()) + ") bytes");
             // Put records on stream
-            Record record = new Record().withData(streamBuffer);
+            Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
             PutRecordRequest recordRequest = new PutRecordRequest();
             recordRequest.setRecord(record);
             recordRequest.setDeliveryStreamName(streamName);
