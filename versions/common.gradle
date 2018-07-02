@@ -12,6 +12,8 @@ apply plugin: 'io.spring.dependency-management'
 dependencyManagement {
   imports {
         mavenBom 'com.amazonaws:aws-java-sdk-bom:1.11.228'
+        mavenBom 'org.apache.logging.log4j:log4j-bom:2.8.1'    
+
   }
 }
 
@@ -105,6 +107,8 @@ dependencies {
     compile 'com.google.code.gson:gson:2.3.1'
 
     compile  'com.amazonaws:aws-java-sdk-kinesis:1.11.228' 
+    compile 'org.apache.logging.log4j:log4j-api'
+    compile 'org.apache.logging.log4j:log4j-core'
 
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'

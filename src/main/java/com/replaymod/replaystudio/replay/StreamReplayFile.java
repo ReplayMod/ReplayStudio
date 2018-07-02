@@ -74,7 +74,7 @@ import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehose;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordRequest;
 import com.amazonaws.services.kinesisfirehose.model.Record;
 
-import java.util.concurrent.locks.*;
+import org.apache.logging.log4j.Logger;
 
 public class StreamReplayFile extends AbstractReplayFile {
 
@@ -104,9 +104,13 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private ZipFile zipFile;
 
+    private final Logger logger;
+
     //TODO add a gzip compression step before streaming to firehose
-    public StreamReplayFile(Studio studio, AmazonKinesisFirehose firehoseClient, String streamName) throws IOException {
+    public StreamReplayFile(Studio studio, AmazonKinesisFirehose firehoseClient, String streamName, Logger logger) throws IOException {
         super(studio);
+
+        this.logger = logger;
 
         this.firehoseClient = firehoseClient;
         this.streamName = streamName;
@@ -136,29 +140,8 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     @Override
     public Map<String, InputStream> getAll(Pattern pattern) throws IOException {
-        Map<String, InputStream> streams = new HashMap<>();
-
-        for (Map.Entry<String, File> entry : changedEntries.entrySet()) {
-            String name = entry.getKey();
-            if (pattern.matcher(name).matches()) {
-                streams.put(name, new BufferedInputStream(new FileInputStream(changedEntries.get(name))));
-            }
-        }
-
-        if (zipFile != null) {
-            Enumeration<? extends ZipEntry> entries = zipFile.entries();
-            while (entries.hasMoreElements()) {
-                ZipEntry entry = entries.nextElement();
-                String name = entry.getName();
-                if (pattern.matcher(name).matches()) {
-                    if (!streams.containsKey(name) && !removedEntries.contains(name)) {
-                        streams.put(name, new BufferedInputStream(zipFile.getInputStream(entry)));
-                    }
-                }
-            }
-        }
-
-        return streams;
+        logger.error("Tried to call getAll - cmd unsupported");
+        throw(new IOException("getAll is not supported for replay type StreamReplayFile"));
     }
 
     @Override
@@ -189,6 +172,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     @Override
     public void save() throws IOException {
+        logger.info("Ignoring Save");
         // Make sure that we have all the needed infromation
         //writeMetaData(getMetaData());
         //flushToStream();
@@ -201,6 +185,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     @Override
     public void close() throws IOException {
+        logger.info("Closing stream");
         // TODO Send MC server return firehose key command
         flushToStream();
     }
@@ -219,6 +204,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     *
     */
     synchronized private void sendToStream(int entry, int timestamp,  int length, byte[] data) throws IOException {
+        logger.info("Sending data to the stream!");
         // Wrap Data
         ByteBuffer buff = ByteBuffer.wrap(data);
 
@@ -229,6 +215,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
         if (buff.position() + streamBuffer.position() + overhead < streamBuffer.capacity())
         {
+            logger.info("Putting data on queue");
             // TODO evaluate posibility of race condition in buffer write
             this.streamBuffer.putInt(entry);
             this.streamBuffer.putInt(timestamp);
@@ -236,6 +223,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             this.streamBuffer.put(buff);
             return;
         } else if (length + overhead < streamBuffer.capacity()) {
+            logger.info("Sending firehose record");
             // Put records on stream
             Record record = new Record().withData(streamBuffer);
             this.putRecordRequest.setRecord(record);
@@ -251,7 +239,8 @@ public class StreamReplayFile extends AbstractReplayFile {
             streamBuffer.putInt(length);
             streamBuffer.put(buff);
         } else {
-            throw(new IOException());
+            logger.error("Record was too long");
+            throw(new IOException("Record was too long!!"));
         }
 
        
