@@ -248,13 +248,44 @@ public class StreamReplayFile extends AbstractReplayFile {
             streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
 
             // Add the data that didn't fit
+            streamBuffer.putInt(entry);
             streamBuffer.putInt(length);
             streamBuffer.putInt(timestamp);
             streamBuffer.put(buff);
             
         } else {
-            logger.error("Record was too long");
-            throw(new IOException("Record was too long!!"));
+            logger.info("Sending firehose record (" + Integer.toString(streamBuffer.position()) + ") bytes");
+
+            // Send what was there
+            Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
+            PutRecordRequest recordRequest = new PutRecordRequest();
+            recordRequest.setRecord(record);
+            recordRequest.setDeliveryStreamName(streamName);
+            firehoseClient.putRecord(recordRequest);
+            
+            streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
+
+            streamBuffer.putInt(entry);
+            streamBuffer.putInt(length);
+            streamBuffer.putInt(timestamp);
+
+            int bytesRead = 0;
+            int bytesWritten = overhead;
+
+            for(int i = 0; i < (length / streamBuffer.capacity()); i++){
+                int numBytes = FIREHOSE_BUFFER_LIMIT - bytesWritten;
+                System.arraycopy(buff, bytesRead, streamBuffer.array(), bytesWritten, numBytes);
+
+                record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
+                recordRequest = new PutRecordRequest();
+                recordRequest.setRecord(record);
+                recordRequest.setDeliveryStreamName(streamName);
+                firehoseClient.putRecord(recordRequest);
+         
+                bytesRead += numBytes;
+                bytesWritten = 0;
+                streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
+            }
         }
     }
 
