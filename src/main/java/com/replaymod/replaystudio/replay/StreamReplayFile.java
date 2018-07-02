@@ -93,7 +93,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private static final int FIREHOSE_BUFFER_LIMIT = 1000;
 
-    private final ByteBuffer streamBuffer;
+    private ByteBuffer streamBuffer;
     private final AmazonKinesisFirehose firehoseClient;
     private final String streamName;
     PutRecordRequest putRecordRequest;
