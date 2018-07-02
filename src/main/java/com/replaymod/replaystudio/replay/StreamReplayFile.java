@@ -292,7 +292,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     private void flushToStream(){
         if( streamBuffer.position() != 0){
             // Put records on stream
-            Record record = new Record().withData(streamBuffer);
+            Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
             this.putRecordRequest.setRecord(record);
 
             // Put record into the DeliveryStream
