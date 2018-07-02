@@ -218,14 +218,14 @@ public class StreamReplayFile extends AbstractReplayFile {
     *  byte[]   :   Data
     *
     */
-    synchronized private void sendToStream(int entry, int timestamp,  int length, byte[] data) {
+    synchronized private void sendToStream(int entry, int timestamp,  int length, byte[] data) throws IOException {
         // Wrap Data
         ByteBuffer buff = ByteBuffer.wrap(data);
 
         // Header overhead
         int overhead = Integer.BYTES; //Entry ID
-        overhead    += Integer.BYTES; //Length
         overhead    += Integer.BYTES; //Timestamp
+        overhead    += Integer.BYTES; //Length
 
         if (buff.position() + streamBuffer.position() + overhead < streamBuffer.capacity())
         {
@@ -234,7 +234,8 @@ public class StreamReplayFile extends AbstractReplayFile {
             this.streamBuffer.putInt(timestamp);
             this.streamBuffer.putInt(length);
             this.streamBuffer.put(buff);
-        } else {
+            return;
+        } else if (length + overhead < streamBuffer.capacity()) {
             // Put records on stream
             Record record = new Record().withData(streamBuffer);
             this.putRecordRequest.setRecord(record);
@@ -249,6 +250,8 @@ public class StreamReplayFile extends AbstractReplayFile {
             // Add the data that didn't fit
             streamBuffer.putInt(length);
             streamBuffer.put(buff);
+        } else {
+            throw(new IOException());
         }
 
        
