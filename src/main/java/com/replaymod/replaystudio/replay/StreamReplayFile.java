@@ -255,6 +255,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             
         } else {
             logger.info("Sending firehose record (" + Integer.toString(streamBuffer.position()) + ") bytes");
+            logger.info("Sending firehose record (" + Integer.toString(length) + ") bytes");
 
             // Send what was there
             Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
