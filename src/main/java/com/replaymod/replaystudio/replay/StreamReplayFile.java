@@ -74,6 +74,8 @@ import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehose;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordRequest;
 import com.amazonaws.services.kinesisfirehose.model.Record;
 
+import java.util.concurrent.locks.*;
+
 public class StreamReplayFile extends AbstractReplayFile {
 
     private static final int ENTRY_META_DATA           = 0;
@@ -210,58 +212,13 @@ public class StreamReplayFile extends AbstractReplayFile {
     *  The following methods are adapted to write data to aws kinesis firehose
     *  streams. Streming data is structured as follows:
     *  
-    *  byte     :   Entry Type
+    *  int      :   Entry Type
+    *  int      :   Timestamp (0 if not included)
     *  int      :   Size of data
     *  byte[]   :   Data
     *
     */
-
-    private void sendToStream(int entry, int length, byte[] data) {
-        // Wrap Data
-        ByteBuffer buff = ByteBuffer.wrap(data);
-
-        // Header overhead
-        int overhead = Integer.BYTES; //Entry ID
-        overhead    += Integer.BYTES; //Length
-
-        if (buff.position() + this.streamBuffer.position() + overhead < this.streamBuffer.capacity())
-        {
-            // TODO evaluate posibility of race condition in buffer write
-            this.streamBuffer.putInt(entry);
-            this.streamBuffer.putInt(length);
-            this.streamBuffer.put(buff);
-        } else {
-            // Put records on stream
-            Record record = new Record().withData(streamBuffer);
-            this.putRecordRequest.setRecord(record);
-
-            // Put record into the DeliveryStream
-            // TODO measure performace of put_record 
-            firehoseClient.putRecord(putRecordRequest);
-
-            // Clear the dependent data buffer
-            streamBuffer.clear();
-
-            // Add the data that didn't fit
-            streamBuffer.putInt(length);
-            streamBuffer.put(buff);
-
-            System.out.println("Wrote " + Integer.toString(length) + " bytes");
-
-        }
-
-       
-
-        // Create Record
-        Record record = new Record().withData(buff);
-        putRecordRequest.setRecord(record);
-
-        // Put record into the DeliveryStream
-        firehoseClient.putRecord(this.putRecordRequest);
-    }
-
-    // Will adjst the length to account for the added timestamp field
-    private void sendToStream(int entry, int timestamp,  int length, byte[] data) {
+    synchronized private void sendToStream(int entry, int timestamp,  int length, byte[] data) {
         // Wrap Data
         ByteBuffer buff = ByteBuffer.wrap(data);
 
@@ -274,8 +231,8 @@ public class StreamReplayFile extends AbstractReplayFile {
         {
             // TODO evaluate posibility of race condition in buffer write
             this.streamBuffer.putInt(entry);
-            this.streamBuffer.putInt(length + Integer.BYTES);
             this.streamBuffer.putInt(timestamp);
+            this.streamBuffer.putInt(length);
             this.streamBuffer.put(buff);
         } else {
             // Put records on stream
@@ -333,13 +290,13 @@ public class StreamReplayFile extends AbstractReplayFile {
         }
 
         String json = new Gson().toJson(metaData);
-        sendToStream(ENTRY_META_DATA, json.length(), json.getBytes());
+        sendToStream(ENTRY_META_DATA, 0, json.length(), json.getBytes());
     }
 
     @Override
     public void writeResourcePackIndex(Map<Integer, String> index) throws IOException {
         String json = new Gson().toJson(index);
-        sendToStream(ENTRY_RESOURCE_PACK_INDEX, json.length(), json.getBytes());
+        sendToStream(ENTRY_RESOURCE_PACK_INDEX, 0, json.length(), json.getBytes());
     }
 
     @Override
@@ -356,7 +313,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             array.add(new JsonPrimitive(uuid.toString()));
         }
         String json = new Gson().toJson(root);
-        sendToStream(ENTRY_VISIBILITY, json.length(), json.getBytes());
+        sendToStream(ENTRY_VISIBILITY, 0, json.length(), json.getBytes());
     }
 
     @Override
@@ -372,7 +329,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         }
         root.add("requiredMods", array);
         String json = new Gson().toJson(root);
-        sendToStream(ENTRY_MODS, json.length(), json.getBytes());
+        sendToStream(ENTRY_MODS, 0, json.length(), json.getBytes());
         
     }
 
@@ -398,7 +355,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             root.add(entry);
         }
         String json = new Gson().toJson(root);
-        sendToStream(ENTRY_MARKERS, json.length(), json.getBytes());
+        sendToStream(ENTRY_MARKERS, 0, json.length(), json.getBytes());
     }
 
 
