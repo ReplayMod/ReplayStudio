@@ -226,7 +226,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             this.streamBuffer.put(buff);
             return;
         } else if (length + overhead < streamBuffer.capacity()) {
-            logger.info("Sending firehose record (" + Integer.toString(buff.position()) + ") bytes");
+            logger.info("Sending firehose record (" + Integer.toString(streamBuffer.position()) + ") bytes");
             // Put records on stream
             Record record = new Record().withData(streamBuffer);
             PutRecordRequest recordRequest = new PutRecordRequest();
@@ -251,15 +251,6 @@ public class StreamReplayFile extends AbstractReplayFile {
             logger.error("Record was too long");
             throw(new IOException("Record was too long!!"));
         }
-
-       
-
-        // Create Record
-        Record record = new Record().withData(buff);
-        putRecordRequest.setRecord(record);
-
-        // Put record into the DeliveryStream
-        firehoseClient.putRecord(this.putRecordRequest);
     }
 
     private void flushToStream(){
@@ -273,7 +264,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             firehoseClient.putRecord(putRecordRequest);
 
             // Clear the dependent data buffer
-            streamBuffer.clear();
+            streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
         }
     }
 
