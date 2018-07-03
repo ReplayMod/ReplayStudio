@@ -26,6 +26,7 @@ package com.replaymod.replaystudio.replay;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
+import com.google.common.collect.Multiset.Entry;
 import com.google.common.io.Closeables;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.util.Utils;
@@ -54,6 +55,7 @@ import com.replaymod.replaystudio.data.ModInfo;
 import com.replaymod.replaystudio.data.ReplayAssetEntry;
 import com.replaymod.replaystudio.io.ReplayInputStream;
 import com.replaymod.replaystudio.io.ReplayOutputStream;
+import com.replaymod.replaystudio.io.StreamingOutputStream;
 import com.replaymod.replaystudio.pathing.PathingRegistry;
 import com.replaymod.replaystudio.pathing.path.Timeline;
 import com.replaymod.replaystudio.pathing.serialize.TimelineSerialization;
@@ -77,18 +79,6 @@ import com.amazonaws.services.kinesisfirehose.model.Record;
 import org.apache.logging.log4j.Logger;
 
 public class StreamReplayFile extends AbstractReplayFile {
-
-    private static final int ENTRY_META_DATA           = 0;
-    private static final int ENTRY_RECORDING           = 1;
-    private static final int ENTRY_RESOURCE_PACK       = 2;
-    private static final int ENTRY_RESOURCE_PACK_INDEX = 3;
-    private static final int ENTRY_THUMB               = 4;
-    private static final int ENTRY_VISIBILITY_OLD      = 5;
-    private static final int ENTRY_VISIBILITY          = 6;
-    private static final int ENTRY_MARKERS             = 7;
-    private static final int ENTRY_ASSET               = 8;
-    private static final int ENTRY_MODS                = 9;
-    private static final int ENTRY_END_OF_FILE         = 10;
 
     private static final byte[] THUMB_MAGIC_NUMBERS = {0, 1, 1, 2, 3, 5, 8};
 
@@ -140,51 +130,11 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     }
 
-
-    @Override
-    public Map<String, InputStream> getAll(Pattern pattern) throws IOException {
-        logger.error("Tried to call getAll - cmd unsupported");
-        throw(new IOException("getAll is not supported for replay type StreamReplayFile"));
-    }
-
-    @Override
-    public OutputStream write(String entry) throws IOException {
-        throw(new IOException("Write is supported for replay type StreamReplayFile"));
-        // // Record packet in the buffer and flush if near capacity
-        // if (bytes.length + streamBuffer.position() < streamBuffer.capacity())
-        // {
-        //     streamBuffer.put(bytes);
-        // } else {
-        //     // Put records on stream
-        //     PutRecordRequest putRecordRequest = new PutRecordRequest();
-        //     putRecordRequest.setDeliveryStreamName(this.firehoseStreamName);
-
-        //     Record record = new Record().withData(streamBuffer);
-        //     putRecordRequest.setRecord(record);
-
-        //     // Put record into the DeliveryStream
-        //     // TODO measure performace of put_record 
-        //     firehoseClient.putRecord(putRecordRequest);
-
-        //     // Clear the dependent data buffer
-        //     streamBuffer.clear();
-
-        //     logger.info("Wrote record to firehose stream");
-        // }
-    }
-
     @Override
     public void save() throws IOException {
-        logger.info("Ignoring Save");
+        logger.info("Saving");
         logger.info("Wrote " + Integer.toString(bytesWritten) + " bytes in total");
-        // Make sure that we have all the needed infromation
-        //writeMetaData(getMetaData());
-        //flushToStream();
-    }
-
-    @Override
-    public void saveTo(File target) throws IOException {
-       throw(new IOException("Save to file not supported for replay type StreamReplayFile"));
+        flushToStream();
     }
 
     @Override
@@ -193,11 +143,10 @@ public class StreamReplayFile extends AbstractReplayFile {
         // TODO Send MC server return firehose key command
 
         byte[] EOF = "This is the end.".getBytes();
-
-        sendToStream(ENTRY_END_OF_FILE, 0, EOF.length, EOF);
+        int id = entryStringToIndex(ENTRY_END_OF_STREAM);
+        sendToStream(id, 0, EOF.length, EOF);
         flushToStream();
     }
-
 
     /* 
     *  Write methods
@@ -206,7 +155,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     *  streams. Streming data is structured as follows:
     *  
     *  int      :   Entry Type
-    *  int      :   Timestamp (0 if not included)
+    *  int      :   Timestamp (0 if not defined)
     *  int      :   Size of data
     *  byte[]   :   Data
     *
@@ -222,7 +171,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
         bytesWritten += length + overhead;
 
-        if (buff.position() + streamBuffer.position() + overhead < streamBuffer.capacity())
+        if (streamBuffer.position() + length + overhead < streamBuffer.capacity())
         {
             // TODO evaluate posibility of race condition in buffer write
             this.streamBuffer.putInt(entry);
@@ -232,16 +181,11 @@ public class StreamReplayFile extends AbstractReplayFile {
             return;
         } else if (length + overhead < streamBuffer.capacity()) {
             logger.info("Sending firehose record (" + Integer.toString(streamBuffer.position()) + ") bytes");
-            // Put records on stream
+            // Send existing records 
             Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
             PutRecordRequest recordRequest = new PutRecordRequest();
             recordRequest.setRecord(record);
             recordRequest.setDeliveryStreamName(streamName);
-
-            
-
-            // Put record into the DeliveryStream
-            // TODO measure performace of put_record 
             firehoseClient.putRecord(recordRequest);
 
             // Clear the dependent data buffer
@@ -257,28 +201,29 @@ public class StreamReplayFile extends AbstractReplayFile {
             logger.info("Sending firehose record (" + Integer.toString(streamBuffer.position()) + ") bytes");
             logger.info("Sending firehose record (" + Integer.toString(length) + ") bytes");
 
-            // Send what was there
-            Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
-            PutRecordRequest recordRequest = new PutRecordRequest();
-            recordRequest.setRecord(record);
-            recordRequest.setDeliveryStreamName(streamName);
-            firehoseClient.putRecord(recordRequest);
+            // Send what was there if there is not enough space for the overhead
+            if (streamBuffer.position() + overhead >= streamBuffer.capacity()){
+                Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
+                PutRecordRequest recordRequest = new PutRecordRequest();
+                recordRequest.setRecord(record);
+                recordRequest.setDeliveryStreamName(streamName);
+                firehoseClient.putRecord(recordRequest);
+                
+                streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
+            }
             
-            streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
-
             streamBuffer.putInt(entry);
             streamBuffer.putInt(length);
             streamBuffer.putInt(timestamp);
 
             int bytesRead = 0;
-            int bytesWritten = overhead;
 
             for(int i = 0; i < (length / streamBuffer.capacity()); i++){
-                int numBytes = FIREHOSE_BUFFER_LIMIT - bytesWritten;
-                System.arraycopy(buff, bytesRead, streamBuffer.array(), bytesWritten, numBytes);
+                int numBytes = streamBuffer.capacity() - streamBuffer.position();
+                System.arraycopy(buff, bytesRead, streamBuffer.array(), streamBuffer.position(), numBytes);
 
-                record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
-                recordRequest = new PutRecordRequest();
+                Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
+                PutRecordRequest recordRequest = new PutRecordRequest();
                 recordRequest.setRecord(record);
                 recordRequest.setDeliveryStreamName(streamName);
                 firehoseClient.putRecord(recordRequest);
@@ -305,9 +250,21 @@ public class StreamReplayFile extends AbstractReplayFile {
         }
     }
 
+    public void writeByte(String entry, int data) throws IOException {
+        logger.error("Tried to call writeByte - cmd unsupported");
+        throw new UnsupportedOperationException("writeByte is not supported for replay type StreamReplayFile");
+    }
+
+    public void writeEntry(String entry, int timestamp, int len, byte[] bytes) throws IOException {
+        int id = entryStringToIndex(entry);
+        sendToStream(id, timestamp, len, bytes);
+    }
+
+
     @Override
     public void writePackets(int timestamp, int length, byte[] data) throws IOException {
-        sendToStream(ENTRY_RECORDING, timestamp, length, data);
+        int id = entryStringToIndex(ENTRY_RECORDING);
+        sendToStream(id, timestamp, length, data);
     }
 
     @Override
@@ -319,13 +276,15 @@ public class StreamReplayFile extends AbstractReplayFile {
         }
 
         String json = new Gson().toJson(metaData);
-        sendToStream(ENTRY_META_DATA, 0, json.length(), json.getBytes());
+        int id = entryStringToIndex(ENTRY_META_DATA);
+        sendToStream(id, 0, json.length(), json.getBytes());
     }
 
     @Override
     public void writeResourcePackIndex(Map<Integer, String> index) throws IOException {
         String json = new Gson().toJson(index);
-        sendToStream(ENTRY_RESOURCE_PACK_INDEX, 0, json.length(), json.getBytes());
+        int id = entryStringToIndex(ENTRY_RESOURCE_PACK_INDEX);
+        sendToStream(id, 0, json.length(), json.getBytes());
     }
 
     @Override
@@ -342,7 +301,8 @@ public class StreamReplayFile extends AbstractReplayFile {
             array.add(new JsonPrimitive(uuid.toString()));
         }
         String json = new Gson().toJson(root);
-        sendToStream(ENTRY_VISIBILITY, 0, json.length(), json.getBytes());
+        int id = entryStringToIndex(ENTRY_VISIBILITY);
+        sendToStream(id, 0, json.length(), json.getBytes());
     }
 
     @Override
@@ -358,7 +318,8 @@ public class StreamReplayFile extends AbstractReplayFile {
         }
         root.add("requiredMods", array);
         String json = new Gson().toJson(root);
-        sendToStream(ENTRY_MODS, 0, json.length(), json.getBytes());
+        int id = entryStringToIndex(ENTRY_MODS);
+        sendToStream(id, 0, json.length(), json.getBytes());
         
     }
 
@@ -384,13 +345,21 @@ public class StreamReplayFile extends AbstractReplayFile {
             root.add(entry);
         }
         String json = new Gson().toJson(root);
-        sendToStream(ENTRY_MARKERS, 0, json.length(), json.getBytes());
+        int id = entryStringToIndex(ENTRY_MARKERS);
+        sendToStream(id, 0, json.length(), json.getBytes());
+    }
+
+    @Override
+    public OutputStream write(String entry) throws IOException {
+        //Create buffered output stream
+        OutputStream out = new BufferedOutputStream(new StreamingOutputStream(entry, this));
+        return out;
     }
 
 
 
     /* 
-    *  Modified methods
+    *  Removed / Unsupported methods
     *  
     *  The following methods are not supporeted by the streaming replay file
     *  so they have been overidden to prevent confusion
@@ -398,28 +367,45 @@ public class StreamReplayFile extends AbstractReplayFile {
     */
 
     @Override
+    public Map<String, InputStream> getAll(Pattern pattern) throws IOException {
+        logger.error("Tried to call getAll - cmd unsupported");
+        throw new UnsupportedOperationException("getAll is not supported for replay type StreamReplayFile");
+    }
+
+    @Override
+    public void saveTo(File target) throws IOException {
+        logger.error("SaveTo Failed");
+        throw new UnsupportedOperationException("Save to file not supported for replay type StreamReplayFile");
+    }
+
+    @Override
     public void remove(String entry) throws IOException {
+        logger.error("Remove Failed");
         throw(new IOException());
     }
 
     @Override
     public ReplayInputStream getPacketData() throws IOException {
+        logger.error("getPacketData Failed");
         return getPacketData(studio);
     }
 
     @Override
     public ReplayInputStream getPacketData(Studio studio) throws IOException {
-        return null;
+        logger.error("getPacketData Failed");
+        throw new UnsupportedOperationException("getPacketData not supported for replay type StreamReplayFile");
     }
 
     @Override
     public ReplayOutputStream writePacketData() throws IOException {
-        return null;
+        logger.error("writePacketData Failed");
+        throw new UnsupportedOperationException("not supported");
     }
 
     @Override
     public Replay toReplay() throws IOException {
-        return null;
+        logger.error("toReplay Failed");
+        throw new UnsupportedOperationException("toReplay not supported");
     }
 
     @Override
@@ -429,19 +415,19 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     @Override
     public OutputStream writeResourcePack(String hash) throws IOException {
-        return write(String.format(Integer.toString(ENTRY_RESOURCE_PACK), hash));
+        return write(String.format(ENTRY_RESOURCE_PACK, hash));
     }
 
     @Override
     public OutputStream writeAsset(ReplayAssetEntry asset) throws IOException {
-        return null;
-        //return write(String.format(ENTRY_ASSET, asset.getUuid().toString(), asset.getName(), asset.getFileExtension()));
+        return write(String.format(ENTRY_ASSET, asset.getUuid().toString(), asset.getName(), asset.getFileExtension()));
     }
 
     @Override
     public void removeAsset(UUID uuid) throws IOException {
+        logger.error("removeAsset Failed");
+        throw new UnsupportedOperationException("remove asset not supported");
         // Function not supported by streaming replay files
-        throw(new IOException());
     }
 
 }

@@ -45,17 +45,34 @@ import java.util.regex.Pattern;
 
 public abstract class AbstractReplayFile implements ReplayFile {
 
-    private static final String ENTRY_META_DATA = "metaData.json";
-    private static final String ENTRY_RECORDING = "recording.tmcpr";
-    private static final String ENTRY_RESOURCE_PACK = "resourcepack/%s.zip";
-    private static final String ENTRY_RESOURCE_PACK_INDEX = "resourcepack/index.json";
-    private static final String ENTRY_THUMB = "thumb";
-    private static final String ENTRY_VISIBILITY_OLD = "visibility";
-    private static final String ENTRY_VISIBILITY = "visibility.json";
-    private static final String ENTRY_MARKERS = "markers.json";
-    private static final String ENTRY_ASSET = "asset/%s_%s.%s";
-    private static final Pattern PATTERN_ASSETS = Pattern.compile("asset/.*");
-    private static final String ENTRY_MODS = "mods.json";
+    protected static final String ENTRY_META_DATA = "metaData.json";
+    protected static final String ENTRY_RECORDING = "recording.tmcpr";
+    protected static final String ENTRY_RESOURCE_PACK = "resourcepack/%s.zip";
+    protected static final String ENTRY_RESOURCE_PACK_INDEX = "resourcepack/index.json";
+    protected static final String ENTRY_THUMB = "thumb";
+    protected static final String ENTRY_VISIBILITY_OLD = "visibility";
+    protected static final String ENTRY_VISIBILITY = "visibility.json";
+    protected static final String ENTRY_MARKERS = "markers.json";
+    protected static final String ENTRY_ASSET = "asset/%s_%s.%s";
+    protected static final Pattern PATTERN_ASSETS = Pattern.compile("asset/.*");
+    protected static final String ENTRY_MODS = "mods.json";
+    protected static final String ENTRY_END_OF_STREAM = "eof";
+
+    protected int entryStringToIndex(String entry){
+             if (entry.equals(ENTRY_META_DATA)) {return 1;}
+        else if (entry.equals(ENTRY_RECORDING)) {return 2;}
+        else if (entry.equals(ENTRY_RESOURCE_PACK)) {return 3;}
+        else if (entry.equals(ENTRY_RESOURCE_PACK_INDEX)) {return 4;}
+        else if (entry.equals(ENTRY_THUMB)) {return 5;}
+        else if (entry.equals(ENTRY_VISIBILITY_OLD)) {return 6;}
+        else if (entry.equals(ENTRY_VISIBILITY)) {return 7;}
+        else if (entry.equals(ENTRY_MARKERS)) {return 8;}
+        else if (entry.equals(ENTRY_ASSET)) {return 9;}
+        else if (entry.equals(PATTERN_ASSETS)) {return 10;}
+        else if (entry.equals(ENTRY_MODS)) {return 11;}
+        else if (entry.equals(ENTRY_END_OF_STREAM)) {return 12;}
+        else return -1;
+    }
 
     private static final byte[] THUMB_MAGIC_NUMBERS = {0, 1, 1, 2, 3, 5, 8};
 
