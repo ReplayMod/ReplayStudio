@@ -255,7 +255,6 @@ public class StreamReplayFile extends AbstractReplayFile {
         if( streamBuffer.position() != 0){
             // Put records on stream
             Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
-            this.putRecordRequest.setRecord(record);
             addRecord(record);
 
             putBatchRecords();
