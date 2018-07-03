@@ -91,13 +91,8 @@ public class StreamReplayFile extends AbstractReplayFile {
     private ByteBuffer streamBuffer;
     private final AmazonKinesisFirehose firehoseClient;
     private final String streamName;
-    PutRecordRequest putRecordRequest;
 
     private final Map<String, OutputStream> outputStreams = new HashMap<>();
-    private final Map<String, File> changedEntries = new HashMap<>();
-    private final Set<String> removedEntries = new HashSet<>();
-
-    private ZipFile zipFile;
 
     private int bytesWritten = 0;
     private int sequenceNumber = 0;
@@ -118,10 +113,6 @@ public class StreamReplayFile extends AbstractReplayFile {
 
         //Allocate buffer for stream
         this.streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
-
-        // Create a default record request
-        this.putRecordRequest = new PutRecordRequest();
-        this.putRecordRequest.setDeliveryStreamName(streamName);
 
         //Check that our firehose stream is open and active
         DescribeDeliveryStreamRequest describeDeliveryStreamRequest = new DescribeDeliveryStreamRequest();
@@ -214,7 +205,6 @@ public class StreamReplayFile extends AbstractReplayFile {
             streamBuffer.put(buff);
             return;
         } else if (length + overhead < streamBuffer.capacity()) {
-            logger.info("Sending firehose record (" + Integer.toString(streamBuffer.position()) + ") bytes");
             // Send existing records 
             Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
             addRecord(record);
@@ -228,11 +218,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             streamBuffer.putInt(timestamp);
             streamBuffer.putInt(length);
             streamBuffer.put(buff);
-            
         } else {
-            logger.info("Sending firehose record (" + Integer.toString(streamBuffer.position()) + ") bytes");
-            logger.info("Sending fragmented firehose record (" + Integer.toString(length) + ") bytes");
-
             // Send what was there if there is not enough space for the overhead
             if (streamBuffer.position() + overhead >= streamBuffer.capacity()){
                 Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
@@ -240,11 +226,13 @@ public class StreamReplayFile extends AbstractReplayFile {
                 streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
             }
             
+            //Add the header
             streamBuffer.putInt(entry);
             streamBuffer.putInt(sequenceNumber++);
             streamBuffer.putInt(timestamp);
             streamBuffer.putInt(length);
 
+            // Add the data up to FIREHOSE_BUFFER_LIMIT bytes at a time
             int bytesRead = 0;            
             while (bytesRead < length) {
                 int numBytes = Math.min(streamBuffer.capacity() - streamBuffer.position(), length - bytesRead);
@@ -258,7 +246,6 @@ public class StreamReplayFile extends AbstractReplayFile {
                 addRecord(record);
          
                 bytesRead += numBytes;
-                bytesWritten = 0;
                 streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
             }
         }
