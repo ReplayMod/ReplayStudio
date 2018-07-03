@@ -295,6 +295,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     public void writeEntry(String entry, int timestamp, int len, byte[] bytes) throws IOException {
         int id = entryStringToIndex(entry);
+        logger.info("Wrote Entry (" + Integer.toString(len) + ") bytes");
         sendToStream(id, timestamp, len, bytes);
     }
 
