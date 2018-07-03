@@ -231,9 +231,12 @@ public class StreamReplayFile extends AbstractReplayFile {
             while (bytesRead < length) {
                 int numBytes = streamBuffer.capacity() - streamBuffer.position();
 
-                logger.info("arraycpy");
-                System.arraycopy(buff, bytesRead, streamBuffer.array(), streamBuffer.position(), numBytes);
-                logger.info("putrecord");
+                try {
+                    System.arraycopy(buff, bytesRead, streamBuffer.array(), streamBuffer.position(), numBytes);
+                } catch (Exception e) {
+                    logger.error("Excepton" + e.toString());
+                }
+                
                 Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
                 PutRecordRequest recordRequest = new PutRecordRequest();
                 recordRequest.setRecord(record);
