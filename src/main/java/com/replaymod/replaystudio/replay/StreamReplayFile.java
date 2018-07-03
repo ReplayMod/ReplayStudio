@@ -352,9 +352,12 @@ public class StreamReplayFile extends AbstractReplayFile {
     @Override
     public OutputStream write(String entry) throws IOException {
         //Create buffered output stream
+        
         OutputStream out = new BufferedOutputStream(new StreamingOutputStream(entry, this));
+        Closeables.close(outputStreams.put(entry, out), true);
         return out;
     }
+
 
 
 
