@@ -230,8 +230,10 @@ public class StreamReplayFile extends AbstractReplayFile {
 
             while (bytesRead < length) {
                 int numBytes = streamBuffer.capacity() - streamBuffer.position();
-                System.arraycopy(buff, bytesRead, streamBuffer.array(), streamBuffer.position(), numBytes);
 
+                logger.info("arraycpy");
+                System.arraycopy(buff, bytesRead, streamBuffer.array(), streamBuffer.position(), numBytes);
+                logger.info("putrecord");
                 Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
                 PutRecordRequest recordRequest = new PutRecordRequest();
                 recordRequest.setRecord(record);
@@ -365,7 +367,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     @Override
     public OutputStream write(String entry) throws IOException {
         //Create buffered output stream
-        
+        logger.info("Gave out Output stream for " + entry);
         OutputStream out = new BufferedOutputStream(new StreamingOutputStream(entry, this));
         Closeables.close(outputStreams.put(entry, out), true);
         return out;
