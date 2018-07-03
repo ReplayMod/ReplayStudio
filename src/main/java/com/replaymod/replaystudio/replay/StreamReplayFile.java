@@ -73,6 +73,8 @@ import com.amazonaws.services.kinesisfirehose.model.DeliveryStreamDescription;
 import com.amazonaws.services.kinesisfirehose.model.DescribeDeliveryStreamRequest;
 import com.amazonaws.services.kinesisfirehose.model.DescribeDeliveryStreamResult;
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehose;
+import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchRequest;
+import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchResult;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordRequest;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordResult;
 import com.amazonaws.services.kinesisfirehose.model.Record;
@@ -84,6 +86,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     private static final byte[] THUMB_MAGIC_NUMBERS = {0, 1, 1, 2, 3, 5, 8};
 
     private static final int FIREHOSE_BUFFER_LIMIT = 1000;
+    private static final int BATCH_PUT_MAX_SIZE = 500;
 
     private ByteBuffer streamBuffer;
     private final AmazonKinesisFirehose firehoseClient;
@@ -228,6 +231,11 @@ public class StreamReplayFile extends AbstractReplayFile {
 
             int bytesRead = 0;
 
+            //Send the rest of the records in a batch
+            PutRecordBatchRequest recordBatchRequest = new PutRecordBatchRequest();
+            recordBatchRequest.setDeliveryStreamName(streamName);
+            List<Record> recordList = new ArrayList<Record>();
+            int batchSize = 0;
             while (bytesRead < length) {
                 int numBytes = streamBuffer.capacity() - streamBuffer.position();
                 try {
@@ -237,17 +245,30 @@ public class StreamReplayFile extends AbstractReplayFile {
                 }
                 
                 Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
-                PutRecordRequest recordRequest = new PutRecordRequest();
-                recordRequest.setRecord(record);
-                recordRequest.setDeliveryStreamName(streamName);
-                PutRecordResult putRecordsResult  = firehoseClient.putRecord(recordRequest);
-                logger.info("Put Result" + putRecordsResult);
-
-                logger.info("Send fragment (" + Integer.toString(numBytes) + ") bytes");
+                recordList.add(record);
+                logger.info("Add fragment (" + Integer.toString(numBytes) + ") bytes to batch");
          
+                batchSize += 1;
                 bytesRead += numBytes;
                 bytesWritten = 0;
                 streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
+
+                if (batchSize == BATCH_PUT_MAX_SIZE){
+                    recordBatchRequest.setRecords(recordList);
+                    PutRecordBatchResult result = firehoseClient.putRecordBatch(recordBatchRequest);
+                    logger.info("Put Batch Result: " + result);
+
+                    recordBatchRequest = new PutRecordBatchRequest();
+                    recordBatchRequest.setDeliveryStreamName(streamName);
+                    recordList.clear();
+                    batchSize = 0;
+                }
+            }
+
+            if (batchSize > 0) {
+                recordBatchRequest.setRecords(recordList);
+                PutRecordBatchResult result = firehoseClient.putRecordBatch(recordBatchRequest);
+                logger.info("Put Batch Result: " + result);
             }
         }
     }
