@@ -100,6 +100,10 @@ public class StreamReplayFile extends AbstractReplayFile {
     private ZipFile zipFile;
 
     private int bytesWritten = 0;
+    private int sequenceNumber = 0;
+
+    private final List<Record> recordList = new ArrayList<Record>();
+    private int recordListLength = 0;
 
     private final Logger logger;
 
@@ -157,6 +161,25 @@ public class StreamReplayFile extends AbstractReplayFile {
         flushToStream();
     }
 
+    private void putBatchRecords(){
+        PutRecordBatchRequest recordBatchRequest = new PutRecordBatchRequest();
+        recordBatchRequest.setDeliveryStreamName(streamName);
+        recordBatchRequest.setRecords(recordList);
+        PutRecordBatchResult result = firehoseClient.putRecordBatch(recordBatchRequest);
+        logger.info("Put Batch Result: " + result);
+
+        recordList.clear();
+        recordListLength = 0;
+    }
+
+    private void addRecord(Record record){
+        recordList.add(record);
+        recordListLength += 1;
+        if (recordListLength == BATCH_PUT_MAX_SIZE){
+            putBatchRecords();
+        }
+    }
+
     /* 
     *  Write methods
     *  
@@ -175,6 +198,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
         // Header overhead
         int overhead = Integer.BYTES; //Entry ID
+        overhead    += Integer.BYTES; //Sequence Number
         overhead    += Integer.BYTES; //Timestamp
         overhead    += Integer.BYTES; //Length
 
@@ -183,29 +207,26 @@ public class StreamReplayFile extends AbstractReplayFile {
         if (streamBuffer.position() + length + overhead < streamBuffer.capacity())
         {
             // TODO evaluate posibility of race condition in buffer write
-            this.streamBuffer.putInt(entry);
-            this.streamBuffer.putInt(timestamp);
-            this.streamBuffer.putInt(length);
-            this.streamBuffer.put(buff);
+            streamBuffer.putInt(entry);
+            streamBuffer.putInt(sequenceNumber++);
+            streamBuffer.putInt(timestamp);
+            streamBuffer.putInt(length);
+            streamBuffer.put(buff);
             return;
         } else if (length + overhead < streamBuffer.capacity()) {
             logger.info("Sending firehose record (" + Integer.toString(streamBuffer.position()) + ") bytes");
             // Send existing records 
             Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
-            PutRecordRequest recordRequest = new PutRecordRequest();
-            recordRequest.setRecord(record);
-            recordRequest.setDeliveryStreamName(streamName);
-            
-            PutRecordResult putRecordsResult  = firehoseClient.putRecord(recordRequest);
-            logger.info("Put Result" + putRecordsResult);
+            addRecord(record);
 
-            // Clear the dependent data buffer
+            // Let got of the dependent data buffer
             streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
 
             // Add the data that didn't fit
             streamBuffer.putInt(entry);
-            streamBuffer.putInt(length);
+            streamBuffer.putInt(sequenceNumber++);
             streamBuffer.putInt(timestamp);
+            streamBuffer.putInt(length);
             streamBuffer.put(buff);
             
         } else {
@@ -215,27 +236,16 @@ public class StreamReplayFile extends AbstractReplayFile {
             // Send what was there if there is not enough space for the overhead
             if (streamBuffer.position() + overhead >= streamBuffer.capacity()){
                 Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
-                PutRecordRequest recordRequest = new PutRecordRequest();
-                recordRequest.setRecord(record);
-                recordRequest.setDeliveryStreamName(streamName);
-                PutRecordResult putRecordsResult  = firehoseClient.putRecord(recordRequest);
-                logger.info("Put Result" + putRecordsResult);
-
-                
+                addRecord(record);                
                 streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
             }
             
             streamBuffer.putInt(entry);
-            streamBuffer.putInt(length);
+            streamBuffer.putInt(sequenceNumber++);
             streamBuffer.putInt(timestamp);
+            streamBuffer.putInt(length);
 
-            int bytesRead = 0;
-
-            //Send the rest of the records in a batch
-            PutRecordBatchRequest recordBatchRequest = new PutRecordBatchRequest();
-            recordBatchRequest.setDeliveryStreamName(streamName);
-            List<Record> recordList = new ArrayList<Record>();
-            int batchSize = 0;
+            int bytesRead = 0;            
             while (bytesRead < length) {
                 int numBytes = Math.min(streamBuffer.capacity() - streamBuffer.position(), length - bytesRead);
                 try {
@@ -245,30 +255,11 @@ public class StreamReplayFile extends AbstractReplayFile {
                 }
                 
                 Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
-                recordList.add(record);
-                logger.info("Add fragment (" + Integer.toString(numBytes) + ") bytes to batch");
+                addRecord(record);
          
-                batchSize += 1;
                 bytesRead += numBytes;
                 bytesWritten = 0;
                 streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
-
-                if (batchSize == BATCH_PUT_MAX_SIZE){
-                    recordBatchRequest.setRecords(recordList);
-                    PutRecordBatchResult result = firehoseClient.putRecordBatch(recordBatchRequest);
-                    logger.info("Put Batch Result: " + result);
-
-                    recordBatchRequest = new PutRecordBatchRequest();
-                    recordBatchRequest.setDeliveryStreamName(streamName);
-                    recordList.clear();
-                    batchSize = 0;
-                }
-            }
-
-            if (batchSize > 0) {
-                recordBatchRequest.setRecords(recordList);
-                PutRecordBatchResult result = firehoseClient.putRecordBatch(recordBatchRequest);
-                logger.info("Put Batch Result: " + result);
             }
         }
     }
@@ -278,11 +269,9 @@ public class StreamReplayFile extends AbstractReplayFile {
             // Put records on stream
             Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
             this.putRecordRequest.setRecord(record);
+            addRecord(record);
 
-            // Put record into the DeliveryStream
-            // TODO measure performace of put_record 
-            firehoseClient.putRecord(putRecordRequest);
-
+            putBatchRecords();
             // Clear the dependent data buffer
             streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
         }
