@@ -237,7 +237,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             List<Record> recordList = new ArrayList<Record>();
             int batchSize = 0;
             while (bytesRead < length) {
-                int numBytes = streamBuffer.capacity() - streamBuffer.position();
+                int numBytes = Math.min(streamBuffer.capacity() - streamBuffer.position(), length - bytesRead);
                 try {
                     System.arraycopy(buff.array(), bytesRead, streamBuffer.array(), streamBuffer.position(), numBytes);
                 } catch (Exception e) {
