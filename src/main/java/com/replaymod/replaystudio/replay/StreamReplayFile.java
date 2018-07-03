@@ -142,6 +142,11 @@ public class StreamReplayFile extends AbstractReplayFile {
         logger.info("Closing stream");
         // TODO Send MC server return firehose key command
 
+        for (OutputStream out : outputStreams.values()) {
+            Closeables.close(out, true);
+        }
+        outputStreams.clear();
+
         byte[] EOF = "This is the end.".getBytes();
         int id = entryStringToIndex(ENTRY_END_OF_STREAM);
         sendToStream(id, 0, EOF.length, EOF);
