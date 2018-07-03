@@ -37,7 +37,6 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.*;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -78,7 +77,7 @@ import com.amazonaws.services.kinesisfirehose.model.PutRecordRequest;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordResult;
 import com.amazonaws.services.kinesisfirehose.model.Record;
 
-import org.apache.commons.logging.*;
+import org.apache.logging.log4j.Logger;
 
 public class StreamReplayFile extends AbstractReplayFile {
 
@@ -99,10 +98,10 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private int bytesWritten = 0;
 
-    private final Log logger;
+    private final Logger logger;
 
     //TODO add a gzip compression step before streaming to firehose
-    public StreamReplayFile(Studio studio, AmazonKinesisFirehose firehoseClient, String streamName, Log logger) throws IOException {
+    public StreamReplayFile(Studio studio, AmazonKinesisFirehose firehoseClient, String streamName, Logger logger) throws IOException {
         super(studio);
 
         this.logger = logger;
