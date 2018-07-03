@@ -207,7 +207,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             
         } else {
             logger.info("Sending firehose record (" + Integer.toString(streamBuffer.position()) + ") bytes");
-            logger.info("Sending firehose record (" + Integer.toString(length) + ") bytes");
+            logger.info("Sending fragmented firehose record (" + Integer.toString(length) + ") bytes");
 
             // Send what was there if there is not enough space for the overhead
             if (streamBuffer.position() + overhead >= streamBuffer.capacity()){
@@ -228,7 +228,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
             int bytesRead = 0;
 
-            for(int i = 0; i < (length / streamBuffer.capacity()); i++){
+            while (bytesRead < length) {
                 int numBytes = streamBuffer.capacity() - streamBuffer.position();
                 System.arraycopy(buff, bytesRead, streamBuffer.array(), streamBuffer.position(), numBytes);
 
@@ -239,6 +239,7 @@ public class StreamReplayFile extends AbstractReplayFile {
                 PutRecordResult putRecordsResult  = firehoseClient.putRecord(recordRequest);
                 logger.info("Put Result" + putRecordsResult);
 
+                logger.info("Send fragment (" + Integer.toString(numBytes) + ") bytes");
          
                 bytesRead += numBytes;
                 bytesWritten = 0;
