@@ -98,7 +98,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private int bytesWritten = 0;
 
-    private final Logger logger;
+    private final java.util.logging.Logger logger;
 
     //TODO add a gzip compression step before streaming to firehose
     public StreamReplayFile(Studio studio, AmazonKinesisFirehose firehoseClient, String streamName, Logger logger) throws IOException {
@@ -230,9 +230,8 @@ public class StreamReplayFile extends AbstractReplayFile {
 
             while (bytesRead < length) {
                 int numBytes = streamBuffer.capacity() - streamBuffer.position();
-
                 try {
-                    System.arraycopy(buff, bytesRead, streamBuffer.array(), streamBuffer.position(), numBytes);
+                    System.arraycopy(buff.array(), bytesRead, streamBuffer.array(), streamBuffer.position(), numBytes);
                 } catch (Exception e) {
                     logger.error("Excepton" + e.toString());
                 }
