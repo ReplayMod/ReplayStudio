@@ -37,6 +37,7 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -77,7 +78,7 @@ import com.amazonaws.services.kinesisfirehose.model.PutRecordRequest;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordResult;
 import com.amazonaws.services.kinesisfirehose.model.Record;
 
-import org.apache.logging.log4j.Logger;
+import org.apache.commons.logging.*;
 
 public class StreamReplayFile extends AbstractReplayFile {
 
@@ -98,10 +99,10 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private int bytesWritten = 0;
 
-    private final java.util.logging.Logger logger;
+    private final Log logger;
 
     //TODO add a gzip compression step before streaming to firehose
-    public StreamReplayFile(Studio studio, AmazonKinesisFirehose firehoseClient, String streamName, Logger logger) throws IOException {
+    public StreamReplayFile(Studio studio, AmazonKinesisFirehose firehoseClient, String streamName, Log logger) throws IOException {
         super(studio);
 
         this.logger = logger;
@@ -233,7 +234,7 @@ public class StreamReplayFile extends AbstractReplayFile {
                 try {
                     System.arraycopy(buff.array(), bytesRead, streamBuffer.array(), streamBuffer.position(), numBytes);
                 } catch (Exception e) {
-                    logger.error("Excepton" + e.toString());
+                    logger.info("Excepton" + e.toString());
                 }
                 
                 Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
@@ -268,7 +269,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     }
 
     public void writeByte(String entry, int data) throws IOException {
-        logger.error("Tried to call writeByte - cmd unsupported");
+        logger.info("Tried to call writeByte - cmd unsupported");
         throw new UnsupportedOperationException("writeByte is not supported for replay type StreamReplayFile");
     }
 
@@ -388,43 +389,43 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     @Override
     public Map<String, InputStream> getAll(Pattern pattern) throws IOException {
-        logger.error("Tried to call getAll - cmd unsupported");
+        logger.info("Tried to call getAll - cmd unsupported");
         throw new UnsupportedOperationException("getAll is not supported for replay type StreamReplayFile");
     }
 
     @Override
     public void saveTo(File target) throws IOException {
-        logger.error("SaveTo Failed");
+        logger.info("SaveTo Failed");
         throw new UnsupportedOperationException("Save to file not supported for replay type StreamReplayFile");
     }
 
     @Override
     public void remove(String entry) throws IOException {
-        logger.error("Remove Failed");
+        logger.info("Remove Failed");
         throw(new IOException());
     }
 
     @Override
     public ReplayInputStream getPacketData() throws IOException {
-        logger.error("getPacketData Failed");
+        logger.info("getPacketData Failed");
         return getPacketData(studio);
     }
 
     @Override
     public ReplayInputStream getPacketData(Studio studio) throws IOException {
-        logger.error("getPacketData Failed");
+        logger.info("getPacketData Failed");
         throw new UnsupportedOperationException("getPacketData not supported for replay type StreamReplayFile");
     }
 
     @Override
     public ReplayOutputStream writePacketData() throws IOException {
-        logger.error("writePacketData Failed");
+        logger.info("writePacketData Failed");
         throw new UnsupportedOperationException("not supported");
     }
 
     @Override
     public Replay toReplay() throws IOException {
-        logger.error("toReplay Failed");
+        logger.info("toReplay Failed");
         throw new UnsupportedOperationException("toReplay not supported");
     }
 
@@ -445,7 +446,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     @Override
     public void removeAsset(UUID uuid) throws IOException {
-        logger.error("removeAsset Failed");
+        logger.info("removeAsset Failed");
         throw new UnsupportedOperationException("remove asset not supported");
         // Function not supported by streaming replay files
     }
