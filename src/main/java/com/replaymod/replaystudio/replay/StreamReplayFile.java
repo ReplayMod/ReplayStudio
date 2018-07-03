@@ -74,6 +74,7 @@ import com.amazonaws.services.kinesisfirehose.model.DescribeDeliveryStreamReques
 import com.amazonaws.services.kinesisfirehose.model.DescribeDeliveryStreamResult;
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehose;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordRequest;
+import com.amazonaws.services.kinesisfirehose.model.PutRecordResult;
 import com.amazonaws.services.kinesisfirehose.model.Record;
 
 import org.apache.logging.log4j.Logger;
@@ -191,7 +192,9 @@ public class StreamReplayFile extends AbstractReplayFile {
             PutRecordRequest recordRequest = new PutRecordRequest();
             recordRequest.setRecord(record);
             recordRequest.setDeliveryStreamName(streamName);
-            firehoseClient.putRecord(recordRequest);
+            
+            PutRecordsResult putRecordsResult  = firehoseClient.putRecord(recordRequest);
+            logger.info("Put Result" + putRecordsResult);
 
             // Clear the dependent data buffer
             streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
@@ -212,7 +215,9 @@ public class StreamReplayFile extends AbstractReplayFile {
                 PutRecordRequest recordRequest = new PutRecordRequest();
                 recordRequest.setRecord(record);
                 recordRequest.setDeliveryStreamName(streamName);
-                firehoseClient.putRecord(recordRequest);
+                PutRecordsResult putRecordsResult  = firehoseClient.putRecord(recordRequest);
+                logger.info("Put Result" + putRecordsResult);
+
                 
                 streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
             }
@@ -231,7 +236,9 @@ public class StreamReplayFile extends AbstractReplayFile {
                 PutRecordRequest recordRequest = new PutRecordRequest();
                 recordRequest.setRecord(record);
                 recordRequest.setDeliveryStreamName(streamName);
-                firehoseClient.putRecord(recordRequest);
+                PutRecordsResult putRecordsResult  = firehoseClient.putRecord(recordRequest);
+                logger.info("Put Result" + putRecordsResult);
+
          
                 bytesRead += numBytes;
                 bytesWritten = 0;
