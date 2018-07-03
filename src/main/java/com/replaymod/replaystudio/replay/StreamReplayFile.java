@@ -193,7 +193,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             recordRequest.setRecord(record);
             recordRequest.setDeliveryStreamName(streamName);
             
-            PutRecordsResult putRecordsResult  = firehoseClient.putRecord(recordRequest);
+            PutRecordResult putRecordsResult  = firehoseClient.putRecord(recordRequest);
             logger.info("Put Result" + putRecordsResult);
 
             // Clear the dependent data buffer
@@ -215,7 +215,7 @@ public class StreamReplayFile extends AbstractReplayFile {
                 PutRecordRequest recordRequest = new PutRecordRequest();
                 recordRequest.setRecord(record);
                 recordRequest.setDeliveryStreamName(streamName);
-                PutRecordsResult putRecordsResult  = firehoseClient.putRecord(recordRequest);
+                PutRecordResult putRecordsResult  = firehoseClient.putRecord(recordRequest);
                 logger.info("Put Result" + putRecordsResult);
 
                 
@@ -236,7 +236,7 @@ public class StreamReplayFile extends AbstractReplayFile {
                 PutRecordRequest recordRequest = new PutRecordRequest();
                 recordRequest.setRecord(record);
                 recordRequest.setDeliveryStreamName(streamName);
-                PutRecordsResult putRecordsResult  = firehoseClient.putRecord(recordRequest);
+                PutRecordResult putRecordsResult  = firehoseClient.putRecord(recordRequest);
                 logger.info("Put Result" + putRecordsResult);
 
          
