@@ -156,7 +156,6 @@ public class StreamReplayFile extends AbstractReplayFile {
     @Override
     public void close() throws IOException {
         logger.info("Closing stream");
-        // TODO Send MC server return firehose key command
 
         for (OutputStream out : outputStreams.values()) {
             Closeables.close(out, true);
@@ -169,11 +168,12 @@ public class StreamReplayFile extends AbstractReplayFile {
     }
 
     private void putBatchRecords(){
+        logger.info("Puting Records (" + Integer.toString(recordListLength) + ") in batch");
         PutRecordBatchRequest recordBatchRequest = new PutRecordBatchRequest();
         recordBatchRequest.setDeliveryStreamName(streamName);
         recordBatchRequest.setRecords(recordList);
         PutRecordBatchResult result = firehoseClient.putRecordBatch(recordBatchRequest);
-        logger.info("Put Batch Result: " + result);
+        logger.info("Put Batch Result: " + result.getFailedPutCount() + " failed - http:" + result.getSdkHttpMetadata().toString());
 
         recordList.clear();
         recordListLength = 0;
