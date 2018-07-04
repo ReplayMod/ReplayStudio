@@ -82,6 +82,23 @@ import com.amazonaws.services.kinesisfirehose.model.Record;
 import org.apache.logging.log4j.Logger;
 
 public class StreamReplayFile extends AbstractReplayFile {
+    protected static final String ENTRY_END_OF_STREAM = "eof";
+
+    protected int indexOf(String entry){
+             if (entry.equals(ENTRY_META_DATA))             {return 1;}
+        else if (entry.equals(ENTRY_RECORDING))             {return 2;}
+        else if (entry.equals(ENTRY_RESOURCE_PACK))         {return 3;}
+        else if (entry.equals(ENTRY_RESOURCE_PACK_INDEX))   {return 4;}
+        else if (entry.equals(ENTRY_THUMB))                 {return 5;}
+        else if (entry.equals(ENTRY_VISIBILITY_OLD))        {return 6;}
+        else if (entry.equals(ENTRY_VISIBILITY))            {return 7;}
+        else if (entry.equals(ENTRY_MARKERS))               {return 8;}
+        else if (entry.equals(ENTRY_ASSET))                 {return 9;}
+        else if (entry.equals(PATTERN_ASSETS))              {return 10;}
+        else if (entry.equals(ENTRY_MODS))                  {return 11;}
+        else if (entry.equals(ENTRY_END_OF_STREAM))         {return 12;}
+        else return -1;
+    }
 
     private static final byte[] THUMB_MAGIC_NUMBERS = {0, 1, 1, 2, 3, 5, 8};
 
@@ -94,7 +111,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private final Map<String, OutputStream> outputStreams = new HashMap<>();
 
-    private int bytesWritten = 0;
+    private long bytesWritten = 0;
     private int sequenceNumber = 0;
 
     private final List<Record> recordList = new ArrayList<Record>();
@@ -132,7 +149,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     @Override
     public void save() throws IOException {
         logger.info("Saving");
-        logger.info("Wrote " + Integer.toString(bytesWritten) + " bytes in total");
+        logger.info("Wrote " + Long.toString(bytesWritten) + " bytes in total");
         flushToStream();
     }
 
@@ -147,8 +164,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         outputStreams.clear();
 
         byte[] EOF = "This is the end.".getBytes();
-        int id = entryStringToIndex(ENTRY_END_OF_STREAM);
-        sendToStream(id, 0, EOF.length, EOF);
+        sendToStream(ENTRY_END_OF_STREAM, 0, EOF, EOF.length);
         flushToStream();
     }
 
@@ -171,6 +187,20 @@ public class StreamReplayFile extends AbstractReplayFile {
         }
     }
 
+    /*
+    * Adds the given buffer to the current batch of records
+    * Allocates a new stream buffer and calls putBatchRecords 
+    * if the record list is BATCH_PUT_MAX_SIZE
+    */
+    synchronized private void batchAddStreamBuffer(){
+        recordList.add(new Record().withData(ByteBuffer.wrap(streamBuffer.array(), 0, streamBuffer.position())));
+        recordListLength += 1;
+        if (recordListLength == BATCH_PUT_MAX_SIZE){
+            putBatchRecords();
+        }
+        streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
+    }
+
     /* 
     *  Write methods
     *  
@@ -183,11 +213,15 @@ public class StreamReplayFile extends AbstractReplayFile {
     *  byte[]   :   Data
     *
     */
-    synchronized private void sendToStream(int entry, int timestamp,  int length, byte[] data) throws IOException {
-        // Wrap Data
-        ByteBuffer buff = ByteBuffer.wrap(data);
+    synchronized private void sendToStream(String entry, int timestamp, byte[] data, int length) throws IOException {
+        // Determine index
+        int entry_id = indexOf(entry);
 
-        // Header overhead
+        if(length != data.length){
+            logger.error("Warning! Data size is not consistent");
+        }
+        
+        // Calculate header overhead
         int overhead = Integer.BYTES; //Entry ID
         overhead    += Integer.BYTES; //Sequence Number
         overhead    += Integer.BYTES; //Timestamp
@@ -197,37 +231,30 @@ public class StreamReplayFile extends AbstractReplayFile {
 
         if (streamBuffer.position() + length + overhead < streamBuffer.capacity())
         {
-            // TODO evaluate posibility of race condition in buffer write
-            streamBuffer.putInt(entry);
+            streamBuffer.putInt(entry_id);
             streamBuffer.putInt(sequenceNumber++);
             streamBuffer.putInt(timestamp);
             streamBuffer.putInt(length);
-            streamBuffer.put(buff);
+            streamBuffer.put(data, 0 , length);
             return;
         } else if (length + overhead < streamBuffer.capacity()) {
-            // Send existing records 
-            Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
-            addRecord(record);
-
-            // Let got of the dependent data buffer
-            streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
+            // Send existing data (clearing streamBuffer)
+            batchAddStreamBuffer();
 
             // Add the data that didn't fit
-            streamBuffer.putInt(entry);
+            streamBuffer.putInt(entry_id);
             streamBuffer.putInt(sequenceNumber++);
             streamBuffer.putInt(timestamp);
             streamBuffer.putInt(length);
-            streamBuffer.put(buff);
+            streamBuffer.put(data, 0, length);
         } else {
-            // Send what was there if there is not enough space for the overhead
+            // Send existing data if there is not enough space for the header
             if (streamBuffer.position() + overhead >= streamBuffer.capacity()){
-                Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
-                addRecord(record);                
-                streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
+                batchAddStreamBuffer();                
             }
             
             //Add the header
-            streamBuffer.putInt(entry);
+            streamBuffer.putInt(entry_id);
             streamBuffer.putInt(sequenceNumber++);
             streamBuffer.putInt(timestamp);
             streamBuffer.putInt(length);
@@ -237,16 +264,13 @@ public class StreamReplayFile extends AbstractReplayFile {
             while (bytesRead < length) {
                 int numBytes = Math.min(streamBuffer.capacity() - streamBuffer.position(), length - bytesRead);
                 try {
-                    System.arraycopy(buff.array(), bytesRead, streamBuffer.array(), streamBuffer.position(), numBytes);
+                    System.arraycopy(data, bytesRead, streamBuffer.array(), streamBuffer.position(), numBytes);
                 } catch (Exception e) {
                     logger.info("Excepton" + e.toString());
                 }
                 
-                Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
-                addRecord(record);
-         
                 bytesRead += numBytes;
-                streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
+                batchAddStreamBuffer();
             }
         }
     }
@@ -254,13 +278,10 @@ public class StreamReplayFile extends AbstractReplayFile {
     private void flushToStream(){
         if( streamBuffer.position() != 0){
             // Put records on stream
-            Record record = new Record().withData(ByteBuffer.wrap(streamBuffer.array()));
-            addRecord(record);
-
-            putBatchRecords();
-            // Clear the dependent data buffer
-            streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
+            batchAddStreamBuffer();
         }
+        //Flush all records by putRecordBatch
+        putBatchRecords();       
     }
 
     public void writeByte(String entry, int data) throws IOException {
@@ -269,16 +290,14 @@ public class StreamReplayFile extends AbstractReplayFile {
     }
 
     public void writeEntry(String entry, int timestamp, int len, byte[] bytes) throws IOException {
-        int id = entryStringToIndex(entry);
         logger.info("Wrote Entry (" + Integer.toString(len) + ") bytes");
-        sendToStream(id, timestamp, len, bytes);
+        sendToStream(entry, timestamp, bytes, len);
     }
 
 
     @Override
     public void writePackets(int timestamp, int length, byte[] data) throws IOException {
-        int id = entryStringToIndex(ENTRY_RECORDING);
-        sendToStream(id, timestamp, length, data);
+        sendToStream(ENTRY_RECORDING, timestamp, data, length);
     }
 
     @Override
@@ -290,15 +309,13 @@ public class StreamReplayFile extends AbstractReplayFile {
         }
 
         String json = new Gson().toJson(metaData);
-        int id = entryStringToIndex(ENTRY_META_DATA);
-        sendToStream(id, 0, json.length(), json.getBytes());
+        sendToStream(ENTRY_META_DATA, 0, json.getBytes(), json.length());
     }
 
     @Override
     public void writeResourcePackIndex(Map<Integer, String> index) throws IOException {
         String json = new Gson().toJson(index);
-        int id = entryStringToIndex(ENTRY_RESOURCE_PACK_INDEX);
-        sendToStream(id, 0, json.length(), json.getBytes());
+        sendToStream(ENTRY_RESOURCE_PACK_INDEX, 0, json.getBytes(), json.length());
     }
 
     @Override
@@ -315,8 +332,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             array.add(new JsonPrimitive(uuid.toString()));
         }
         String json = new Gson().toJson(root);
-        int id = entryStringToIndex(ENTRY_VISIBILITY);
-        sendToStream(id, 0, json.length(), json.getBytes());
+        sendToStream(ENTRY_VISIBILITY, 0, json.getBytes(), json.length());
     }
 
     @Override
@@ -332,8 +348,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         }
         root.add("requiredMods", array);
         String json = new Gson().toJson(root);
-        int id = entryStringToIndex(ENTRY_MODS);
-        sendToStream(id, 0, json.length(), json.getBytes());
+        sendToStream(ENTRY_MODS, 0, json.getBytes(), json.length());
         
     }
 
@@ -359,8 +374,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             root.add(entry);
         }
         String json = new Gson().toJson(root);
-        int id = entryStringToIndex(ENTRY_MARKERS);
-        sendToStream(id, 0, json.length(), json.getBytes());
+        sendToStream(ENTRY_MARKERS, 0, json.getBytes(), json.length());
     }
 
     @Override
