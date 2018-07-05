@@ -388,7 +388,10 @@ public class StreamReplayFile extends AbstractReplayFile {
         return out;
     }
 
-
+    @Override
+    public ReplayOutputStream writePacketData() throws IOException {
+        return new ReplayOutputStream(studio, write(ENTRY_RECORDING));
+    }
 
 
     /* 
@@ -427,12 +430,6 @@ public class StreamReplayFile extends AbstractReplayFile {
     public ReplayInputStream getPacketData(Studio studio) throws IOException {
         logger.info("getPacketData Failed");
         throw new UnsupportedOperationException("getPacketData not supported for replay type StreamReplayFile");
-    }
-
-    @Override
-    public ReplayOutputStream writePacketData() throws IOException {
-        logger.info("writePacketData Failed");
-        throw new UnsupportedOperationException("not supported");
     }
 
     @Override
