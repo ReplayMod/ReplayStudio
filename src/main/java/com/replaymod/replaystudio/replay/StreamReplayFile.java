@@ -203,15 +203,6 @@ public class StreamReplayFile extends AbstractReplayFile {
         streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
     }
 
-    synchronized private void batchAddStreamBuffer(){
-        recordList.add(new Record().withData(ByteBuffer.wrap(streamBuffer.array(), 0, streamBuffer.position())));
-        recordListLength += 1;
-        if (recordListLength == BATCH_PUT_MAX_SIZE){
-            putBatchRecords();
-        }
-        streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
-    }
-
     /* 
     *  Write methods
     *  
