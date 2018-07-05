@@ -173,7 +173,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         recordBatchRequest.setDeliveryStreamName(streamName);
         recordBatchRequest.setRecords(recordList);
         PutRecordBatchResult result = firehoseClient.putRecordBatch(recordBatchRequest);
-        logger.info("Put Batch Result: " + result.getFailedPutCount() + " failed - http:" + result.getSdkHttpMetadata().toString());
+        logger.info("Put Batch Result: " + result.getFailedPutCount() + " records failed - http:" + Integer.toString(result.getSdkHttpMetadata().getHttpStatusCode()));
 
         recordList.clear();
         recordListLength = 0;
