@@ -102,8 +102,8 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private static final byte[] THUMB_MAGIC_NUMBERS = {0, 1, 1, 2, 3, 5, 8};
 
-    private static final int FIREHOSE_BUFFER_LIMIT = 1000;
-    private static final int BATCH_PUT_MAX_SIZE = 500;
+    private static final int FIREHOSE_BUFFER_LIMIT = 10000; //Making records 10 KB
+    private static final int BATCH_PUT_MAX_SIZE = 500;       //Batch of 50 MB
 
     private ByteBuffer streamBuffer;
     private final AmazonKinesisFirehose firehoseClient;
@@ -179,19 +179,30 @@ public class StreamReplayFile extends AbstractReplayFile {
         recordListLength = 0;
     }
 
-    private void addRecord(Record record){
-        recordList.add(record);
-        recordListLength += 1;
-        if (recordListLength == BATCH_PUT_MAX_SIZE){
-            putBatchRecords();
-        }
-    }
+    // Removed to provide single syncronous access to recordList 
+    // synchronized private void addRecord(Record record){
+    //     recordList.add(record);
+    //     recordListLength += 1;
+    //     if (recordListLength == BATCH_PUT_MAX_SIZE){
+    //         putBatchRecords();
+    //     }
+    // }
 
     /*
     * Adds the given buffer to the current batch of records
     * Allocates a new stream buffer and calls putBatchRecords 
     * if the record list is BATCH_PUT_MAX_SIZE
+    * TODO add a proper lock to recordList 
     */
+    synchronized private void batchAddStreamBuffer(){
+        recordList.add(new Record().withData(ByteBuffer.wrap(streamBuffer.array(), 0, streamBuffer.position())));
+        recordListLength += 1;
+        if (recordListLength == BATCH_PUT_MAX_SIZE){
+            putBatchRecords();
+        }
+        streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
+    }
+
     synchronized private void batchAddStreamBuffer(){
         recordList.add(new Record().withData(ByteBuffer.wrap(streamBuffer.array(), 0, streamBuffer.position())));
         recordListLength += 1;
@@ -264,7 +275,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             while (bytesRead < length) {
                 int numBytes = Math.min(streamBuffer.capacity() - streamBuffer.position(), length - bytesRead);
                 try {
-                    System.arraycopy(data, bytesRead, streamBuffer.array(), streamBuffer.position(), numBytes);
+                    streamBuffer.put(data, bytesRead, numBytes);
                 } catch (Exception e) {
                     logger.info("Excepton" + e.toString());
                 }
