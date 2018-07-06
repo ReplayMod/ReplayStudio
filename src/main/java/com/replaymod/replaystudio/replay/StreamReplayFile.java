@@ -221,6 +221,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
         if(length != data.length){
             logger.error("Warning! Data size is not consistent");
+            length = Math.min(length, data.length);
         }
         
         // Calculate header overhead
@@ -292,14 +293,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     }
 
     public void writeEntry(String entry, int timestamp, int len, byte[] bytes) throws IOException {
-        logger.info("Wrote Entry (" + Integer.toString(len) + ") bytes");
         sendToStream(entry, timestamp, bytes, len);
-    }
-
-
-    @Override
-    public void writePackets(int timestamp, int length, byte[] data) throws IOException {
-        sendToStream(ENTRY_RECORDING, timestamp, data, length);
     }
 
     @Override
