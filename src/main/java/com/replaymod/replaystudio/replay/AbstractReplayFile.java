@@ -56,7 +56,6 @@ public abstract class AbstractReplayFile implements ReplayFile {
     protected static final String ENTRY_ASSET = "asset/%s_%s.%s";
     protected static final Pattern PATTERN_ASSETS = Pattern.compile("asset/.*");
     protected static final String ENTRY_MODS = "mods.json";
-    protected static final String ENTRY_POS = "entity_positions.json";
 
     private static final byte[] THUMB_MAGIC_NUMBERS = {0, 1, 1, 2, 3, 5, 8};
 
