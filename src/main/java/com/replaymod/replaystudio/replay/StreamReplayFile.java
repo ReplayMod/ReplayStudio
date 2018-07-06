@@ -167,7 +167,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         flushToStream();
     }
 
-    private void putBatchRecords(){
+    synchronized private void putBatchRecords(){
         logger.info("Puting Records (" + Integer.toString(recordListLength) + ") in batch");
         PutRecordBatchRequest recordBatchRequest = new PutRecordBatchRequest();
         recordBatchRequest.setDeliveryStreamName(streamName);
@@ -220,7 +220,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         int entry_id = indexOf(entry);
 
         if(length != data.length){
-            logger.error("Warning! Data size is not consistent");
+            logger.error("Warning! Data size is not consistent for entry " + entry);
             length = Math.min(length, data.length);
         }
         
