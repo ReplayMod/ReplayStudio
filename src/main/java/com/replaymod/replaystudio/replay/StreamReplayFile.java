@@ -297,80 +297,8 @@ public class StreamReplayFile extends AbstractReplayFile {
     }
 
     @Override
-    public void writeMetaData(ReplayMetaData metaData) throws IOException {
-        metaData.setFileFormat("MCPR");
-        metaData.setFileFormatVersion(ReplayMetaData.CURRENT_FILE_FORMAT_VERSION);
-        if (metaData.getGenerator() == null) {
-            metaData.setGenerator("ReplayStudio v" + studio.getVersion());
-        }
-
-        String json = new Gson().toJson(metaData);
-        sendToStream(ENTRY_META_DATA, 0, json.getBytes(), json.length());
-    }
-
-    @Override
-    public void writeResourcePackIndex(Map<Integer, String> index) throws IOException {
-        String json = new Gson().toJson(index);
-        sendToStream(ENTRY_RESOURCE_PACK_INDEX, 0, json.getBytes(), json.length());
-    }
-
-    @Override
     public void writeThumb(BufferedImage image) throws IOException {
         // Not supported
-    }
-
-    @Override
-    public void writeInvisiblePlayers(Set<UUID> uuids) throws IOException {
-        JsonObject root = new JsonObject();
-        JsonArray array = new JsonArray();
-        root.add("hidden", array);
-        for (UUID uuid : uuids) {
-            array.add(new JsonPrimitive(uuid.toString()));
-        }
-        String json = new Gson().toJson(root);
-        sendToStream(ENTRY_VISIBILITY, 0, json.getBytes(), json.length());
-    }
-
-    @Override
-    public void writeModInfo(Collection<ModInfo> modInfo) throws IOException {
-        JsonObject root = new JsonObject();
-        JsonArray array = new JsonArray();
-        for (ModInfo mod : modInfo) {
-            JsonObject entry = new JsonObject();
-            entry.addProperty("modID", mod.getId());
-            entry.addProperty("modName", mod.getName());
-            entry.addProperty("modVersion", mod.getVersion());
-            array.add(entry);
-        }
-        root.add("requiredMods", array);
-        String json = new Gson().toJson(root);
-        sendToStream(ENTRY_MODS, 0, json.getBytes(), json.length());
-        
-    }
-
-    @Override
-    public void writeMarkers(Set<Marker> markers) throws IOException {
-        JsonArray root = new JsonArray();
-        for (Marker marker : markers) {
-            JsonObject entry = new JsonObject();
-            JsonObject value = new JsonObject();
-            JsonObject position = new JsonObject();
-
-            entry.add("realTimestamp", new JsonPrimitive(marker.getTime()));
-            value.add("name", marker.getName() == null ? null : new JsonPrimitive(marker.getName()));
-            position.add("x", new JsonPrimitive(marker.getX()));
-            position.add("y", new JsonPrimitive(marker.getY()));
-            position.add("z", new JsonPrimitive(marker.getZ()));
-            position.add("yaw", new JsonPrimitive(marker.getYaw()));
-            position.add("pitch", new JsonPrimitive(marker.getPitch()));
-            position.add("roll", new JsonPrimitive(marker.getRoll()));
-
-            value.add("position", position);
-            entry.add("value", value);
-            root.add(entry);
-        }
-        String json = new Gson().toJson(root);
-        sendToStream(ENTRY_MARKERS, 0, json.getBytes(), json.length());
     }
 
     @Override
@@ -382,12 +310,6 @@ public class StreamReplayFile extends AbstractReplayFile {
         return out;
     }
 
-    @Override
-    public ReplayOutputStream writePacketData() throws IOException {
-        return new ReplayOutputStream(studio, write(ENTRY_RECORDING));
-    }
-
-
     /* 
     *  Removed / Unsupported methods
     *  
@@ -398,58 +320,49 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     @Override
     public Map<String, InputStream> getAll(Pattern pattern) throws IOException {
-        logger.info("Tried to call getAll - cmd unsupported");
+        logger.error("Tried to call getAll - cmd unsupported");
         throw new UnsupportedOperationException("getAll is not supported for replay type StreamReplayFile");
     }
 
     @Override
     public void saveTo(File target) throws IOException {
-        logger.info("SaveTo Failed");
+        logger.error("SaveTo Failed");
         throw new UnsupportedOperationException("Save to file not supported for replay type StreamReplayFile");
     }
 
     @Override
     public void remove(String entry) throws IOException {
-        logger.info("Remove Failed");
+        logger.error("Remove Failed");
         throw(new IOException());
     }
 
     @Override
     public ReplayInputStream getPacketData() throws IOException {
-        logger.info("getPacketData Failed");
+        logger.error("getPacketData Failed");
         return getPacketData(studio);
     }
 
     @Override
     public ReplayInputStream getPacketData(Studio studio) throws IOException {
-        logger.info("getPacketData Failed");
+        logger.error("getPacketData Failed");
         throw new UnsupportedOperationException("getPacketData not supported for replay type StreamReplayFile");
     }
 
     @Override
     public Replay toReplay() throws IOException {
-        logger.info("toReplay Failed");
+        logger.error("toReplay Failed");
         throw new UnsupportedOperationException("toReplay not supported");
     }
 
     @Override
     public Optional<InputStream> get(String entry) throws IOException {
+        logger.error("Get inputstreams Failed");
         return Optional.absent();
     }
 
     @Override
-    public OutputStream writeResourcePack(String hash) throws IOException {
-        return write(String.format(ENTRY_RESOURCE_PACK, hash));
-    }
-
-    @Override
-    public OutputStream writeAsset(ReplayAssetEntry asset) throws IOException {
-        return write(String.format(ENTRY_ASSET, asset.getUuid().toString(), asset.getName(), asset.getFileExtension()));
-    }
-
-    @Override
     public void removeAsset(UUID uuid) throws IOException {
-        logger.info("removeAsset Failed");
+        logger.error("removeAsset Failed");
         throw new UnsupportedOperationException("remove asset not supported");
         // Function not supported by streaming replay files
     }
