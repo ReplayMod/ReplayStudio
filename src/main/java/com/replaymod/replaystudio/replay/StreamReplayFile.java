@@ -163,7 +163,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         outputStreams.clear();
 
         byte[] EOF = "This is the end.".getBytes();
-        sendToStream(ENTRY_END_OF_STREAM, 0, EOF, EOF.length);
+        sendToStream(ENTRY_END_OF_STREAM, 0, EOF, 0, EOF.length);
         flushToStream();
     }
 
@@ -215,7 +215,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     *  byte[]   :   Data
     *
     */
-    synchronized private void sendToStream(String entry, int timestamp, byte[] data, int length) throws IOException {
+    synchronized private void sendToStream(String entry, int timestamp, byte[] data, int offset, int length) throws IOException {
         // Determine index
         int entry_id = indexOf(entry);
 
@@ -238,7 +238,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             streamBuffer.putInt(sequenceNumber++);
             streamBuffer.putInt(timestamp);
             streamBuffer.putInt(length);
-            streamBuffer.put(data, 0 , length);
+            streamBuffer.put(data, offset, length);
             return;
         } else if (length + overhead < streamBuffer.capacity()) {
             // Send existing data (clearing streamBuffer)
@@ -249,7 +249,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             streamBuffer.putInt(sequenceNumber++);
             streamBuffer.putInt(timestamp);
             streamBuffer.putInt(length);
-            streamBuffer.put(data, 0, length);
+            streamBuffer.put(data, offset, length);
         } else {
             // Send existing data if there is not enough space for the header
             if (streamBuffer.position() + overhead >= streamBuffer.capacity()){
@@ -263,7 +263,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             streamBuffer.putInt(length);
 
             // Add the data up to FIREHOSE_BUFFER_LIMIT bytes at a time
-            int bytesRead = 0;            
+            int bytesRead = offset;            
             while (bytesRead < length) {
                 int numBytes = Math.min(streamBuffer.capacity() - streamBuffer.position(), length - bytesRead);
                 try {
@@ -292,8 +292,8 @@ public class StreamReplayFile extends AbstractReplayFile {
         throw new UnsupportedOperationException("writeByte is not supported for replay type StreamReplayFile");
     }
 
-    public void writeEntry(String entry, int timestamp, int len, byte[] bytes) throws IOException {
-        sendToStream(entry, timestamp, bytes, len);
+    public void writeEntry(String entry, int timestamp, int offset, int len, byte[] bytes) throws IOException {
+        sendToStream(entry, timestamp, bytes, offset, len);
     }
 
     @Override

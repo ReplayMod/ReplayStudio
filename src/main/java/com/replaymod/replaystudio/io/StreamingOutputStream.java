@@ -46,7 +46,7 @@ public class StreamingOutputStream extends OutputStream{
     }
 
     public synchronized void write(byte[] bytes, int off, int len) throws IOException {
-        replay.writeEntry(entry, 0, len, bytes);
+        replay.writeEntry(entry, 0, off, len, bytes);
     }
     
 }
