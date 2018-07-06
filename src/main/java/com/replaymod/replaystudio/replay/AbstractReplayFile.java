@@ -56,6 +56,7 @@ public abstract class AbstractReplayFile implements ReplayFile {
     protected static final String ENTRY_ASSET = "asset/%s_%s.%s";
     protected static final Pattern PATTERN_ASSETS = Pattern.compile("asset/.*");
     protected static final String ENTRY_MODS = "mods.json";
+    protected static final String ENTRY_POS = "entity_positions.json";
 
     private static final byte[] THUMB_MAGIC_NUMBERS = {0, 1, 1, 2, 3, 5, 8};
 
@@ -107,10 +108,6 @@ public abstract class AbstractReplayFile implements ReplayFile {
     @Override
     public ReplayOutputStream writePacketData() throws IOException {
         return new ReplayOutputStream(studio, write(ENTRY_RECORDING));
-    }
-
-    public void writePackets(int timestamp, int length, byte[] data) throws IOException {
-        throw(new IOException("Method not supported"));
     }
 
     @Override

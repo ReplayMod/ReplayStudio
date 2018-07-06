@@ -97,6 +97,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         else if (entry.equals(PATTERN_ASSETS))              {return 10;}
         else if (entry.equals(ENTRY_MODS))                  {return 11;}
         else if (entry.equals(ENTRY_END_OF_STREAM))         {return 12;}
+        else if (entry.equals(ENTRY_POS))                   {return 13;}
         else return -1;
     }
 
