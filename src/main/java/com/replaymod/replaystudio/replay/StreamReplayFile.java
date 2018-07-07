@@ -122,7 +122,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private final Logger logger;
 
-    private final String metadata;
+    private final String streamMetadata;
 
     //TODO add a gzip compression step before streaming to firehose
     public StreamReplayFile(Studio studio, AmazonKinesisFirehose firehoseClient, String streamName, String metaData, Logger logger) throws IOException {
@@ -132,7 +132,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
         this.firehoseClient = firehoseClient;
         this.streamName = streamName;
-        this.metadata = metaData;
+        this.streamMetadata = metaData;
 
         //Allocate buffer for stream
         this.streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
@@ -168,7 +168,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         }
         outputStreams.clear();
 
-        sendToStream(ENTRY_EXP_METADATA, 0, metadata.getBytes(), 0, metadata.getBytes().length);
+        sendToStream(ENTRY_EXP_METADATA, 0, streamMetadata.getBytes(), 0, streamMetadata.getBytes().length);
         byte[] EOF = "This is the end.".getBytes();
         sendToStream(ENTRY_END_OF_STREAM, 0, EOF, 0, EOF.length);
         flushToStream();
