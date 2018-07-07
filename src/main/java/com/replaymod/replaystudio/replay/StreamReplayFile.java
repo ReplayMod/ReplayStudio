@@ -83,6 +83,8 @@ import org.apache.logging.log4j.Logger;
 
 public class StreamReplayFile extends AbstractReplayFile {
     protected static final String ENTRY_END_OF_STREAM = "eof";
+    protected static final String ENTRY_EXP_METADATA  = "experement_metadata.json";
+    
 
     protected int indexOf(String entry){
              if (entry.equals(ENTRY_META_DATA))             {return 1;}
@@ -96,7 +98,8 @@ public class StreamReplayFile extends AbstractReplayFile {
         else if (entry.equals(ENTRY_ASSET))                 {return 9;}
         else if (entry.equals(PATTERN_ASSETS))              {return 10;}
         else if (entry.equals(ENTRY_MODS))                  {return 11;}
-        else if (entry.equals(ENTRY_END_OF_STREAM))         {return 12;}
+        else if (entry.equals(ENTRY_EXP_METADATA))          {return 12;}
+        else if (entry.equals(ENTRY_END_OF_STREAM))         {return 13;}
         else return -1;
     }
 
@@ -119,14 +122,17 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private final Logger logger;
 
+    private final String metadata;
+
     //TODO add a gzip compression step before streaming to firehose
-    public StreamReplayFile(Studio studio, AmazonKinesisFirehose firehoseClient, String streamName, Logger logger) throws IOException {
+    public StreamReplayFile(Studio studio, AmazonKinesisFirehose firehoseClient, String streamName, String metaData, Logger logger) throws IOException {
         super(studio);
 
         this.logger = logger;
 
         this.firehoseClient = firehoseClient;
         this.streamName = streamName;
+        this.metadata = metaData;
 
         //Allocate buffer for stream
         this.streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
@@ -162,6 +168,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         }
         outputStreams.clear();
 
+        sendToStream(ENTRY_EXP_METADATA, 0, metadata.getBytes(), 0, metadata.getBytes().length);
         byte[] EOF = "This is the end.".getBytes();
         sendToStream(ENTRY_END_OF_STREAM, 0, EOF, 0, EOF.length);
         flushToStream();
