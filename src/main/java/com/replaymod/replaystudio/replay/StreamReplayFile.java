@@ -218,6 +218,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     */
     private void batchAddStreamBuffer(){
         try {
+            recordListLock.lock();
             streamBufferLock.lock();
             recordList.add(new Record().withData(ByteBuffer.wrap(streamBuffer.array(), 0, streamBuffer.position())));
             recordListLength += 1;
@@ -226,8 +227,10 @@ public class StreamReplayFile extends AbstractReplayFile {
             }
             streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
             streamBufferLock.unlock();
+            recordListLock.unlock();
         } catch (Exception e) {
             if (streamBufferLock.tryLock()) {streamBufferLock.unlock();} 
+            if (recordListLock.tryLock()) {recordListLock.unlock();} 
             e.printStackTrace();
             logger.error("batchAddStreamBuffer threw exception!");
         }
