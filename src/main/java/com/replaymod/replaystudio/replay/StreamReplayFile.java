@@ -114,7 +114,6 @@ public class StreamReplayFile extends AbstractReplayFile {
     private static final int BATCH_PUT_MAX_SIZE = 500;       //Batch of 0.5 MB
 
     private ByteBuffer streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);;
-    private final Lock streamBufferLock = new ReentrantLock(true);
     private final AmazonKinesisFirehose firehoseClient;
     private final String streamName;
 
@@ -125,7 +124,6 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private final List<Record> recordList = new ArrayList<Record>();
     private int recordListLength = 0;
-    private final Lock recordListLock = new ReentrantLock(true);
 
     private final Logger logger;
 
@@ -179,18 +177,14 @@ public class StreamReplayFile extends AbstractReplayFile {
     private void putBatchRecords(){
         logger.info("Puting Records (" + Integer.toString(recordListLength) + ") in batch");
         try{
-            recordListLock.lock();
             PutRecordBatchRequest recordBatchRequest = new PutRecordBatchRequest();
             recordBatchRequest.setDeliveryStreamName(streamName);
             recordBatchRequest.setRecords(recordList);
             PutRecordBatchResult result = firehoseClient.putRecordBatch(recordBatchRequest);
             recordList.clear();
             recordListLength = 0;
-            recordListLock.unlock();
             logger.info("Put Batch Result: " + result.getFailedPutCount() + " records failed - http:" + Integer.toString(result.getSdkHttpMetadata().getHttpStatusCode()));
-
         } catch (Exception e) {
-            if (recordListLock.tryLock()) {recordListLock.unlock();} 
             e.printStackTrace();
             logger.info("Put Batch Threw Exception");
         } 
@@ -199,36 +193,21 @@ public class StreamReplayFile extends AbstractReplayFile {
         
     }
 
-    // Removed to provide single syncronous access to recordList 
-    // synchronized private void addRecord(Record record){
-    //     recordList.add(record);
-    //     recordListLength += 1;
-    //     if (recordListLength == BATCH_PUT_MAX_SIZE){
-    //         putBatchRecords();
-    //     }
-    // }
-
     /*
     * Adds the given buffer to the current batch of records
     * Allocates a new stream buffer and calls putBatchRecords 
     * if the record list is BATCH_PUT_MAX_SIZE
     * TODO add a proper lock to recordList 
     */
-    private void batchAddStreamBuffer(){
+    synchronized private void batchAddStreamBuffer(){
         try {
-            recordListLock.lock();
-            //streamBufferLock.lock();
             recordList.add(new Record().withData(ByteBuffer.wrap(streamBuffer.array(), 0, streamBuffer.position())));
             recordListLength += 1;
             if (recordListLength == BATCH_PUT_MAX_SIZE){
                 putBatchRecords();
             }
             streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
-            //streamBufferLock.unlock();
-            recordListLock.unlock();
         } catch (Exception e) {
-            //if (streamBufferLock.tryLock()) {streamBufferLock.unlock();} 
-            if (recordListLock.tryLock()) {recordListLock.unlock();} 
             e.printStackTrace();
             logger.error("batchAddStreamBuffer threw exception!");
         }
@@ -247,7 +226,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     *  byte[]   :   Data
     *
     */
-    private void sendToStream(String entry, int timestamp, byte[] data, int offset, int length) throws IOException {
+    synchronized private void sendToStream(String entry, int timestamp, byte[] data, int offset, int length) throws IOException {
         // Determine index
         int entry_id = indexOf(entry);
 
