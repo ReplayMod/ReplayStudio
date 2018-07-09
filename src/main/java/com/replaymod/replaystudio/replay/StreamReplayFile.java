@@ -37,6 +37,10 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -109,7 +113,8 @@ public class StreamReplayFile extends AbstractReplayFile {
     private static final int FIREHOSE_BUFFER_LIMIT = 1000; //Making records 1 KB
     private static final int BATCH_PUT_MAX_SIZE = 500;       //Batch of 0.5 MB
 
-    private ByteBuffer streamBuffer;
+    private ByteBuffer streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);;
+    private final Lock streamBufferLock = new ReentrantLock();
     private final AmazonKinesisFirehose firehoseClient;
     private final String streamName;
 
@@ -120,6 +125,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private final List<Record> recordList = new ArrayList<Record>();
     private int recordListLength = 0;
+    private final Lock recordListLock = new ReentrantLock();
 
     private final Logger logger;
 
@@ -134,9 +140,6 @@ public class StreamReplayFile extends AbstractReplayFile {
         this.firehoseClient = firehoseClient;
         this.streamName = streamName;
         this.streamMetadata = metaData;
-
-        //Allocate buffer for stream
-        this.streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
 
         //Check that our firehose stream is open and active
         DescribeDeliveryStreamRequest describeDeliveryStreamRequest = new DescribeDeliveryStreamRequest();
@@ -175,16 +178,30 @@ public class StreamReplayFile extends AbstractReplayFile {
         flushToStream();
     }
 
-    synchronized private void putBatchRecords(){
+    private void putBatchRecords(){
         logger.info("Puting Records (" + Integer.toString(recordListLength) + ") in batch");
-        PutRecordBatchRequest recordBatchRequest = new PutRecordBatchRequest();
-        recordBatchRequest.setDeliveryStreamName(streamName);
-        recordBatchRequest.setRecords(recordList);
-        PutRecordBatchResult result = firehoseClient.putRecordBatch(recordBatchRequest);
-        logger.info("Put Batch Result: " + result.getFailedPutCount() + " records failed - http:" + Integer.toString(result.getSdkHttpMetadata().getHttpStatusCode()));
+        PutRecordBatchResult result;
+        try{
+            recordListLock.lock();
+            PutRecordBatchRequest recordBatchRequest = new PutRecordBatchRequest();
+            recordBatchRequest.setDeliveryStreamName(streamName);
+            recordBatchRequest.setRecords(recordList);
+            result = firehoseClient.putRecordBatch(recordBatchRequest);
+            recordList.clear();
+            recordListLength = 0;
+            recordListLock.unlock();
+        } catch (Exception e) {
+            if (recordListLock.tryLock()) {recordListLock.unlock();} 
+            e.printStackTrace();
+            logger.info("Put Batch Threw Exception");
 
-        recordList.clear();
-        recordListLength = 0;
+        } else {
+            logger.info("Put Batch Result: " + result.getFailedPutCount() + " records failed - http:" + Integer.toString(result.getSdkHttpMetadata().getHttpStatusCode()));
+
+        }
+
+
+        
     }
 
     // Removed to provide single syncronous access to recordList 
@@ -202,13 +219,22 @@ public class StreamReplayFile extends AbstractReplayFile {
     * if the record list is BATCH_PUT_MAX_SIZE
     * TODO add a proper lock to recordList 
     */
-    synchronized private void batchAddStreamBuffer(){
-        recordList.add(new Record().withData(ByteBuffer.wrap(streamBuffer.array(), 0, streamBuffer.position())));
-        recordListLength += 1;
-        if (recordListLength == BATCH_PUT_MAX_SIZE){
-            putBatchRecords();
+    private void batchAddStreamBuffer(){
+        try {
+            streamBufferLock.lock();
+            recordList.add(new Record().withData(ByteBuffer.wrap(streamBuffer.array(), 0, streamBuffer.position())));
+            recordListLength += 1;
+            if (recordListLength == BATCH_PUT_MAX_SIZE){
+                putBatchRecords();
+            }
+            streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
+            streamBufferLock.unlock();
+        } catch (Exception e) {
+            if (streamBufferLock.tryLock()) {streamBufferLock.unlock();} 
+            e.printStackTrace();
+            logger.error("batchAddStreamBuffer threw exception!");
         }
-        streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
+
     }
 
     /* 
@@ -223,11 +249,11 @@ public class StreamReplayFile extends AbstractReplayFile {
     *  byte[]   :   Data
     *
     */
-    synchronized private void sendToStream(String entry, int timestamp, byte[] data, int offset, int length) throws IOException {
+    private void sendToStream(String entry, int timestamp, byte[] data, int offset, int length) throws IOException {
         // Determine index
         int entry_id = indexOf(entry);
 
-        if(length != data.length){
+        if(length > data.length){
             logger.error("Warning! Data size is not consistent for entry " + entry);
             length = Math.min(length, data.length);
         }
@@ -240,50 +266,62 @@ public class StreamReplayFile extends AbstractReplayFile {
 
         bytesWritten += length + overhead;
 
-        if (streamBuffer.position() + length + overhead < streamBuffer.capacity())
-        {
-            streamBuffer.putInt(entry_id);
-            streamBuffer.putInt(sequenceNumber++);
-            streamBuffer.putInt(timestamp);
-            streamBuffer.putInt(length);
-            streamBuffer.put(data, offset, length);
-            return;
-        } else if (length + overhead < streamBuffer.capacity()) {
-            // Send existing data (clearing streamBuffer)
-            batchAddStreamBuffer();
+        try {
+            streamBufferLock.lock();
+            if (streamBuffer.position() + length + overhead < streamBuffer.capacity())
+            {
+                streamBuffer.putInt(entry_id);
+                streamBuffer.putInt(sequenceNumber++);
+                streamBuffer.putInt(timestamp);
+                streamBuffer.putInt(length);
+                streamBuffer.put(data, offset, length);
+                return;
+            } else if (length + overhead < streamBuffer.capacity()) {
+                // Send existing data (clearing streamBuffer)
+                batchAddStreamBuffer();
 
-            // Add the data that didn't fit
-            streamBuffer.putInt(entry_id);
-            streamBuffer.putInt(sequenceNumber++);
-            streamBuffer.putInt(timestamp);
-            streamBuffer.putInt(length);
-            streamBuffer.put(data, offset, length);
-        } else {
-            // Send existing data if there is not enough space for the header
-            if (streamBuffer.position() + overhead >= streamBuffer.capacity()){
-                batchAddStreamBuffer();                
-            }
-            
-            //Add the header
-            streamBuffer.putInt(entry_id);
-            streamBuffer.putInt(sequenceNumber++);
-            streamBuffer.putInt(timestamp);
-            streamBuffer.putInt(length);
-
-            // Add the data up to FIREHOSE_BUFFER_LIMIT bytes at a time
-            int bytesRead = offset;            
-            while (bytesRead < length) {
-                int numBytes = Math.min(streamBuffer.capacity() - streamBuffer.position(), length - bytesRead);
-                try {
-                    streamBuffer.put(data, bytesRead, numBytes);
-                } catch (Exception e) {
-                    logger.info("Excepton" + e.toString());
+                // Add the data that didn't fit
+                streamBuffer.putInt(entry_id);
+                streamBuffer.putInt(sequenceNumber++);
+                streamBuffer.putInt(timestamp);
+                streamBuffer.putInt(length);
+                streamBuffer.put(data, offset, length);
+            } else {
+                // Send existing data if there is not enough space for the header
+                if (streamBuffer.position() + overhead >= streamBuffer.capacity()){
+                    batchAddStreamBuffer();                
                 }
                 
-                bytesRead += numBytes;
-                batchAddStreamBuffer();
+                //Add the header
+                streamBuffer.putInt(entry_id);
+                streamBuffer.putInt(sequenceNumber++);
+                streamBuffer.putInt(timestamp);
+                streamBuffer.putInt(length);
+
+                // Add the data up to FIREHOSE_BUFFER_LIMIT bytes at a time
+                int bytesRead = offset;            
+                while (bytesRead < length) {
+                    int numBytes = Math.min(streamBuffer.capacity() - streamBuffer.position(), length - bytesRead);
+                    try {
+                        streamBuffer.put(data, bytesRead, numBytes);
+                    } catch (Exception e) {
+                        logger.info("Excepton" + e.toString());
+                    }
+                    
+                    bytesRead += numBytes;
+                    batchAddStreamBuffer();
+                }
             }
+            streamBufferLock.unlock();
+        } catch (Exception e) {
+            if (streamBufferLock.tryLock()) {
+                streamBufferLock.unlock();
+            } 
+            e.printStackTrace();
+            logger.error("batchAddStreamBuffer threw exception!");
         }
+
+        
     }
 
     private void flushToStream(){
