@@ -311,8 +311,8 @@ public class StreamReplayFile extends AbstractReplayFile {
     }
 
     public void writeByte(String entry, int data) throws IOException {
-        logger.info("Tried to call writeByte - cmd unsupported");
-        throw new UnsupportedOperationException("writeByte is not supported for replay type StreamReplayFile");
+        byte[] buff = ByteBuffer.allocate(4).putInt(data).array();
+        sendToStream(entry, 0, buff, 0, 4);
     }
 
     public void writeEntry(String entry, int timestamp, int offset, int len, byte[] bytes) throws IOException {
