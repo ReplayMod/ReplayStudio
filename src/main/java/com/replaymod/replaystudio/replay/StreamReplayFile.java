@@ -114,7 +114,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     private static final int BATCH_PUT_MAX_SIZE = 500;       //Batch of 0.5 MB
 
     private ByteBuffer streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);;
-    private final Lock streamBufferLock = new ReentrantLock();
+    private final Lock streamBufferLock = new ReentrantLock(true);
     private final AmazonKinesisFirehose firehoseClient;
     private final String streamName;
 
@@ -125,7 +125,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private final List<Record> recordList = new ArrayList<Record>();
     private int recordListLength = 0;
-    private final Lock recordListLock = new ReentrantLock();
+    private final Lock recordListLock = new ReentrantLock(true);
 
     private final Logger logger;
 
@@ -145,14 +145,12 @@ public class StreamReplayFile extends AbstractReplayFile {
         DescribeDeliveryStreamRequest describeDeliveryStreamRequest = new DescribeDeliveryStreamRequest();
         describeDeliveryStreamRequest.withDeliveryStreamName(streamName);
         DescribeDeliveryStreamResult describeDeliveryStreamResponse =
-        firehoseClient.describeDeliveryStream(describeDeliveryStreamRequest);
+            firehoseClient.describeDeliveryStream(describeDeliveryStreamRequest);
         DeliveryStreamDescription  deliveryStreamDescription = describeDeliveryStreamResponse.getDeliveryStreamDescription();
         String deliveryStreamStatus = deliveryStreamDescription.getDeliveryStreamStatus();
         if (!deliveryStreamStatus.equals("ACTIVE")) {
             throw(new IOException("Delivery stream not active!"));
         }   
-
-        
 
     }
 
