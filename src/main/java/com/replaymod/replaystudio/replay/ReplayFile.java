@@ -102,6 +102,7 @@ public interface ReplayFile extends Closeable {
     ReplayInputStream getPacketData() throws IOException;
     ReplayInputStream getPacketData(Studio studio) throws IOException;
     ReplayOutputStream writePacketData() throws IOException;
+    ReplayOutputStream writeActionData() throws IOException;
 
     Replay toReplay() throws IOException;
 

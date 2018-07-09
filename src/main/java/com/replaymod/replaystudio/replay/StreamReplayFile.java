@@ -100,6 +100,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         else if (entry.equals(ENTRY_MODS))                  {return 11;}
         else if (entry.equals(ENTRY_EXP_METADATA))          {return 12;}
         else if (entry.equals(ENTRY_END_OF_STREAM))         {return 13;}
+        else if (entry.equals(ENTRY_ACTIONS))               {return 14;}
         else return -1;
     }
 
