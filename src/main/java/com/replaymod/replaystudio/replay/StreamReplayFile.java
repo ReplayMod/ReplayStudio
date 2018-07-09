@@ -180,25 +180,22 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private void putBatchRecords(){
         logger.info("Puting Records (" + Integer.toString(recordListLength) + ") in batch");
-        PutRecordBatchResult result;
         try{
             recordListLock.lock();
             PutRecordBatchRequest recordBatchRequest = new PutRecordBatchRequest();
             recordBatchRequest.setDeliveryStreamName(streamName);
             recordBatchRequest.setRecords(recordList);
-            result = firehoseClient.putRecordBatch(recordBatchRequest);
+            PutRecordBatchResult result = firehoseClient.putRecordBatch(recordBatchRequest);
             recordList.clear();
             recordListLength = 0;
             recordListLock.unlock();
+            logger.info("Put Batch Result: " + result.getFailedPutCount() + " records failed - http:" + Integer.toString(result.getSdkHttpMetadata().getHttpStatusCode()));
+
         } catch (Exception e) {
             if (recordListLock.tryLock()) {recordListLock.unlock();} 
             e.printStackTrace();
             logger.info("Put Batch Threw Exception");
-
-        } else {
-            logger.info("Put Batch Result: " + result.getFailedPutCount() + " records failed - http:" + Integer.toString(result.getSdkHttpMetadata().getHttpStatusCode()));
-
-        }
+        } 
 
 
         
