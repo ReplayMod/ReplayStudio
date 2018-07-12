@@ -32,7 +32,7 @@ import java.util.Objects;
  */
 public class ReplayMetaData {
     //#if MC>=11202
-    public static final int CURRENT_FILE_FORMAT_VERSION = 109;
+    public static final int CURRENT_FILE_FORMAT_VERSION = 9;
     //#else
     //#if MC>=11201
     //$$ public static final int CURRENT_FILE_FORMAT_VERSION = 7;
