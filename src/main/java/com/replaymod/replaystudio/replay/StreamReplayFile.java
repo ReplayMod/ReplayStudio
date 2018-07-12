@@ -127,17 +127,14 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private final Logger logger;
 
-    private final String streamMetadata;
-
     //TODO add a gzip compression step before streaming to firehose
-    public StreamReplayFile(Studio studio, AmazonKinesisFirehose firehoseClient, String streamName, String metaData, Logger logger) throws IOException {
+    public StreamReplayFile(Studio studio, AmazonKinesisFirehose firehoseClient, String streamName, Logger logger) throws IOException {
         super(studio);
 
         this.logger = logger;
 
         this.firehoseClient = firehoseClient;
         this.streamName = streamName;
-        this.streamMetadata = metaData;
 
         //Check that our firehose stream is open and active
         DescribeDeliveryStreamRequest describeDeliveryStreamRequest = new DescribeDeliveryStreamRequest();
@@ -168,7 +165,6 @@ public class StreamReplayFile extends AbstractReplayFile {
         }
         outputStreams.clear();
 
-        sendToStream(ENTRY_EXP_METADATA, 0, streamMetadata.getBytes(), 0, streamMetadata.getBytes().length);
         byte[] EOF = "This is the end.".getBytes();
         sendToStream(ENTRY_END_OF_STREAM, 0, EOF, 0, EOF.length);
         flushToStream();
@@ -187,10 +183,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         } catch (Exception e) {
             e.printStackTrace();
             logger.info("Put Batch Threw Exception");
-        } 
-
-
-        
+        }        
     }
 
     /*
@@ -340,6 +333,12 @@ public class StreamReplayFile extends AbstractReplayFile {
     *  so they have been overidden to prevent confusion
     *
     */
+
+    @Override
+    public ReplayMetaData getMetaData() throws IOException {
+        logger.error("Tried to call getMetaData - cmd unsupported");
+        throw new UnsupportedOperationException("Getting metadata is not supported for replay type StreamReplayFile");
+    }
 
     @Override
     public Map<String, InputStream> getAll(Pattern pattern) throws IOException {
