@@ -130,6 +130,7 @@ preshadowJar {
         relocate 'org.spacehq', 'com.github.steveice10'
     }
     relocate 'io.netty', 'com.github.steveice10.netty'
+    exclude 'us/myles/ViaVersion/SpongePlugin.class'
     relocate 'us.myles.ViaVersion', 'com.replaymod.replaystudio.us.myles.ViaVersion'
 
     // un-shading from MCAuthLib (see dependencies)
