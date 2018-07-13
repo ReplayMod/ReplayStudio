@@ -110,8 +110,8 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private static final byte[] THUMB_MAGIC_NUMBERS = {0, 1, 1, 2, 3, 5, 8};
 
-    private static final int FIREHOSE_BUFFER_LIMIT = 1000; //Making records 1 KB
-    private static final int BATCH_PUT_MAX_SIZE = 500;       //Batch of 0.5 MB
+    private static final int FIREHOSE_BUFFER_LIMIT = 5000; //Making records 5 KB
+    private static final int BATCH_PUT_MAX_SIZE = 500;       //Batch of  2.5 MB
 
     private ByteBuffer streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);;
     private final AmazonKinesisFirehose firehoseClient;
