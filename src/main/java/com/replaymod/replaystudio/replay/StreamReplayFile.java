@@ -171,6 +171,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     }
 
     private void putBatchRecords(){
+        if (recordListLength == 0) {return;}
         logger.info("Puting Records (" + Integer.toString(recordListLength) + ") in batch");
         try{
             PutRecordBatchRequest recordBatchRequest = new PutRecordBatchRequest();
