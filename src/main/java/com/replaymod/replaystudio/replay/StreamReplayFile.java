@@ -143,13 +143,13 @@ public class StreamReplayFile extends AbstractReplayFile {
         this.streamName = firehose.getName();
         this.userServerSocket = firehose.getSocket();
         //Check that our firehose stream is open and active
-        if (!checkFirehoseStreamActive(streamName)){
+        if (!checkFirehoseStreamActive(streamName, firehoseClient)){
             throw(new IOException("Delivery stream not active!"));
         }   
 
     }
 
-    private boolean checkFirehoseStreamActive(String streamName){
+    private boolean checkFirehoseStreamActive(String streamName, AmazonKinesisFirehose firehoseClient){
         DescribeDeliveryStreamRequest describeDeliveryStreamRequest = new DescribeDeliveryStreamRequest();
         describeDeliveryStreamRequest.withDeliveryStreamName(streamName);
         DescribeDeliveryStreamResult describeDeliveryStreamResponse =
@@ -252,7 +252,7 @@ public class StreamReplayFile extends AbstractReplayFile {
                 // Ignore interruption (doesn't impact deliveryStream creation)
             }
 
-            if (checkFirehoseStreamActive(streamName)) {
+            if (checkFirehoseStreamActive(streamName, firehoseClient)) {
                 timeout = false;
                 break;
             }
