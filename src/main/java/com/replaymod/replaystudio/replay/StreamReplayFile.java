@@ -24,66 +24,64 @@
  */
 package com.replaymod.replaystudio.replay;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
-import com.google.common.collect.Multiset.Entry;
-import com.google.common.io.Closeables;
-import com.replaymod.replaystudio.Studio;
-import com.replaymod.replaystudio.util.Utils;
-
-import org.apache.commons.lang3.ObjectUtils.Null;
-
-import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipOutputStream;
-
-import static com.google.common.io.Files.*;
-import static java.nio.file.Files.*;
-import static java.nio.file.Files.move;
-
-import com.google.common.base.Optional;
-import com.google.common.io.Closeables;
-import com.google.gson.*;
-import com.replaymod.replaystudio.Studio;
-import com.replaymod.replaystudio.data.Marker;
-import com.replaymod.replaystudio.data.ModInfo;
-import com.replaymod.replaystudio.data.ReplayAssetEntry;
-import com.replaymod.replaystudio.io.ReplayInputStream;
-import com.replaymod.replaystudio.io.ReplayOutputStream;
-import com.replaymod.replaystudio.io.StreamingOutputStream;
-import com.replaymod.replaystudio.pathing.PathingRegistry;
-import com.replaymod.replaystudio.pathing.path.Timeline;
-import com.replaymod.replaystudio.pathing.serialize.TimelineSerialization;
-
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.*;
-import java.util.*;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
-
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicSessionCredentials;
+import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehose;
+import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClientBuilder;
 import com.amazonaws.services.kinesisfirehose.model.DeliveryStreamDescription;
 import com.amazonaws.services.kinesisfirehose.model.DescribeDeliveryStreamRequest;
 import com.amazonaws.services.kinesisfirehose.model.DescribeDeliveryStreamResult;
-import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehose;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchRequest;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchResult;
-import com.amazonaws.services.kinesisfirehose.model.PutRecordRequest;
-import com.amazonaws.services.kinesisfirehose.model.PutRecordResult;
 import com.amazonaws.services.kinesisfirehose.model.Record;
+import com.google.common.base.Optional;
+import com.google.common.io.Closeables;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.replaymod.replaystudio.Studio;
+import com.replaymod.replaystudio.io.ReplayInputStream;
+import com.replaymod.replaystudio.io.StreamingOutputStream;
 
 import org.apache.logging.log4j.Logger;
+
+import org.apache.commons.lang3.tuple.Pair;
+
+final class FirehosePair {
+    private AmazonKinesisFirehose client;
+    private String name;
+    private DatagramSocket socket;
+
+    public FirehosePair(AmazonKinesisFirehose client, String name, DatagramSocket socket){
+        this.client = client;
+        this.name = name;
+        this.socket = socket;}
+    public AmazonKinesisFirehose getClient() {return client;}
+    public String getName() {return name;}
+    public DatagramSocket getSocket() {return socket;}
+
+    public void setClient(AmazonKinesisFirehose client) {this.client = client;}
+    public void setName(String name) {this.name = name;}
+}
 
 public class StreamReplayFile extends AbstractReplayFile {
     protected static final String ENTRY_END_OF_STREAM = "eof";
@@ -110,12 +108,16 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private static final byte[] THUMB_MAGIC_NUMBERS = {0, 1, 1, 2, 3, 5, 8};
 
+    private static final int FIREHOSE_MAX_CLIENT_CREATION_DELAY = (10 * 60 * 1000);
+    private static final int FIREHOSE_CLIENT_STATE_REFRESH_DELAY = 100;
     private static final int FIREHOSE_BUFFER_LIMIT = 5000; //Making records 5 KB
     private static final int BATCH_PUT_MAX_SIZE = 500;       //Batch of  2.5 MB
 
-    private ByteBuffer streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);;
+    private ByteBuffer streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
+    private final DatagramSocket userServerSocket;
     private final AmazonKinesisFirehose firehoseClient;
-    private final String streamName;
+    private String streamName;
+    private String uid;
 
     private final Map<String, OutputStream> outputStreams = new HashMap<>();
 
@@ -128,25 +130,181 @@ public class StreamReplayFile extends AbstractReplayFile {
     private final Logger logger;
 
     //TODO add a gzip compression step before streaming to firehose
-    public StreamReplayFile(Studio studio, AmazonKinesisFirehose firehoseClient, String streamName, Logger logger) throws IOException {
+    public StreamReplayFile(Studio studio, String uid, Logger logger) throws IOException {
         super(studio);
 
+        this.uid = uid;
         this.logger = logger;
 
-        this.firehoseClient = firehoseClient;
-        this.streamName = streamName;
-
+        FirehosePair firehose = getFirehoseStream(uid);
+        if (firehose == null) {
+            throw(new IOException("Unable to get firehose stream"));}
+        this.firehoseClient = firehose.getClient();
+        this.streamName = firehose.getName();
+        this.userServerSocket = firehose.getSocket();
         //Check that our firehose stream is open and active
+        if (checkFirehoseStreamActive(streamName)){
+            throw(new IOException("Delivery stream not active!"));
+        }   
+
+    }
+
+    private boolean checkFirehoseStreamActive(String streamName){
         DescribeDeliveryStreamRequest describeDeliveryStreamRequest = new DescribeDeliveryStreamRequest();
         describeDeliveryStreamRequest.withDeliveryStreamName(streamName);
         DescribeDeliveryStreamResult describeDeliveryStreamResponse =
             firehoseClient.describeDeliveryStream(describeDeliveryStreamRequest);
         DeliveryStreamDescription  deliveryStreamDescription = describeDeliveryStreamResponse.getDeliveryStreamDescription();
         String deliveryStreamStatus = deliveryStreamDescription.getDeliveryStreamStatus();
-        if (!deliveryStreamStatus.equals("ACTIVE")) {
-            throw(new IOException("Delivery stream not active!"));
-        }   
+        return deliveryStreamStatus.equals("ACTIVE");
+    }
 
+    private FirehosePair getFirehoseStream(String uid){
+        ////////////////////////////////////////////
+        //       FireHose Key Retrieval           //
+        ////////////////////////////////////////////
+        InetAddress userServerAddress;
+        DatagramSocket userServerSocket;
+        try {
+            //Connect to UserServer
+            userServerSocket = new DatagramSocket();
+            userServerAddress = InetAddress.getByName("184.73.82.23"); // TODO use configured IP
+            userServerSocket.connect(userServerAddress, 9999);
+            userServerSocket.setSoTimeout(1000);                        
+        } catch (SocketException | UnknownHostException e) {
+            logger.info("Error establishing connection to user server");
+            e.printStackTrace();
+            logger.error("Error establishing connection to user server");
+            return null;
+        }
+        
+        // Send Firehose key request
+        JsonObject firehoseJson  = new JsonObject();
+        firehoseJson.addProperty("cmd", "get_firehose_key");
+        firehoseJson.addProperty("uid", uid);
+        String firehoseStr = firehoseJson.toString();
+        DatagramPacket firehoseKeyRequest = new DatagramPacket(firehoseStr.getBytes(), firehoseStr.getBytes().length);
+        try {
+            userServerSocket.send(firehoseKeyRequest);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            userServerSocket.close();
+            //mcServerSocket.close();
+            return null;
+        }
+    
+        // Get response
+        String tmp= null; 
+        JsonObject awsKeys = null;
+        byte[] buff1 = new byte[65535];
+        BasicSessionCredentials awsCredentials;
+        DatagramPacket firehoseKeyData = new DatagramPacket(buff1, buff1.length);
+        try {
+            
+            while (tmp == null){
+                userServerSocket.receive(firehoseKeyData);
+                String dataStr = new String(firehoseKeyData.getData(), firehoseKeyData.getOffset(), firehoseKeyData.getLength());
+                awsKeys = new JsonParser().parse(dataStr).getAsJsonObject();
+                if (awsKeys.get("stream_name") != null){
+                    tmp = awsKeys.get("stream_name").getAsString();
+                }
+            }
+            
+            this.streamName = tmp;
+            awsCredentials = new BasicSessionCredentials(
+                awsKeys.get("access_key").getAsString(),
+                awsKeys.get("secret_key").getAsString(),
+                awsKeys.get("session_token").getAsString());
+            
+        
+        } catch (NullPointerException | IOException e) {
+            logger.error("Could not parse returned firehose stream infromation");
+            if (awsKeys != null){
+                logger.error("Tried to parse " + awsKeys.toString());
+            }
+            e.printStackTrace();
+            userServerSocket.close();
+            //mcServerSocket.close();
+            returnFirehoseStream();
+            return null;
+        }
+        
+        logger.info(String.format("StreamName:    %s%n", streamName));
+        //logger.info(String.format("Access Key:    %s%n", accessKey));
+        //logger.info(String.format("Secret Key:    %s%n", secretKey));
+        //logger.info(String.format("Session Token: %s%n", sessionToken));
+
+        // Firehose client
+        AmazonKinesisFirehose firehoseClient = AmazonKinesisFirehoseClientBuilder.standard()
+            .withCredentials(new AWSStaticCredentialsProvider(awsCredentials))
+            .withRegion("us-east-1")
+            .build();
+
+        //Check if the given stream is open
+        boolean timeout = true;
+        long startTime = System.currentTimeMillis();
+        long endTime = startTime + FIREHOSE_MAX_CLIENT_CREATION_DELAY; //TODO reduce maximum delay
+        while (System.currentTimeMillis() < endTime) {
+            try {
+                Thread.sleep(FIREHOSE_CLIENT_STATE_REFRESH_DELAY);
+            } catch (InterruptedException e) {
+                // Ignore interruption (doesn't impact deliveryStream creation)
+            }
+
+            DescribeDeliveryStreamRequest describeDeliveryStreamRequest = new DescribeDeliveryStreamRequest();
+            describeDeliveryStreamRequest.withDeliveryStreamName(streamName);
+
+            DescribeDeliveryStreamResult describeDeliveryStreamResponse =
+                firehoseClient.describeDeliveryStream(describeDeliveryStreamRequest);
+
+            DeliveryStreamDescription  deliveryStreamDescription = 
+                describeDeliveryStreamResponse.getDeliveryStreamDescription();
+
+            String deliveryStreamStatus = deliveryStreamDescription.getDeliveryStreamStatus();
+            if (deliveryStreamStatus.equals("ACTIVE")) {
+                timeout = false;
+                break;
+            }
+        }
+
+        if (timeout) {
+            logger.error("Waited too long for stream activation! Stream may be mis-configured!");
+            // TODO handle this cleanly
+        } else {
+            logger.info("Active Firehose Stream Established!");
+        }
+        return new FirehosePair(firehoseClient, streamName, userServerSocket);
+    }
+
+
+    private void returnFirehoseStream(){
+        if (streamName == null){ return;}
+        // Send Minecraft dissconnect notification
+        JsonObject mcKeyJson = new JsonObject();
+        mcKeyJson.addProperty("cmd", "return_firehose_key");
+        mcKeyJson.addProperty("uid", uid);
+        mcKeyJson.addProperty("stream_name", streamName);
+        String mcKeyStr = mcKeyJson.toString();
+        DatagramPacket mcKeyRequest = new DatagramPacket(mcKeyStr.getBytes(), mcKeyStr.getBytes().length);
+        try {
+            userServerSocket.send(mcKeyRequest);
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+            return;
+        }
+
+        byte[] buff1 = new byte[2400];
+        DatagramPacket returnResponse = new DatagramPacket(buff1, buff1.length);
+        try {
+            userServerSocket.receive(returnResponse);
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+        } finally {
+            String dataStr = new String(returnResponse.getData(), returnResponse.getOffset(), returnResponse.getLength());
+            JsonElement json = new JsonParser().parse(dataStr).getAsJsonObject();
+            logger.info("Return result: " + json.toString());   
+        }
     }
 
     @Override
@@ -168,6 +326,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         byte[] EOF = "This is the end.".getBytes();
         sendToStream(ENTRY_END_OF_STREAM, 0, EOF, 0, EOF.length);
         flushToStream();
+        returnFirehoseStream();
     }
 
     private void putBatchRecords(){
