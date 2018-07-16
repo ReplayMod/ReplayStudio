@@ -138,7 +138,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
         FirehosePair firehose = getFirehoseStream(uid);
         if (firehose == null) {
-            throw(new IOException("Unable to get firehose stream"));}
+            throw(new IOException("Unable to get firehose stream "));}
         this.firehoseClient = firehose.getClient();
         this.streamName = firehose.getName();
         this.userServerSocket = firehose.getSocket();
