@@ -143,7 +143,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         this.streamName = firehose.getName();
         this.userServerSocket = firehose.getSocket();
         //Check that our firehose stream is open and active
-        if (checkFirehoseStreamActive(streamName)){
+        if (!checkFirehoseStreamActive(streamName)){
             throw(new IOException("Delivery stream not active!"));
         }   
 
@@ -252,17 +252,7 @@ public class StreamReplayFile extends AbstractReplayFile {
                 // Ignore interruption (doesn't impact deliveryStream creation)
             }
 
-            DescribeDeliveryStreamRequest describeDeliveryStreamRequest = new DescribeDeliveryStreamRequest();
-            describeDeliveryStreamRequest.withDeliveryStreamName(streamName);
-
-            DescribeDeliveryStreamResult describeDeliveryStreamResponse =
-                firehoseClient.describeDeliveryStream(describeDeliveryStreamRequest);
-
-            DeliveryStreamDescription  deliveryStreamDescription = 
-                describeDeliveryStreamResponse.getDeliveryStreamDescription();
-
-            String deliveryStreamStatus = deliveryStreamDescription.getDeliveryStreamStatus();
-            if (deliveryStreamStatus.equals("ACTIVE")) {
+            if (checkFirehoseStreamActive(streamName)) {
                 timeout = false;
                 break;
             }
