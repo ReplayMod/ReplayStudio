@@ -175,7 +175,7 @@ public final class Marker {
         result = 31 * result + (yaw != +0.0f ? Float.floatToIntBits(yaw) : 0);
         result = 31 * result + (pitch != +0.0f ? Float.floatToIntBits(pitch) : 0);
         result = 31 * result + (roll != +0.0f ? Float.floatToIntBits(roll) : 0);
-        result = 31 * result + name.hashCode();
+        result = 31 * result + metadata.hashCode();
         return result;
     }
 
