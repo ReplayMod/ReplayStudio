@@ -484,13 +484,14 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     @Override
     public Optional<Set<Marker>> getMarkers() throws IOException {
-        if (markers == null) return Optional.absent();
-        else return Optional.of(markers);
+        if (markers == null) {return Optional.absent();}
+        return Optional.of(markers);
     }
 
     @Override
     public void writeMarkers(Set<Marker> newMarkers) throws IOException {
-        this.markers.addAll(newMarkers);
+        logger.info("Calling super write markers");
+        this.markers = newMarkers;
         super.writeMarkers(newMarkers);
     }
 
