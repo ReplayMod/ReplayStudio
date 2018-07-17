@@ -133,7 +133,7 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private final Logger logger;
 
-    private Set<Marker> markers;
+    private Set<Marker> markers = new HashSet<>();
 
     //TODO add a gzip compression step before streaming to firehose
     public StreamReplayFile(Studio studio, String uid, Logger logger) throws IOException {
@@ -489,9 +489,9 @@ public class StreamReplayFile extends AbstractReplayFile {
     }
 
     @Override
-    public void writeMarkers(Set<Marker> markers) throws IOException {
-        this.markers.addAll(markers);
-        super.writeMarkers(this.markers);
+    public void writeMarkers(Set<Marker> newMarkers) throws IOException {
+        this.markers.addAll(newMarkers);
+        super.writeMarkers(newMarkers);
     }
 
     /* 
