@@ -38,8 +38,10 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -55,10 +57,12 @@ import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchResult;
 import com.amazonaws.services.kinesisfirehose.model.Record;
 import com.google.common.base.Optional;
 import com.google.common.io.Closeables;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.replaymod.replaystudio.Studio;
+import com.replaymod.replaystudio.data.Marker;
 import com.replaymod.replaystudio.io.ReplayInputStream;
 import com.replaymod.replaystudio.io.StreamingOutputStream;
 
@@ -128,6 +132,8 @@ public class StreamReplayFile extends AbstractReplayFile {
     private int recordListLength = 0;
 
     private final Logger logger;
+
+    private Set<Marker> markers;
 
     //TODO add a gzip compression step before streaming to firehose
     public StreamReplayFile(Studio studio, String uid, Logger logger) throws IOException {
@@ -474,6 +480,18 @@ public class StreamReplayFile extends AbstractReplayFile {
         OutputStream out = new BufferedOutputStream(new StreamingOutputStream(entry, this));
         Closeables.close(outputStreams.put(entry, out), true);
         return out;
+    }
+
+    @Override
+    public Optional<Set<Marker>> getMarkers() throws IOException {
+        if (markers == null) return Optional.absent();
+        else return Optional.of(markers);
+    }
+
+    @Override
+    public void writeMarkers(Set<Marker> markers) throws IOException {
+        this.markers = markers;
+        super.writeMarkers(markers);
     }
 
     /* 

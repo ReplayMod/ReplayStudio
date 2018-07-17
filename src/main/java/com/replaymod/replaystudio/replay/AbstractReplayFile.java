@@ -232,6 +232,7 @@ public abstract class AbstractReplayFile implements ReplayFile {
                     JsonObject obj = element.getAsJsonObject();
                     JsonObject value = obj.getAsJsonObject("value");
                     JsonObject position = value.getAsJsonObject("position");
+                    JsonObject metadata = value.getAsJsonObject("metadata");
                     Marker marker = new Marker();
                     marker.setTime(obj.get("realTimestamp").getAsInt());
                     marker.setX(position.get("x").getAsDouble());
@@ -240,6 +241,10 @@ public abstract class AbstractReplayFile implements ReplayFile {
                     marker.setYaw(position.get("yaw").getAsFloat());
                     marker.setPitch(position.get("pitch").getAsFloat());
                     marker.setRoll(position.get("roll").getAsFloat());
+                    marker.setMetadata(metadata.get("expMetadata").getAsString()); 
+                    marker.setStartRecording(metadata.get("startRecording").getAsBoolean());
+                    marker.setStopRecording(metadata.get("stopRecording").getAsBoolean());
+
                     if (value.has("name")) {
                         marker.setName(value.get("name").getAsString());
                     }
@@ -259,6 +264,7 @@ public abstract class AbstractReplayFile implements ReplayFile {
                 JsonObject entry = new JsonObject();
                 JsonObject value = new JsonObject();
                 JsonObject position = new JsonObject();
+                JsonObject metadata = new JsonObject();
 
                 entry.add("realTimestamp", new JsonPrimitive(marker.getTime()));
                 value.add("name", marker.getName() == null ? null : new JsonPrimitive(marker.getName()));
@@ -268,8 +274,12 @@ public abstract class AbstractReplayFile implements ReplayFile {
                 position.add("yaw", new JsonPrimitive(marker.getYaw()));
                 position.add("pitch", new JsonPrimitive(marker.getPitch()));
                 position.add("roll", new JsonPrimitive(marker.getRoll()));
+                metadata.add("expMetadata", new JsonPrimitive(marker.getMetadata()));
+                metadata.add("startRecording", new JsonPrimitive(marker.getStartRecording()));
+                metadata.add("stopRecording", new JsonPrimitive(marker.getStopRecording()));
 
                 value.add("position", position);
+                value.add("metadata", metadata);
                 entry.add("value", value);
                 root.add(entry);
             }
