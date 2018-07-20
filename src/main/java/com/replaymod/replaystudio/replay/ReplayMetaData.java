@@ -122,7 +122,7 @@ public class ReplayMetaData {
      * Must be a well formed JSON object containing infromation and statistics on 
      * what was recorded in this replay
      */
-    private String expMetadata = "{}";
+    private String expMetadata = "{\"version\":1}";
 
     public ReplayMetaData() {
     }

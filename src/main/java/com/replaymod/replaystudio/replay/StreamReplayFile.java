@@ -490,7 +490,6 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     @Override
     public void writeMarkers(Set<Marker> newMarkers) throws IOException {
-        logger.info("Calling super write markers");
         this.markers = newMarkers;
         super.writeMarkers(newMarkers);
     }
