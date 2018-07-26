@@ -174,6 +174,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         try {
             //Connect to UserServer
             userServerSocket = new DatagramSocket();
+            
             userServerAddress = InetAddress.getByName("user.herobraine.stream");
             userServerSocket.connect(userServerAddress, 9999);
             userServerSocket.setSoTimeout(1000);                        
