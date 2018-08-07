@@ -121,6 +121,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     private final DatagramSocket userServerSocket;
     private final AmazonKinesisFirehose firehoseClient;
     private String streamName;
+    private String streamVersion;
     private String uid;
 
     private final Map<String, OutputStream> outputStreams = new HashMap<>();
@@ -162,6 +163,7 @@ public class StreamReplayFile extends AbstractReplayFile {
             firehoseClient.describeDeliveryStream(describeDeliveryStreamRequest);
         DeliveryStreamDescription  deliveryStreamDescription = describeDeliveryStreamResponse.getDeliveryStreamDescription();
         String deliveryStreamStatus = deliveryStreamDescription.getDeliveryStreamStatus();
+        streamVersion = deliveryStreamDescription.getVersionId();
         return deliveryStreamStatus.equals("ACTIVE");
     }
 
@@ -304,6 +306,13 @@ public class StreamReplayFile extends AbstractReplayFile {
         }
     }
 
+    public String getStreamVersion() {
+        return streamVersion;
+    }
+    public String getStreamName() {
+        return streamName;
+    }
+    
     @Override
     public void save() throws IOException {
         logger.info("Saving");
