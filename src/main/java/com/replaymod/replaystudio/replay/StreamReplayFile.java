@@ -120,6 +120,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     private ByteBuffer streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
     private final DatagramSocket userServerSocket;
     private final AmazonKinesisFirehose firehoseClient;
+    private String version;
     private String streamName;
     private String streamVersion;
     private String uid;
@@ -137,11 +138,12 @@ public class StreamReplayFile extends AbstractReplayFile {
     private Set<Marker> markers = new HashSet<>();
 
     //TODO add a gzip compression step before streaming to firehose
-    public StreamReplayFile(Studio studio, String uid, Logger logger) throws IOException {
+    public StreamReplayFile(Studio studio, String uid, String version, Logger logger) throws IOException {
         super(studio);
 
         this.uid = uid;
         this.logger = logger;
+        this.version = version;
 
         FirehosePair firehose = getFirehoseStream(uid);
         if (firehose == null) {
@@ -190,6 +192,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         // Send Firehose key request
         JsonObject firehoseJson  = new JsonObject();
         firehoseJson.addProperty("cmd", "get_firehose_key");
+        firehoseJson.addProperty("version", version);
         firehoseJson.addProperty("uid", uid);
         String firehoseStr = firehoseJson.toString();
         DatagramPacket firehoseKeyRequest = new DatagramPacket(firehoseStr.getBytes(), firehoseStr.getBytes().length);
