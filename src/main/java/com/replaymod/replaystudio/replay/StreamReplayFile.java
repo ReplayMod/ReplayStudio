@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -53,9 +54,9 @@ import com.amazonaws.services.kinesisfirehose.model.DeliveryStreamDescription;
 import com.amazonaws.services.kinesisfirehose.model.DescribeDeliveryStreamRequest;
 import com.amazonaws.services.kinesisfirehose.model.DescribeDeliveryStreamResult;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchRequest;
+import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchResponseEntry;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchResult;
 import com.amazonaws.services.kinesisfirehose.model.Record;
-import com.google.common.base.Optional;
 import com.google.common.io.Closeables;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -114,8 +115,8 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private static final int FIREHOSE_MAX_CLIENT_CREATION_DELAY = (10 * 60 * 1000);
     private static final int FIREHOSE_CLIENT_STATE_REFRESH_DELAY = 100;
-    private static final int FIREHOSE_BUFFER_LIMIT = 5000; //Making records 5 KB
-    private static final int BATCH_PUT_MAX_SIZE = 500;       //Batch of  2.5 MB
+    private static final int FIREHOSE_BUFFER_LIMIT = 500 * 1024; //Making records 500 KB (1000 KB max)
+    private static final int BATCH_PUT_MAX_SIZE = 8;       //Batch of 4 MB (4MB max)
 
     private ByteBuffer streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
     private final DatagramSocket userServerSocket;
@@ -196,10 +197,8 @@ public class StreamReplayFile extends AbstractReplayFile {
         try {
             userServerSocket.send(firehoseKeyRequest);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
             userServerSocket.close();
-            //mcServerSocket.close();
             return null;
         }
     
@@ -217,6 +216,11 @@ public class StreamReplayFile extends AbstractReplayFile {
                 awsKeys = new JsonParser().parse(dataStr).getAsJsonObject();
                 if (awsKeys.get("stream_name") != null){
                     tmp = awsKeys.get("stream_name").getAsString();
+                } else if (awsKeys.get("error").getAsBoolean()) {
+                    logger.error("Error retreaving stream credentials");
+                    logger.error(awsKeys.get("message"));
+                    userServerSocket.close();
+                    return null;
                 }
             }
             
@@ -346,6 +350,15 @@ public class StreamReplayFile extends AbstractReplayFile {
             recordList.clear();
             recordListLength = 0;
             logger.info("Put Batch Result: " + result.getFailedPutCount() + " records failed - http:" + Integer.toString(result.getSdkHttpMetadata().getHttpStatusCode()));
+            if (result.getFailedPutCount() > 0){
+                int i = 0;
+                for(PutRecordBatchResponseEntry recordEntry : result.getRequestResponses()){
+                    if (recordEntry.getRecordId() == null) {
+                        recordList.add(recordBatchRequest.getRecords().get(i++));
+                    }
+                }
+            }
+            
         } catch (Exception e) {
             e.printStackTrace();
             logger.info("Put Batch Threw Exception");
