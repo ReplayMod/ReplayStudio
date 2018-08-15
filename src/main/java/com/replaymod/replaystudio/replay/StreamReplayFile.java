@@ -369,6 +369,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     
                 if (result.getSdkHttpMetadata().getHttpStatusCode() == 200){
                     recordDelivered = true;
+                    break;
                 } else {
                     logger.error("Put record failed! Http status code " + Integer.toString(result.getSdkHttpMetadata().getHttpStatusCode()));
                 } 
