@@ -76,25 +76,26 @@ public class EntityPositionTracker {
      * @throws IOException if an i/o error occurs
      */
     public void load(Consumer<Double> progressMonitor) throws IOException {
-        Optional<InputStream> cached;
-        synchronized (replayFile) {
-            cached = replayFile.get(CACHE_ENTRY);
-        }
-        if (cached.isPresent()) {
-            try (InputStream in = cached.get()) {
-                loadFromCache(in);
-            } catch (JsonSyntaxException e) {
-                // Cache contains invalid json, probably due to a previous crash / full disk
-                loadFromPacketData(progressMonitor);
-                synchronized (replayFile) {
-                    replayFile.remove(CACHE_ENTRY);
-                }
-                saveToCache();
-            }
-        } else {
+        // BAH disable entityTracker cache for automated rendering
+        // Optional<InputStream> cached;
+        // synchronized (replayFile) {
+        //     cached = replayFile.get(CACHE_ENTRY);
+        // }
+        // if (cached.isPresent()) {
+        //     try (InputStream in = cached.get()) {
+        //         loadFromCache(in);
+        //     } catch (JsonSyntaxException e) {
+        //         // Cache contains invalid json, probably due to a previous crash / full disk
+        //         loadFromPacketData(progressMonitor);
+        //         synchronized (replayFile) {
+        //             replayFile.remove(CACHE_ENTRY);
+        //         }
+        //         saveToCache();
+        //     }
+        // } else {
             loadFromPacketData(progressMonitor);
-            saveToCache();
-        }
+            // saveToCache();
+        // }
     }
 
     private void loadFromCache(InputStream in) throws IOException {
