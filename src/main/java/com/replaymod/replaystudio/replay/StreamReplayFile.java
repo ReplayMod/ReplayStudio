@@ -39,14 +39,19 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicSessionCredentials;
+import com.amazonaws.services.kinesisfirehose.model.PutRecordRequest;
+import com.amazonaws.services.kinesisfirehose.model.PutRecordResult;
+import com.amazonaws.services.kinesis.model.ProvisionedThroughputExceededException;
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehose;
 import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClientBuilder;
 import com.amazonaws.services.kinesisfirehose.model.DeliveryStreamDescription;
@@ -56,6 +61,7 @@ import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchRequest;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchResponseEntry;
 import com.amazonaws.services.kinesisfirehose.model.PutRecordBatchResult;
 import com.amazonaws.services.kinesisfirehose.model.Record;
+import com.amazonaws.services.kinesisfirehose.model.ServiceUnavailableException;
 import com.google.common.io.Closeables;
 import com.google.common.base.Optional;
 import com.google.gson.JsonArray;
@@ -115,8 +121,8 @@ public class StreamReplayFile extends AbstractReplayFile {
 
     private static final int FIREHOSE_MAX_CLIENT_CREATION_DELAY = (10 * 60 * 1000);
     private static final int FIREHOSE_CLIENT_STATE_REFRESH_DELAY = 100;
-    private static final int FIREHOSE_BUFFER_LIMIT = 500 * 1024; //Making records 500 KB (1000 KB max)
-    private static final int BATCH_PUT_MAX_SIZE = 8;       //Batch of 4 MB (4MB max)
+    private static final int FIREHOSE_BUFFER_LIMIT = 1000 * 1024; //Making records 1000 KB (1000 KB max)
+    private static final int BATCH_PUT_MAX_SIZE = 4;       //Batch of 4000 KB (4MiB max)
 
     private ByteBuffer streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
     private final DatagramSocket userServerSocket;
@@ -131,7 +137,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     private long bytesWritten = 0;
     private int sequenceNumber = 0;
 
-    private final List<Record> recordList = new ArrayList<Record>();
+    private final Queue<Record> recordList = new LinkedList<Record>();
     private int recordListLength = 0;
 
     private final Logger logger;
@@ -342,30 +348,50 @@ public class StreamReplayFile extends AbstractReplayFile {
         returnFirehoseStream();
     }
 
+    private PutRecordResult putRecord(Record record){
+        PutRecordRequest recordRequest = new PutRecordRequest();
+        recordRequest.setDeliveryStreamName(streamName);
+        recordRequest.setRecord(record);
+        return firehoseClient.putRecord(recordRequest);
+    }
+
     private void putBatchRecords(){
-        if (recordListLength == 0) {return;}
-        logger.info("Puting Records (" + Integer.toString(recordListLength) + ") in batch");
-        try{
-            PutRecordBatchRequest recordBatchRequest = new PutRecordBatchRequest();
-            recordBatchRequest.setDeliveryStreamName(streamName);
-            recordBatchRequest.setRecords(recordList);
-            PutRecordBatchResult result = firehoseClient.putRecordBatch(recordBatchRequest);
-            recordList.clear();
-            recordListLength = 0;
-            logger.info("Put Batch Result: " + result.getFailedPutCount() + " records failed - http:" + Integer.toString(result.getSdkHttpMetadata().getHttpStatusCode()));
-            if (result.getFailedPutCount() > 0){
-                int i = 0;
-                for(PutRecordBatchResponseEntry recordEntry : result.getRequestResponses()){
-                    if (recordEntry.getRecordId() == null) {
-                        recordList.add(recordBatchRequest.getRecords().get(i++));
-                    }
-                }
-            }
+        //BAH removed batch so records are put in order - record re-delivery will be attempted for Service Unavailable excepetions
+        if (recordList.size() == 0) {return;}
+        logger.info("Puting Record...");
+        Record record = recordList.remove();
+        recordListLength--;
+
+        boolean recordDelivered = false;
+        while (!recordDelivered){
+            try{
+                PutRecordResult result = putRecord(record);
+    
+                if (result.getSdkHttpMetadata().getHttpStatusCode() == 200){
+                    recordDelivered = true;
+                } else {
+                    logger.error("Put record failed! Http status code " + Integer.toString(result.getSdkHttpMetadata().getHttpStatusCode()));
+                } 
+                
+            } catch (ServiceUnavailableException e){
+                logger.error("Put Record Service Unavailable - will retry");
+            }  catch (ProvisionedThroughputExceededException e){
+                logger.error("Put Record Connection Throttled - will retry");
+            } catch (Exception e) {
+                e.printStackTrace();
+                logger.error("Put Record Threw Unrecorverable Exception");
+                return;
+            }    
             
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.info("Put Batch Threw Exception");
-        }        
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                logger.error("Interupted");
+            }
+
+            logger.info("Retrying record delivery");
+        }
+        
     }
 
     /*
@@ -378,7 +404,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         try {
             recordList.add(new Record().withData(ByteBuffer.wrap(streamBuffer.array(), 0, streamBuffer.position())));
             recordListLength += 1;
-            if (recordListLength == BATCH_PUT_MAX_SIZE){
+            if (recordListLength > 0){
                 putBatchRecords();
             }
             streamBuffer = ByteBuffer.allocate(FIREHOSE_BUFFER_LIMIT);
@@ -419,7 +445,7 @@ public class StreamReplayFile extends AbstractReplayFile {
         bytesWritten += length + overhead;
 
         try {
-            //streamBufferLock.lock();
+            // If data fits in current record
             if (streamBuffer.position() + length + overhead < streamBuffer.capacity())
             {
                 streamBuffer.putInt(entry_id);
@@ -428,7 +454,9 @@ public class StreamReplayFile extends AbstractReplayFile {
                 streamBuffer.putInt(length);
                 streamBuffer.put(data, offset, length);
                 return;
-            } else if (length + overhead < streamBuffer.capacity()) {
+            } 
+            // Data won't fit in current record but is less then a record
+            else if (length + overhead < streamBuffer.capacity()) {
                 // Send existing data (clearing streamBuffer)
                 batchAddStreamBuffer();
 
@@ -438,7 +466,9 @@ public class StreamReplayFile extends AbstractReplayFile {
                 streamBuffer.putInt(timestamp);
                 streamBuffer.putInt(length);
                 streamBuffer.put(data, offset, length);
-            } else {
+            }
+            // Data needs multiple records 
+            else {
                 // Send existing data if there is not enough space for the header
                 if (streamBuffer.position() + overhead >= streamBuffer.capacity()){
                     batchAddStreamBuffer();                
@@ -464,11 +494,7 @@ public class StreamReplayFile extends AbstractReplayFile {
                     batchAddStreamBuffer();
                 }
             }
-            //streamBufferLock.unlock();
         } catch (Exception e) {
-            //if (streamBufferLock.tryLock()) {
-            //    streamBufferLock.unlock();
-            //} 
             e.printStackTrace();
             logger.error("batchAddStreamBuffer threw exception!");
         }
