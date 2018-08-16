@@ -61,7 +61,7 @@ import java.util.function.Consumer;
  * <br>
  * This class is thread-safe. As such, it will synchronize on the ReplayFile object when using it.
  */
-public class ReplayPreProcessor {
+public class EntityPositionTracker { //TODO rename ReplayPreprocessor
     private static final String ENTITY_TRACKER_CACHE_ENTRY = "entity_positions.json";
     private static final String TIMESTAMP_CACHE_ENTRY = "client_timestamps.json";
 
@@ -72,7 +72,7 @@ public class ReplayPreProcessor {
     private volatile Map<Integer, NavigableMap<Long, Location>> entityPositions;
     private volatile List<Long> clientTickTimestamps;
 
-    public ReplayPreProcessor(ReplayFile replayFile) {
+    public EntityPositionTracker(ReplayFile replayFile) {
         this.replayFile = replayFile;
     }
 
