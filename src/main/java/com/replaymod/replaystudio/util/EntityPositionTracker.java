@@ -237,14 +237,11 @@ public class EntityPositionTracker { //TODO rename ReplayPreprocessor
         );
     }
 
-    public Long getClientTickTimestamp(int tickIndex) {
+    public List<Long> getClientTickTimestamps() {
         if (clientTickTimestamps == null) {
             throw new IllegalStateException("Not yet initialized.");
         }
-        try {
-            return clientTickTimestamps.get(tickIndex);
-        } catch (IndexOutOfBoundsException e) {
-            return null;
-        }       
+        return clientTickTimestamps;
+
     }
 }
