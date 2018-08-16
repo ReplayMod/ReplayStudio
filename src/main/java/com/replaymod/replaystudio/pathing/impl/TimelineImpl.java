@@ -39,13 +39,13 @@ public class TimelineImpl implements Timeline {
     private List<Long> tickTimestamps;
 
     @Override
-    public Optional<List<Long>> getClientTicks(){
+    public Optional<List<Long>> getTickTimestamps(){
         if (tickTimestamps == null) return Optional.empty();
         return Optional.of(tickTimestamps);
     }
 
     @Override
-    public void setClientTicks(List<Long> tickTimestamps){
+    public void setTickTimestamps(List<Long> tickTimestamps){
         this.tickTimestamps = tickTimestamps;
     }
 

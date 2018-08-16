@@ -56,7 +56,7 @@ public interface Timeline {
      * isSynchronizedRendering in render settings)
      * @return List of client tick timestamps
      */
-    Optional<List<Long>> getClientTicks();
+    Optional<List<Long>> getTickTimestamps();
 
     /**
      * Sets the timestamp of each client tick
@@ -64,7 +64,7 @@ public interface Timeline {
      * with provided tick timestamps
      * @return List of paths
      */
-    void setClientTicks(List<Long> timestamps);
+    void setTickTimestamps(List<Long> timestamps);
 
     /**
      * Return the value of the property at the specified point in time.
