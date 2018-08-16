@@ -37,6 +37,7 @@ public class TimelineImpl implements Timeline {
     private Deque<Change> undoStack = new ArrayDeque<>();
     private Deque<Change> redoStack = new ArrayDeque<>();
     private List<Long> tickTimestamps;
+    
 
     @Override
     public Optional<List<Long>> getTickTimestamps(){
