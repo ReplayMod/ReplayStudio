@@ -356,7 +356,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     }
 
     private void putBatchRecords(){
-        //BAH removed batch so records are put in order - record re-delivery will be attempted for Service Unavailable excepetions
+        //BAH removed batch so records are put in order - record re-delivery will be attempted for Service Unavailable Excepetions
         if (recordList.size() == 0) {return;}
         logger.info("Puting Record...");
         Record record = recordList.remove();

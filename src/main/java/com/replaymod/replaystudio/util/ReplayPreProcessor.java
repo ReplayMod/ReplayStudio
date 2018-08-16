@@ -41,7 +41,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
@@ -59,62 +61,93 @@ import java.util.function.Consumer;
  * <br>
  * This class is thread-safe. As such, it will synchronize on the ReplayFile object when using it.
  */
-public class EntityPositionTracker {
-    private static final String CACHE_ENTRY = "entity_positions.json";
+public class ReplayPreProcessor {
+    private static final String ENTITY_TRACKER_CACHE_ENTRY = "entity_positions.json";
+    private static final String TIMESTAMP_CACHE_ENTRY = "client_timestamps.json";
+
+    private static final String[] ENTRIES = {ENTITY_TRACKER_CACHE_ENTRY, TIMESTAMP_CACHE_ENTRY};
 
     private final ReplayFile replayFile;
 
     private volatile Map<Integer, NavigableMap<Long, Location>> entityPositions;
+    private volatile List<Long> clientTickTimestamps;
 
-    public EntityPositionTracker(ReplayFile replayFile) {
+    public ReplayPreProcessor(ReplayFile replayFile) {
         this.replayFile = replayFile;
     }
 
     /**
-     * Load the entity positions either from cache or from the packet data.
+     * Load preprocessing entries either from cache or from the packet data.
      * @param progressMonitor Called with the current progress [0, 1] or not at all
      * @throws IOException if an i/o error occurs
      */
     public void load(Consumer<Double> progressMonitor) throws IOException {
         // BAH disable entityTracker cache for automated rendering
-        // Optional<InputStream> cached;
-        // synchronized (replayFile) {
-        //     cached = replayFile.get(CACHE_ENTRY);
-        // }
-        // if (cached.isPresent()) {
-        //     try (InputStream in = cached.get()) {
-        //         loadFromCache(in);
-        //     } catch (JsonSyntaxException e) {
-        //         // Cache contains invalid json, probably due to a previous crash / full disk
-        //         loadFromPacketData(progressMonitor);
-        //         synchronized (replayFile) {
-        //             replayFile.remove(CACHE_ENTRY);
-        //         }
-        //         saveToCache();
-        //     }
-        // } else {
+        Optional<InputStream> cached;
+        Boolean allCached = true;
+        for (String entry : ENTRIES) {
+            synchronized (replayFile) {
+                cached = replayFile.get(entry);
+            }
+            if (cached.isPresent()) {
+                try (InputStream in = cached.get()) {
+                    loadFromCache(in, entry);
+                } catch (JsonSyntaxException e) {
+                    // Cache contains invalid json, probably due to a previous crash / full disk
+                    synchronized (replayFile) {
+                        replayFile.remove(entry);
+                    }
+                }
+            } else {
+                allCached = false;
+            }
+        }
+
+        // Load from packet data any missing entries
+        if (!allCached) {
             loadFromPacketData(progressMonitor);
-            // saveToCache();
-        // }
+            saveToCache();
+        }
+        
+
+
     }
 
-    private void loadFromCache(InputStream in) throws IOException {
-        entityPositions = new Gson().fromJson(new InputStreamReader(in),
-                new TypeToken<TreeMap<Integer, TreeMap<Long, Location>>>(){}.getType());
+    private void loadFromCache(InputStream in, String entry) throws IOException {
+        if (entry == ENTITY_TRACKER_CACHE_ENTRY){
+            entityPositions = new Gson().fromJson(new InputStreamReader(in),
+                    new TypeToken<TreeMap<Integer, TreeMap<Long, Location>>>(){}.getType());
+        } 
+        else if (entry == TIMESTAMP_CACHE_ENTRY) {
+            clientTickTimestamps = new Gson().fromJson(new InputStreamReader(in), 
+                    new TypeToken<ArrayList<Long>>(){}.getType());
+        }
     }
 
     private void saveToCache() throws IOException {
         synchronized (replayFile) {
-            Optional<InputStream> cached = replayFile.get(CACHE_ENTRY);
+            Optional<InputStream> cached = replayFile.get(ENTITY_TRACKER_CACHE_ENTRY);
             if (cached.isPresent()) {
                 // Someone was faster than we were
                 cached.get().close();
                 return;
             }
 
-            try (OutputStream out = replayFile.write(CACHE_ENTRY);
+            try (OutputStream out = replayFile.write(ENTITY_TRACKER_CACHE_ENTRY);
                  OutputStreamWriter writer = new OutputStreamWriter(out, Charsets.UTF_8)) {
                 new Gson().toJson(entityPositions, writer);
+            }
+
+            cached = replayFile.get(TIMESTAMP_CACHE_ENTRY);
+            if (cached.isPresent()) {
+                // Someone was faster than we were
+                cached.get().close();
+                return;
+            }
+
+            try (OutputStream out = replayFile.write(TIMESTAMP_CACHE_ENTRY);
+                 OutputStreamWriter writer = new OutputStreamWriter(out, Charsets.UTF_8)) {
+                new Gson().toJson(clientTickTimestamps, writer);
             }
         }
     }
@@ -132,6 +165,7 @@ public class EntityPositionTracker {
         }
 
         Map<Integer, NavigableMap<Long, Location>> entityPositions = new HashMap<>();
+        List<Long> clientTickTimestamps = new ArrayList<Long>();
         try (ReplayInputStream in = origIn) {
             PacketData packetData;
             while ((packetData = in.readPacket()) != null) {
@@ -140,27 +174,34 @@ public class EntityPositionTracker {
                 // Filter packets that are not of interest
                 if (packet instanceof IWrappedPacket) continue;
 
+                // Process Entity ID Packets
                 Integer entityID = PacketUtils.getEntityId(packet);
-                if (entityID == null) continue;
+                if (entityID != null) {
+                    NavigableMap<Long, Location> positions = entityPositions.get(entityID);
+                    if (positions == null) {
+                        entityPositions.put(entityID, positions = new TreeMap<>());
+                    }
 
-                NavigableMap<Long, Location> positions = entityPositions.get(entityID);
-                if (positions == null) {
-                    entityPositions.put(entityID, positions = new TreeMap<>());
-                }
+                    Location oldPosition = positions.isEmpty() ? null : positions.lastEntry().getValue();
+                    Location newPosition = PacketUtils.updateLocation(oldPosition, packet);
 
-                Location oldPosition = positions.isEmpty() ? null : positions.lastEntry().getValue();
-                Location newPosition = PacketUtils.updateLocation(oldPosition, packet);
+                    if (newPosition != null) {
+                        positions.put(packetData.getTime(), newPosition);
 
-                if (newPosition != null) {
-                    positions.put(packetData.getTime(), newPosition);
+                        double progress = (double) packetData.getTime() / replayLength;
+                        progressMonitor.accept(Math.min(1, Math.max(0, progress)));
+                    }
+                };
 
-                    double progress = (double) packetData.getTime() / replayLength;
-                    progressMonitor.accept(Math.min(1, Math.max(0, progress)));
+                // Process client tick timestamps
+                if (PacketUtils.isClientTick(packet)) {
+                    clientTickTimestamps.add(packetData.getTime());
                 }
             }
         }
 
         this.entityPositions = entityPositions;
+        this.clientTickTimestamps = clientTickTimestamps;
     }
 
     /**
