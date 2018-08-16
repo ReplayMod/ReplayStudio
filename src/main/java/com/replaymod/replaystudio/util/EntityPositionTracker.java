@@ -236,4 +236,15 @@ public class EntityPositionTracker { //TODO rename ReplayPreprocessor
                 l.getPitch() + (h.getPitch() - l.getPitch()) * (float) r
         );
     }
+
+    public Long getClientTickTimestamp(int tickIndex) {
+        if (clientTickTimestamps == null) {
+            throw new IllegalStateException("Not yet initialized.");
+        }
+        try {
+            return clientTickTimestamps.get(tickIndex);
+        } catch (IndexOutOfBoundsException e) {
+            return null;
+        }       
+    }
 }
