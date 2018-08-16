@@ -242,6 +242,5 @@ public class EntityPositionTracker { //TODO rename ReplayPreprocessor
             throw new IllegalStateException("Not yet initialized.");
         }
         return clientTickTimestamps;
-
     }
 }
