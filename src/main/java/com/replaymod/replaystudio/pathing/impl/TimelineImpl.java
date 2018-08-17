@@ -42,7 +42,7 @@ public class TimelineImpl implements Timeline {
     @Override
     public List<Long> getTickTimestamps(){
         List<Long> clientTickTimestamps = new ArrayList<Long>();
-        for(long i = 1000; i < 5000; i += 50){
+        for(long i = 10000; i < 15000; i += 50){
             clientTickTimestamps.add(i);
         }
         return clientTickTimestamps;
