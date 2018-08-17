@@ -169,7 +169,7 @@ public class EntityPositionTracker { //TODO rename ReplayPreprocessor
 
         Map<Integer, NavigableMap<Long, Location>> entityPositions = new HashMap<>();
         List<Long> clientTickTimestamps = new ArrayList<Long>();
-        for(long i = 1000; i < 5000; i+= 50){
+        for(long i = 5000; i < 150000; i+= 50){
             clientTickTimestamps.add(i);
         }
         try (ReplayInputStream in = origIn) {
@@ -201,7 +201,7 @@ public class EntityPositionTracker { //TODO rename ReplayPreprocessor
 
                 // Process client tick timestamps
                 else if (PacketUtils.isClientTick(packet)) {
-                    clientTickTimestamps.add(packetData.getTime());
+                    //clientTickTimestamps.add(packetData.getTime());
                 }
             }
         }
