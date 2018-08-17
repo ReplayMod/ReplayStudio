@@ -89,31 +89,31 @@ public class EntityPositionTracker { //TODO rename ReplayPreprocessor
 
         // End disable entityTracker cache for automated rendering
 
-        Optional<InputStream> cached;
-        Boolean allCached = true;
-        for (String entry : ENTRIES) {
-            synchronized (replayFile) {
-                cached = replayFile.get(entry);
-            }
-            if (cached.isPresent()) {
-                try (InputStream in = cached.get()) {
-                    loadFromCache(in, entry);
-                } catch (JsonSyntaxException e) {
-                    // Cache contains invalid json, probably due to a previous crash / full disk
-                    synchronized (replayFile) {
-                        replayFile.remove(entry);
-                    }
-                }
-            } else {
-                allCached = false;
-            }
-        }
+        // Optional<InputStream> cached;
+        // Boolean allCached = true;
+        // for (String entry : ENTRIES) {
+        //     synchronized (replayFile) {
+        //         cached = replayFile.get(entry);
+        //     }
+        //     if (cached.isPresent()) {
+        //         try (InputStream in = cached.get()) {
+        //             loadFromCache(in, entry);
+        //         } catch (JsonSyntaxException e) {
+        //             // Cache contains invalid json, probably due to a previous crash / full disk
+        //             synchronized (replayFile) {
+        //                 replayFile.remove(entry);
+        //             }
+        //         }
+        //     } else {
+        //         allCached = false;
+        //     }
+        // }
 
-        // Load from packet data any missing entries
-        if (!allCached) {
-            loadFromPacketData(progressMonitor);
-            saveToCache();
-        }
+        // // Load from packet data any missing entries
+        // if (!allCached) {
+        //     loadFromPacketData(progressMonitor);
+        //     saveToCache();
+        // }
     }
 
     private void loadFromCache(InputStream in, String entry) throws IOException {
@@ -169,7 +169,7 @@ public class EntityPositionTracker { //TODO rename ReplayPreprocessor
 
         Map<Integer, NavigableMap<Long, Location>> entityPositions = new HashMap<>();
         List<Long> clientTickTimestamps = new ArrayList<Long>();
-        for(int i = 1000; i < 5000; i+= 50){
+        for(long i = 1000; i < 5000; i+= 50){
             clientTickTimestamps.add(i);
         }
         try (ReplayInputStream in = origIn) {
@@ -197,7 +197,7 @@ public class EntityPositionTracker { //TODO rename ReplayPreprocessor
                         double progress = (double) packetData.getTime() / replayLength;
                         progressMonitor.accept(Math.min(1, Math.max(0, progress)));
                     }
-                };
+                }
 
                 // Process client tick timestamps
                 else if (PacketUtils.isClientTick(packet)) {
