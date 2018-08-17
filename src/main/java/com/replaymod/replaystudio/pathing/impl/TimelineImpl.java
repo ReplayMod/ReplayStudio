@@ -42,6 +42,7 @@ public class TimelineImpl implements Timeline {
     @Override
     public Optional<List<Long>> getTickTimestamps(){
         if (tickTimestamps == null) return Optional.empty();
+        if (tickTimestamps.size() == 0) return Optional.empty();
         return Optional.of(tickTimestamps);
     }
 
