@@ -81,7 +81,18 @@ public class TimelineSerialization {
         writer.beginObject();
         for (Map.Entry<String, Timeline> entry : timelines.entrySet()) {
             Timeline timeline = entry.getValue();
-            writer.name(entry.getKey()).beginArray();
+            writer.name(entry.getKey()) //Timeline Property
+
+            //Keyframe Serialization
+            writer.beginObject();
+            writer.name("tickTimestamps").beginArray();
+            for (Integer i : timeline.getTickTimestamps()) {
+                writer.value(i);
+            }
+            writer.endArray();
+            //End keyframe serialization
+            writer.beginObject();
+            writer.name("paths").beginArray();
             for (Path path : timeline.getPaths()) {
                 writer.beginObject();
                 writer.name("keyframes").beginArray();
@@ -145,107 +156,122 @@ public class TimelineSerialization {
         while (reader.hasNext()) {
             Timeline timeline = registry.createTimeline();
             timelines.put(reader.nextName(), timeline);
-            reader.beginArray();
-            while (reader.hasNext()) {
-                Path path = timeline.createPath();
-                reader.beginObject();
-                List<Integer> segments = new ArrayList<>();
-                List<Interpolator> interpolators = new ArrayList<>();
+            reader.beginObject();
+            switch (reader.nextName()){
+                case "paths":
+                    reader.beginArray();
+                    while (reader.hasNext()) {
+                        List<Long> tickTimestamps = new ArrayList<Long>();
+                        reader.beginArray();
+                        while (reader.hasNext())
+                        Path path = timeline.createPath();
+                        reader.beginObject();
+                        List<Integer> segments = new ArrayList<>();
+                        List<Interpolator> interpolators = new ArrayList<>();
+                        while (reader.hasNext()) {
+                            switch (reader.nextName()) {
+                                case "keyframes":
+                                    reader.beginArray();
+                                    while (reader.hasNext()) {
+                                        long time = 0;
+                                        Map<Property, Object> properties = new HashMap<>();
+                                        reader.beginObject();
+                                        while (reader.hasNext()) {
+                                            switch (reader.nextName()) {
+                                                case "time":
+                                                    time = reader.nextLong();
+                                                    break;
+                                                case "properties":
+                                                    reader.beginObject();
+                                                    while (reader.hasNext()) {
+                                                        String id = reader.nextName();
+                                                        Property property = timeline.getProperty(id);
+                                                        if (property == null) {
+                                                            throw new IOException("Unknown property: " + id);
+                                                        }
+                                                        Object value = property.fromJson(reader);
+                                                        properties.put(property, value);
+                                                    }
+                                                    reader.endObject();
+                                                    break;
+                                            }
+                                        }
+                                        reader.endObject();
+                                        Keyframe keyframe = path.insert(time);
+                                        for (Map.Entry<Property, Object> entry : properties.entrySet()) {
+                                            keyframe.setValue(entry.getKey(), entry.getValue());
+                                        }
+                                    }
+                                    reader.endArray();
+                                    break;
+                                case "segments":
+                                    reader.beginArray();
+                                    while (reader.hasNext()) {
+                                        if (reader.peek() == JsonToken.NULL) {
+                                            reader.nextNull();
+                                            segments.add(null);
+                                        } else {
+                                            segments.add(reader.nextInt());
+                                        }
+                                    }
+                                    reader.endArray();
+                                    break;
+                                case "interpolators":
+                                    reader.beginArray();
+                                    while (reader.hasNext()) {
+                                        reader.beginObject();
+                                        Interpolator interpolator = null;
+                                        Set<String> properties = new HashSet<>();
+                                        while (reader.hasNext()) {
+                                            switch (reader.nextName()) {
+                                                case "type":
+                                                    interpolator = registry.deserializeInterpolator(reader);
+                                                    break;
+                                                case "properties":
+                                                    reader.beginArray();
+                                                    while (reader.hasNext()) {
+                                                        properties.add(reader.nextString());
+                                                    }
+                                                    reader.endArray();
+                                                    break;
+                                            }
+                                        }
+                                        if (interpolator == null) {
+                                            throw new IOException("Missing interpolator type");
+                                        }
+                                        for (String propertyName : properties) {
+                                            Property property = timeline.getProperty(propertyName);
+                                            if (property == null) {
+                                                throw new IOException("Timeline does not know property '" + propertyName + "'");
+                                            }
+                                            interpolator.registerProperty(property);
+                                        }
+                                        interpolators.add(interpolator);
+                                        reader.endObject();
+                                    }
+                                    reader.endArray();
+                                    break;
+                            }
+                        }
+                        Iterator<Integer> iter = segments.iterator();
+                        for (PathSegment segment : path.getSegments()) {
+                            Integer next = iter.next();
+                            if (next != null) {
+                                segment.setInterpolator(interpolators.get(next));
+                            }
+                        }
+                        reader.endObject();
+                    }
+                    reader.endArray();
+                case "tickTimestamps":
+                reader.beginArray();
+                List<Long> tickTimestamps = new ArrayList<Long>();
                 while (reader.hasNext()) {
-                    switch (reader.nextName()) {
-                        case "keyframes":
-                            reader.beginArray();
-                            while (reader.hasNext()) {
-                                long time = 0;
-                                Map<Property, Object> properties = new HashMap<>();
-                                reader.beginObject();
-                                while (reader.hasNext()) {
-                                    switch (reader.nextName()) {
-                                        case "time":
-                                            time = reader.nextLong();
-                                            break;
-                                        case "properties":
-                                            reader.beginObject();
-                                            while (reader.hasNext()) {
-                                                String id = reader.nextName();
-                                                Property property = timeline.getProperty(id);
-                                                if (property == null) {
-                                                    throw new IOException("Unknown property: " + id);
-                                                }
-                                                Object value = property.fromJson(reader);
-                                                properties.put(property, value);
-                                            }
-                                            reader.endObject();
-                                            break;
-                                    }
-                                }
-                                reader.endObject();
-                                Keyframe keyframe = path.insert(time);
-                                for (Map.Entry<Property, Object> entry : properties.entrySet()) {
-                                    keyframe.setValue(entry.getKey(), entry.getValue());
-                                }
-                            }
-                            reader.endArray();
-                            break;
-                        case "segments":
-                            reader.beginArray();
-                            while (reader.hasNext()) {
-                                if (reader.peek() == JsonToken.NULL) {
-                                    reader.nextNull();
-                                    segments.add(null);
-                                } else {
-                                    segments.add(reader.nextInt());
-                                }
-                            }
-                            reader.endArray();
-                            break;
-                        case "interpolators":
-                            reader.beginArray();
-                            while (reader.hasNext()) {
-                                reader.beginObject();
-                                Interpolator interpolator = null;
-                                Set<String> properties = new HashSet<>();
-                                while (reader.hasNext()) {
-                                    switch (reader.nextName()) {
-                                        case "type":
-                                            interpolator = registry.deserializeInterpolator(reader);
-                                            break;
-                                        case "properties":
-                                            reader.beginArray();
-                                            while (reader.hasNext()) {
-                                                properties.add(reader.nextString());
-                                            }
-                                            reader.endArray();
-                                            break;
-                                    }
-                                }
-                                if (interpolator == null) {
-                                    throw new IOException("Missing interpolator type");
-                                }
-                                for (String propertyName : properties) {
-                                    Property property = timeline.getProperty(propertyName);
-                                    if (property == null) {
-                                        throw new IOException("Timeline does not know property '" + propertyName + "'");
-                                    }
-                                    interpolator.registerProperty(property);
-                                }
-                                interpolators.add(interpolator);
-                                reader.endObject();
-                            }
-                            reader.endArray();
-                            break;
-                    }
+                    tickTimestamps.add(reader.nextLong());
                 }
-                Iterator<Integer> iter = segments.iterator();
-                for (PathSegment segment : path.getSegments()) {
-                    Integer next = iter.next();
-                    if (next != null) {
-                        segment.setInterpolator(interpolators.get(next));
-                    }
-                }
-                reader.endObject();
+                reader.endArray();
             }
-            reader.endArray();
+                
         }
         reader.endObject();
         return timelines;

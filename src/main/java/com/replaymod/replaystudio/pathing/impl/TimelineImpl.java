@@ -48,7 +48,8 @@ public class TimelineImpl implements Timeline {
         // return clientTickTimestamps;
 
         if (tickTimestamps == null || tickTimestamps.size() == 0) {
-            return null;
+            List<Long> emptyList = Collections.emptyList();
+            return emptyList;
         }
         return tickTimestamps;
     }
