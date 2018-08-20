@@ -24,7 +24,7 @@
  */
 package com.replaymod.replaystudio.util;
 
-import com.github.steveice10.mc.protocol.packet.ingame.client.ClientPluginMessagePacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerPluginMessagePacket;
 
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityAttachPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityEffectPacket;
@@ -90,7 +90,7 @@ public class PacketUtils {
      * @param studio The studio
      */
     public static void registerAllClientTickRelated(Studio studio) {
-        studio.setParsing(ClientPluginMessagePacket.class, true);
+        studio.setParsing(ServerPluginMessagePacket.class, true);
     }
 
     /**
@@ -99,8 +99,8 @@ public class PacketUtils {
      * @return Client Tick Timestamp (ms) or {@code null}
      */
     public static Boolean isClientTick(Packet packet) {
-        if (packet instanceof ClientPluginMessagePacket){
-            if ("t".equals(((ClientPluginMessagePacket) packet).getChannel())){
+        if (packet instanceof ServerPluginMessagePacket){
+            if ("t".equals(((ServerPluginMessagePacket) packet).getChannel())){
                 return true;
             }
         }
