@@ -81,71 +81,67 @@ public class TimelineSerialization {
         writer.beginObject();
         for (Map.Entry<String, Timeline> entry : timelines.entrySet()) {
             Timeline timeline = entry.getValue();
-            writer.name(entry.getKey()); //Timeline Property
+            writer.name(entry.getKey()).beginObject(); //Timeline Property
 
-
-            //Tick Serialization
-            if (timeline.getTickTimestamps() != null && timeline.getTickTimestamps().size() > 0){
-                writer.beginObject();
-                writer.name("tickTimestamps").beginArray();
-                for (Long i : timeline.getTickTimestamps()) {
-                    writer.value(i);
-                }
-                writer.endArray();
-                writer.endObject();
-            }
-           
-
-
-            //Pathing Serialization
-            writer.beginObject();
-            writer.name("paths").beginArray();
-            for (Path path : timeline.getPaths()) {
-                writer.beginObject();
-                writer.name("keyframes").beginArray();
-                for (Keyframe keyframe : path.getKeyframes()) {
-                    writer.beginObject();
-                    writer.name("time").value(keyframe.getTime());
-                    writer.name("properties").beginObject();
-                    for (Property<?> property : keyframe.getProperties()) {
-                        writer.name((property.getGroup() == null ? "" : property.getGroup().getId() + ":") + property.getId());
-                        writeProperty(writer, keyframe, property);
-                    }
-                    writer.endObject();
-                    writer.endObject();
-                }
-                writer.endArray();
-                Map<Interpolator, Integer> interpolators = new LinkedHashMap<>();
-                writer.name("segments").beginArray();
-                for (PathSegment segment : path.getSegments()) {
-                    Interpolator interpolator = segment.getInterpolator();
-                    if (interpolator == null) {
-                        writer.nullValue();
-                    } else {
-                        Integer index = interpolators.get(interpolator);
-                        if (index == null) {
-                            interpolators.put(interpolator, index = interpolators.size());
+                //Tick Serialization
+                if (timeline.getTickTimestamps() != null && timeline.getTickTimestamps().size() > 0){
+                    writer.name("tickTimestamps").beginArray();
+                        for (Long i : timeline.getTickTimestamps()) {
+                            writer.value(i);
                         }
-                        writer.value(index);
-                    }
-                }
-                writer.endArray();
-                writer.name("interpolators").beginArray();
-                for (Interpolator interpolator : interpolators.keySet()) {
-                    writer.beginObject();
-                    writer.name("type");
-                    registry.serializeInterpolator(writer, interpolator);
-                    writer.name("properties").beginArray();
-                    for (Property<?> property : interpolator.getKeyframeProperties()) {
-                        writer.value((property.getGroup() == null ? "" : property.getGroup().getId() + ":") + property.getId());
-                    }
                     writer.endArray();
-                    writer.endObject();
                 }
+            
+
+
+                //Pathing Serialization
+                writer.name("paths").beginArray();
+                    for (Path path : timeline.getPaths()) {
+                        writer.beginObject();
+                            writer.name("keyframes").beginArray();
+                                for (Keyframe keyframe : path.getKeyframes()) {
+                                    writer.beginObject();
+                                    writer.name("time").value(keyframe.getTime());
+                                    writer.name("properties").beginObject();
+                                    for (Property<?> property : keyframe.getProperties()) {
+                                        writer.name((property.getGroup() == null ? "" : property.getGroup().getId() + ":") + property.getId());
+                                        writeProperty(writer, keyframe, property);
+                                    }
+                                    writer.endObject();
+                                    writer.endObject();
+                                }
+                                writer.endArray();
+                                Map<Interpolator, Integer> interpolators = new LinkedHashMap<>();
+                                writer.name("segments").beginArray();
+                                for (PathSegment segment : path.getSegments()) {
+                                    Interpolator interpolator = segment.getInterpolator();
+                                    if (interpolator == null) {
+                                        writer.nullValue();
+                                    } else {
+                                        Integer index = interpolators.get(interpolator);
+                                        if (index == null) {
+                                            interpolators.put(interpolator, index = interpolators.size());
+                                        }
+                                        writer.value(index);
+                                    }
+                                }
+                                writer.endArray();
+                                writer.name("interpolators").beginArray();
+                                for (Interpolator interpolator : interpolators.keySet()) {
+                                    writer.beginObject();
+                                    writer.name("type");
+                                    registry.serializeInterpolator(writer, interpolator);
+                                    writer.name("properties").beginArray();
+                                    for (Property<?> property : interpolator.getKeyframeProperties()) {
+                                        writer.value((property.getGroup() == null ? "" : property.getGroup().getId() + ":") + property.getId());
+                                    }
+                                    writer.endArray();
+                                    writer.endObject();
+                                }
+                            writer.endArray();
+                        writer.endObject();
+                    }
                 writer.endArray();
-                writer.endObject();
-            }
-            writer.endArray();
             writer.endObject();
         }
         writer.endObject();
