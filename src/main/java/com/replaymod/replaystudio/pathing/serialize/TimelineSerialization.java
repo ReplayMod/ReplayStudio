@@ -92,6 +92,7 @@ public class TimelineSerialization {
                     writer.value(i);
                 }
                 writer.endArray();
+                writer.endObject();
             }
            
 
@@ -145,6 +146,7 @@ public class TimelineSerialization {
                 writer.endObject();
             }
             writer.endArray();
+            writer.endObject();
         }
         writer.endObject();
         writer.flush();
