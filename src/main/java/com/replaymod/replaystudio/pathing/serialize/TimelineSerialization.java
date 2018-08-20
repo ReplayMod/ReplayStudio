@@ -85,13 +85,16 @@ public class TimelineSerialization {
 
 
             //Tick Serialization
-            writer.beginObject();
-            writer.name("tickTimestamps").beginArray();
-            for (Long i : timeline.getTickTimestamps()) {
-                writer.value(i);
+            if (timeline.getTickTimestamps() != null && timeline.getTickTimestamps().size() > 0){
+                writer.beginObject();
+                writer.name("tickTimestamps").beginArray();
+                for (Long i : timeline.getTickTimestamps()) {
+                    writer.value(i);
+                }
+                writer.endArray();
             }
-            writer.endArray();
-            //End keyframe serialization
+           
+
 
             //Pathing Serialization
             writer.beginObject();
@@ -166,16 +169,13 @@ public class TimelineSerialization {
                     case "paths":
                         reader.beginArray();
                         while (reader.hasNext()) {
-                            List<Long> tickTimestamps = new ArrayList<Long>();
-                            reader.beginArray();
-                            while (reader.hasNext())
-                            Path path = timeline.createPath();
-                            reader.beginObject();
-                            List<Integer> segments = new ArrayList<>();
-                            List<Interpolator> interpolators = new ArrayList<>();
-                            while (reader.hasNext()) {
-                                switch (reader.nextName()) {
-                                    case "keyframes":
+                        Path path = timeline.createPath();
+                        reader.beginObject();
+                        List<Integer> segments = new ArrayList<>();
+                        List<Interpolator> interpolators = new ArrayList<>();
+                        while (reader.hasNext()) {
+                            switch (reader.nextName()) {
+                                case "keyframes":
                                         reader.beginArray();
                                         while (reader.hasNext()) {
                                             long time = 0;
