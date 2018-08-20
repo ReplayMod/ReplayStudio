@@ -18,7 +18,7 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
@@ -100,9 +100,10 @@ public class PacketUtils {
      */
     public static Boolean isClientTick(Packet packet) {
         if (packet instanceof ServerPluginMessagePacket){
-            if ("t".equals(((ServerPluginMessagePacket) packet).getChannel())){
-                return true;
-            }
+            return true;
+            // if ("t".equals(((ServerPluginMessagePacket) packet).getChannel())){
+            //     return true;
+            // }
         }
         return false;
     }
