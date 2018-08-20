@@ -263,7 +263,7 @@ public class TimelineSerialization {
                             if (next != null) {
                                 segment.setInterpolator(interpolators.get(next));
                             }
-                        }
+                        } 
                         reader.endObject();
                     }
                     reader.endArray();
