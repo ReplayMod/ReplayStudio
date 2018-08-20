@@ -100,10 +100,9 @@ public class PacketUtils {
      */
     public static Boolean isClientTick(Packet packet) {
         if (packet instanceof ServerPluginMessagePacket){
-            return true;
-            // if ("t".equals(((ServerPluginMessagePacket) packet).getChannel())){
-            //     return true;
-            // }
+            if ("t".equals(((ServerPluginMessagePacket) packet).getChannel())){
+                return true;
+            }
         }
         return false;
     }

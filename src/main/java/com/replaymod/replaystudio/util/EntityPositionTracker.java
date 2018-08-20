@@ -159,6 +159,7 @@ public class EntityPositionTracker { //TODO rename ReplayPreprocessor
         // We use a different studio than the default one as we're only interested in some specific packets.
         ReplayStudio studio = new ReplayStudio();
         PacketUtils.registerAllMovementRelated(studio);
+        PacketUtils.registerAllClientTickRelated(studio);
         // Get the packet data input stream
         int replayLength;
         ReplayInputStream origIn;
@@ -178,7 +179,7 @@ public class EntityPositionTracker { //TODO rename ReplayPreprocessor
                 Packet packet = packetData.getPacket();
 
                 // Filter packets that are not of interest
-                //if (packet instanceof IWrappedPacket) continue;
+                if (packet instanceof IWrappedPacket) continue;
 
                 // Process Entity ID Packets
                 Integer entityID = PacketUtils.getEntityId(packet);
@@ -200,7 +201,7 @@ public class EntityPositionTracker { //TODO rename ReplayPreprocessor
                 }
 
                 // Process client tick timestamps
-                if (PacketUtils.isClientTick(packet)) {
+                else if (PacketUtils.isClientTick(packet)) {
                     clientTickTimestamps.add(packetData.getTime());
                 }
             }
