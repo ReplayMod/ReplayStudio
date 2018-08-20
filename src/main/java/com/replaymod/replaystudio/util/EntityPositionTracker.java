@@ -178,7 +178,7 @@ public class EntityPositionTracker { //TODO rename ReplayPreprocessor
                 Packet packet = packetData.getPacket();
 
                 // Filter packets that are not of interest
-                if (packet instanceof IWrappedPacket) continue;
+                //if (packet instanceof IWrappedPacket) continue;
 
                 // Process Entity ID Packets
                 Integer entityID = PacketUtils.getEntityId(packet);
@@ -200,7 +200,7 @@ public class EntityPositionTracker { //TODO rename ReplayPreprocessor
                 }
 
                 // Process client tick timestamps
-                else if (PacketUtils.isClientTick(packet)) {
+                if (PacketUtils.isClientTick(packet)) {
                     clientTickTimestamps.add(packetData.getTime());
                 }
             }
