@@ -420,7 +420,7 @@ public class StreamReplayFile extends AbstractReplayFile {
     *  Write methods
     *  
     *  The following methods are adapted to write data to aws kinesis firehose
-    *  streams. Streming data is structured as follows:
+    *  streams. Streaming data is structured as follows:
     *  
     *  int      :   Entry Type
     *  int      :   Timestamp (0 if not defined)
