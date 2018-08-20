@@ -18,11 +18,13 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
 package com.replaymod.replaystudio.util;
+
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerPluginMessagePacket;
 
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityAttachPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityEffectPacket;
@@ -82,6 +84,29 @@ import java.util.Set;
  * Contains utilities for working with packets.
  */
 public class PacketUtils {
+
+    /**
+     * Registers all packets which contain client tick information necessary for the getTickTimestamp method.
+     * @param studio The studio
+     */
+    public static void registerAllClientTickRelated(Studio studio) {
+        studio.setParsing(ServerPluginMessagePacket.class, true);
+    }
+
+    /**
+     * Returns the timestamp in ms of the next client tick.
+     * If no tick is associated with the packet this returns {@code null}.
+     * @return Client Tick Timestamp (ms) or {@code null}
+     */
+    public static Boolean isClientTick(Packet packet) {
+        if (packet instanceof ServerPluginMessagePacket){
+            if ("t".equals(((ServerPluginMessagePacket) packet).getChannel())){
+                return true;
+            }
+        }
+        return false;
+    }
+    
 
     @SuppressWarnings("unchecked")
     public static final Set<Class<? extends Packet>> MOVEMENT_RELATED = Collections.unmodifiableSet(Sets.newHashSet(

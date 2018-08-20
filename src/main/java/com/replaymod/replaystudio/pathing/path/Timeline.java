@@ -50,6 +50,23 @@ public interface Timeline {
     Path createPath();
 
     /**
+     * Returns the list client tick timestamps representing when a tick event occurred 
+     * in the recording - allows replay mod to more accurately model interactions such as 
+     * particle effects and lighting as well as render frames based on client tick (see 
+     * isSynchronizedRendering in render settings)
+     * @return List of client tick timestamps
+     */
+    List<Long> getTickTimestamps();
+
+    /**
+     * Sets the timestamp of each client tick
+     * Only used when isSyncronized is set, forces timeline to tick client in sync
+     * with provided tick timestamps
+     * @return List of paths
+     */
+    void setTickTimestamps(List<Long> timestamps);
+
+    /**
      * Return the value of the property at the specified point in time.
      *
      * @param property The property

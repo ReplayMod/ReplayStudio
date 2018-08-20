@@ -117,6 +117,13 @@ public class ReplayMetaData {
      */
     private String[] players = new String[0];
 
+     /**
+     * The session metadata 
+     * Must be a well formed JSON object containing infromation and statistics on 
+     * what was recorded in this replay
+     */
+    private String expMetadata = "{\"version\":1}";
+
     public ReplayMetaData() {
     }
 
@@ -173,6 +180,10 @@ public class ReplayMetaData {
         return this.players;
     }
 
+    public String getExpMetadata() {
+        return this.expMetadata;
+    }
+
     public void setSingleplayer(boolean singleplayer) {
         this.singleplayer = singleplayer;
     }
@@ -213,6 +224,10 @@ public class ReplayMetaData {
         this.players = players;
     }
 
+    public void setExpMetadata(String experimentMetadata) {
+        this.expMetadata = experimentMetadata;
+    }
+
     public boolean equals(Object o) {
         if (o == this) return true;
         if (!(o instanceof ReplayMetaData)) return false;
@@ -227,7 +242,8 @@ public class ReplayMetaData {
         if (this.fileFormatVersion != other.fileFormatVersion) return false;
         if (!Objects.equals(this.generator, other.generator)) return false;
         if (this.selfId != other.selfId) return false;
-        return Arrays.deepEquals(this.players, other.players);
+        if (Arrays.deepEquals(this.players, other.players)) return false;
+        return Objects.equals(this.expMetadata, other.expMetadata);
     }
 
     public int hashCode() {
@@ -242,6 +258,7 @@ public class ReplayMetaData {
         result = result * 59 + (generator == null ? 0 : generator.hashCode());
         result = result * 59 + this.selfId;
         result = result * 59 + Arrays.deepHashCode(this.players);
+        result = result * 59 + (expMetadata == null ? 0 : expMetadata.hashCode());
         return result;
     }
 
@@ -262,6 +279,7 @@ public class ReplayMetaData {
                 ", generator='" + generator + '\'' +
                 ", selfId=" + selfId +
                 ", players=" + Arrays.toString(players) +
+                ", experimentMetadata=" + expMetadata + 
                 '}';
     }
 }

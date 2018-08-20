@@ -36,6 +36,28 @@ public class TimelineImpl implements Timeline {
     private Map<String, Property> properties = new HashMap<>();
     private Deque<Change> undoStack = new ArrayDeque<>();
     private Deque<Change> redoStack = new ArrayDeque<>();
+    private List<Long> tickTimestamps;
+    
+
+    @Override
+    public List<Long> getTickTimestamps(){
+        // List<Long> clientTickTimestamps = new ArrayList<Long>();
+        // for(long i = 10000; i < 15000; i += 50){
+        //     clientTickTimestamps.add(i);
+        // }
+        // return clientTickTimestamps;
+
+        if (tickTimestamps == null || tickTimestamps.size() == 0) {
+            List<Long> emptyList = Collections.emptyList();
+            return emptyList;
+        }
+        return tickTimestamps;
+    }
+
+    @Override
+    public void setTickTimestamps(List<Long> tickTimestamps){
+        this.tickTimestamps = tickTimestamps;
+    }
 
     @Override
     public List<Path> getPaths() {

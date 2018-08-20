@@ -32,6 +32,10 @@ public final class Marker {
     private int time;
     private double x, y, z;
     private float yaw, pitch, roll;
+    private Boolean startRecording = false;
+    private Boolean stopRecording  = false;
+    private String metadata = "{}";
+
 
     public String getName() {
         return name;
@@ -97,6 +101,45 @@ public final class Marker {
         this.roll = roll;
     }
 
+    /**
+     * @return the if marker denotes the start of a recording
+     */
+    public Boolean getStartRecording() {
+        return startRecording;
+    }
+    /**
+     * @param startRecording set the start recording flag
+     */
+    public void setStartRecording(Boolean startRecording) {
+        this.startRecording = startRecording;
+    }
+    /**
+     * @return the if marker denotes the end of a recording
+     */
+    public Boolean getStopRecording() {
+        return stopRecording;
+    }
+    /**
+     * @param stopRecording set the stop recording flag
+     */
+    public void setStopRecording(Boolean stopRecording) {
+        this.stopRecording = stopRecording;
+    }
+
+    /**
+     * @return the metadata for this marker
+     */
+    public String getMetadata() {
+        return metadata;
+    }
+
+    /**
+     * @param metadata the metadata for the experement
+     */
+    public void setMetadata(String metadata) {
+        this.metadata = metadata;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -111,6 +154,9 @@ public final class Marker {
         if (Float.compare(marker.yaw, yaw) != 0) return false;
         if (Float.compare(marker.pitch, pitch) != 0) return false;
         if (Float.compare(marker.roll, roll) != 0) return false;
+        if (Boolean.compare(marker.startRecording, startRecording) != 0) return false;
+        if (Boolean.compare(marker.stopRecording, stopRecording) != 0) return false;
+        if (!marker.metadata.equals(metadata)) return false;
         return !(name != null ? !name.equals(marker.name) : marker.name != null);
     }
 
@@ -129,6 +175,7 @@ public final class Marker {
         result = 31 * result + (yaw != +0.0f ? Float.floatToIntBits(yaw) : 0);
         result = 31 * result + (pitch != +0.0f ? Float.floatToIntBits(pitch) : 0);
         result = 31 * result + (roll != +0.0f ? Float.floatToIntBits(roll) : 0);
+        result = 31 * result + metadata.hashCode();
         return result;
     }
 
@@ -143,6 +190,9 @@ public final class Marker {
                 ", yaw=" + yaw +
                 ", pitch=" + pitch +
                 ", roll=" + roll +
+                ", start recording=" + startRecording.toString() +
+                ", stop recording=" + stopRecording.toString() +
+                ", metadata=" + metadata.toString() + 
                 '}';
     }
 }

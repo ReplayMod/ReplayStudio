@@ -45,17 +45,18 @@ import java.util.regex.Pattern;
 
 public abstract class AbstractReplayFile implements ReplayFile {
 
-    private static final String ENTRY_META_DATA = "metaData.json";
-    private static final String ENTRY_RECORDING = "recording.tmcpr";
-    private static final String ENTRY_RESOURCE_PACK = "resourcepack/%s.zip";
-    private static final String ENTRY_RESOURCE_PACK_INDEX = "resourcepack/index.json";
-    private static final String ENTRY_THUMB = "thumb";
-    private static final String ENTRY_VISIBILITY_OLD = "visibility";
-    private static final String ENTRY_VISIBILITY = "visibility.json";
-    private static final String ENTRY_MARKERS = "markers.json";
-    private static final String ENTRY_ASSET = "asset/%s_%s.%s";
-    private static final Pattern PATTERN_ASSETS = Pattern.compile("asset/.*");
-    private static final String ENTRY_MODS = "mods.json";
+    protected static final String ENTRY_META_DATA = "metaData.json";
+    protected static final String ENTRY_RECORDING = "recording.tmcpr";
+    protected static final String ENTRY_RESOURCE_PACK = "resourcepack/%s.zip";
+    protected static final String ENTRY_RESOURCE_PACK_INDEX = "resourcepack/index.json";
+    protected static final String ENTRY_THUMB = "thumb";
+    protected static final String ENTRY_VISIBILITY_OLD = "visibility";
+    protected static final String ENTRY_VISIBILITY = "visibility.json";
+    protected static final String ENTRY_MARKERS = "markers.json";
+    protected static final String ENTRY_ASSET = "asset/%s_%s.%s";
+    protected static final Pattern PATTERN_ASSETS = Pattern.compile("asset/.*");
+    protected static final String ENTRY_MODS = "mods.json";
+    protected static final String ENTRY_ACTIONS = "actions.tmcpr";
 
     private static final byte[] THUMB_MAGIC_NUMBERS = {0, 1, 1, 2, 3, 5, 8};
 
@@ -107,6 +108,11 @@ public abstract class AbstractReplayFile implements ReplayFile {
     @Override
     public ReplayOutputStream writePacketData() throws IOException {
         return new ReplayOutputStream(studio, write(ENTRY_RECORDING));
+    }
+
+    @Override
+    public ReplayOutputStream writeActionData() throws IOException {
+        return new ReplayOutputStream(studio, write(ENTRY_ACTIONS));
     }
 
     @Override
@@ -226,6 +232,7 @@ public abstract class AbstractReplayFile implements ReplayFile {
                     JsonObject obj = element.getAsJsonObject();
                     JsonObject value = obj.getAsJsonObject("value");
                     JsonObject position = value.getAsJsonObject("position");
+                    JsonObject metadata = value.getAsJsonObject("metadata");
                     Marker marker = new Marker();
                     marker.setTime(obj.get("realTimestamp").getAsInt());
                     marker.setX(position.get("x").getAsDouble());
@@ -234,6 +241,10 @@ public abstract class AbstractReplayFile implements ReplayFile {
                     marker.setYaw(position.get("yaw").getAsFloat());
                     marker.setPitch(position.get("pitch").getAsFloat());
                     marker.setRoll(position.get("roll").getAsFloat());
+                    marker.setMetadata(metadata.get("expMetadata").getAsString()); 
+                    marker.setStartRecording(metadata.get("startRecording").getAsBoolean());
+                    marker.setStopRecording(metadata.get("stopRecording").getAsBoolean());
+
                     if (value.has("name")) {
                         marker.setName(value.get("name").getAsString());
                     }
@@ -253,6 +264,7 @@ public abstract class AbstractReplayFile implements ReplayFile {
                 JsonObject entry = new JsonObject();
                 JsonObject value = new JsonObject();
                 JsonObject position = new JsonObject();
+                JsonObject metadata = new JsonObject();
 
                 entry.add("realTimestamp", new JsonPrimitive(marker.getTime()));
                 value.add("name", marker.getName() == null ? null : new JsonPrimitive(marker.getName()));
@@ -262,8 +274,12 @@ public abstract class AbstractReplayFile implements ReplayFile {
                 position.add("yaw", new JsonPrimitive(marker.getYaw()));
                 position.add("pitch", new JsonPrimitive(marker.getPitch()));
                 position.add("roll", new JsonPrimitive(marker.getRoll()));
+                metadata.add("expMetadata", new JsonPrimitive(marker.getMetadata()));
+                metadata.add("startRecording", new JsonPrimitive(marker.getStartRecording()));
+                metadata.add("stopRecording", new JsonPrimitive(marker.getStopRecording()));
 
                 value.add("position", position);
+                value.add("metadata", metadata);
                 entry.add("value", value);
                 root.add(entry);
             }

@@ -223,7 +223,7 @@ public class ZipReplayFile extends AbstractReplayFile {
             if (zipFile != null) {
                 for (ZipEntry entry : Collections.list(zipFile.entries())) {
                     if (!changedEntries.containsKey(entry.getName()) && !removedEntries.contains(entry.getName())) {
-                        out.putNextEntry(entry);
+                        out.putNextEntry(new ZipEntry(entry.getName()));
                         Utils.copy(zipFile.getInputStream(entry), out);
                     }
                 }
