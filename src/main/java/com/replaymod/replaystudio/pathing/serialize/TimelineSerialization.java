@@ -267,6 +267,7 @@ public class TimelineSerialization {
                         reader.endObject();
                     }
                     reader.endArray();
+                    break;
                 case "tickTimestamps":
                     reader.beginArray();
                     List<Long> tickTimestamps = new ArrayList<Long>();
@@ -274,6 +275,7 @@ public class TimelineSerialization {
                         tickTimestamps.add(reader.nextLong());
                     }
                     reader.endArray();
+                    break;
                 }
 
             }
