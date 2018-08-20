@@ -160,9 +160,8 @@ public class TimelineSerialization {
         while (reader.hasNext()) {
             Timeline timeline = registry.createTimeline();
             timelines.put(reader.nextName(), timeline); //Timeline property
-
+            reader.beginObject();
             while (reader.hasNext()) { //Pathing and Tick timestamps 
-                reader.beginObject();
                 switch (reader.nextName()){
                     case "paths":
                         reader.beginArray();
@@ -274,8 +273,9 @@ public class TimelineSerialization {
                         }
                         reader.endArray();
                 }
-                reader.endObject();
+                
             }
+            reader.endObject();
                 
         }
         reader.endObject();
