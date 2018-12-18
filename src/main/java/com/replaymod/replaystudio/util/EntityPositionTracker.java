@@ -24,23 +24,22 @@
  */
 package com.replaymod.replaystudio.util;
 
+import com.github.steveice10.packetlib.io.NetInput;
+import com.github.steveice10.packetlib.io.NetOutput;
+import com.github.steveice10.packetlib.io.stream.StreamNetInput;
+import com.github.steveice10.packetlib.io.stream.StreamNetOutput;
 import com.github.steveice10.packetlib.packet.Packet;
-import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
-import com.google.gson.reflect.TypeToken;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.io.IWrappedPacket;
 import com.replaymod.replaystudio.io.ReplayInputStream;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import com.replaymod.replaystudio.studio.ReplayStudio;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -60,7 +59,8 @@ import java.util.function.Consumer;
  * This class is thread-safe. As such, it will synchronize on the ReplayFile object when using it.
  */
 public class EntityPositionTracker {
-    private static final String CACHE_ENTRY = "entity_positions.json";
+    private static final String CACHE_ENTRY = "entity_positions.bin";
+    private static final String OLD_CACHE_ENTRY = "entity_positions.json";
 
     private final ReplayFile replayFile;
 
@@ -83,8 +83,8 @@ public class EntityPositionTracker {
         if (cached.isPresent()) {
             try (InputStream in = cached.get()) {
                 loadFromCache(in);
-            } catch (JsonSyntaxException e) {
-                // Cache contains invalid json, probably due to a previous crash / full disk
+            } catch (EOFException e) {
+                // Cache contains insufficient data, probably due to a previous crash / full disk
                 loadFromPacketData(progressMonitor);
                 synchronized (replayFile) {
                     replayFile.remove(CACHE_ENTRY);
@@ -95,11 +95,30 @@ public class EntityPositionTracker {
             loadFromPacketData(progressMonitor);
             saveToCache();
         }
+        synchronized (replayFile) {
+            Optional<InputStream> oldCache = replayFile.get(OLD_CACHE_ENTRY);
+            if (oldCache.isPresent()) {
+                oldCache.get().close();
+                replayFile.remove(OLD_CACHE_ENTRY);
+            }
+        }
     }
 
-    private void loadFromCache(InputStream in) throws IOException {
-        entityPositions = new Gson().fromJson(new InputStreamReader(in),
-                new TypeToken<TreeMap<Integer, TreeMap<Long, Location>>>(){}.getType());
+    private void loadFromCache(InputStream rawIn) throws IOException {
+        NetInput in = new StreamNetInput(rawIn);
+        entityPositions = new TreeMap<>();
+        for (int i = in.readVarInt(); i > 0; i--) {
+            int entityId = in.readVarInt();
+            TreeMap<Long, Location> locationMap = new TreeMap<>();
+            long time = 0;
+            for (int j = in.readVarInt(); j > 0; j--) {
+                time += in.readVarLong();
+                locationMap.put(time, new Location(
+                        in.readDouble(), in.readDouble(), in.readDouble(), in.readFloat(), in.readFloat()
+                ));
+            }
+            entityPositions.put(entityId, locationMap);
+        }
     }
 
     private void saveToCache() throws IOException {
@@ -111,9 +130,24 @@ public class EntityPositionTracker {
                 return;
             }
 
-            try (OutputStream out = replayFile.write(CACHE_ENTRY);
-                 OutputStreamWriter writer = new OutputStreamWriter(out, Charsets.UTF_8)) {
-                new Gson().toJson(entityPositions, writer);
+            try (OutputStream rawOut = replayFile.write(CACHE_ENTRY)) {
+                NetOutput out = new StreamNetOutput(rawOut);
+                out.writeVarInt(entityPositions.size());
+                for (Map.Entry<Integer, NavigableMap<Long, Location>> entry : entityPositions.entrySet()) {
+                    out.writeVarInt(entry.getKey());
+                    out.writeVarInt(entry.getValue().size());
+                    long time = 0;
+                    for (Map.Entry<Long, Location> locEntry : entry.getValue().entrySet()) {
+                        out.writeVarLong(locEntry.getKey() - time);
+                        time = locEntry.getKey();
+                        Location loc = locEntry.getValue();
+                        out.writeDouble(loc.getX());
+                        out.writeDouble(loc.getY());
+                        out.writeDouble(loc.getZ());
+                        out.writeFloat(loc.getYaw());
+                        out.writeFloat(loc.getPitch());
+                    }
+                }
             }
         }
     }
