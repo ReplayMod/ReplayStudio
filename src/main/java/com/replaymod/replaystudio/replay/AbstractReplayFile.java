@@ -80,6 +80,7 @@ public abstract class AbstractReplayFile implements ReplayFile {
     public void writeMetaData(ReplayMetaData metaData) throws IOException {
         metaData.setFileFormat("MCPR");
         metaData.setFileFormatVersion(ReplayMetaData.CURRENT_FILE_FORMAT_VERSION);
+        metaData.setProtocolVersion(ReplayMetaData.CURRENT_PROTOCOL_VERSION);
         if (metaData.getGenerator() == null) {
             metaData.setGenerator("ReplayStudio v" + studio.getVersion());
         }
@@ -101,7 +102,8 @@ public abstract class AbstractReplayFile implements ReplayFile {
         if (!in.isPresent()) {
             return null;
         }
-        return new ReplayInputStream(studio, in.get(), getMetaData().getFileFormatVersion());
+        ReplayMetaData metaData = getMetaData();
+        return new ReplayInputStream(studio, in.get(), metaData.getFileFormatVersion(), metaData.getProtocolVersion());
     }
 
     @Override

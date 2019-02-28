@@ -5,7 +5,7 @@ apply from: 'versions/preprocessor.gradle'
 task setCoreVersion() {
     doLast {
         def vars = [MC: project.mcVersion as int, DEV_ENV: 1]
-        if (![11202, 11201, 11200, 11102, 11100, 11002, 10904, 10800, 10710].contains(vars.MC)) {
+        if (![11302, 11202, 11201, 11200, 11102, 11100, 11002, 10904, 10800, 10710].contains(vars.MC)) {
             throw new IllegalArgumentException("Unsupported MC version $vars.MC")
         }
         project.convertTree(vars, 'src/main/java')

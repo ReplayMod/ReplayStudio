@@ -65,20 +65,33 @@ public class ViaVersionPacketConverter {
         PROTOCOL_FOR_FILE_FORMAT.put(9, 340);
     }
 
+    @Deprecated
     public static ViaVersionPacketConverter createForFileVersion(int input, int output) {
-        if (!PROTOCOL_FOR_FILE_FORMAT.containsKey(input)) throw new IllegalArgumentException("Unknown input version");
-        if (!PROTOCOL_FOR_FILE_FORMAT.containsKey(output)) throw new IllegalArgumentException("Unknown output version");
-        return createForProtocolVersion(PROTOCOL_FOR_FILE_FORMAT.get(input), PROTOCOL_FOR_FILE_FORMAT.get(output));
+        return createForFileVersion(input, 0, PROTOCOL_FOR_FILE_FORMAT.get(output));
+    }
+
+    public static ViaVersionPacketConverter createForFileVersion(int fileVersion, int fileProtocol, int outputProtocol) {
+        if (!PROTOCOL_FOR_FILE_FORMAT.containsKey(fileVersion) && fileVersion < 10) throw new IllegalArgumentException("Unknown file version");
+        return createForProtocolVersion(fileVersion < 10 ? PROTOCOL_FOR_FILE_FORMAT.get(fileVersion) : fileProtocol, outputProtocol);
     }
 
     public static ViaVersionPacketConverter createForProtocolVersion(int input, int output) {
         return new ViaVersionPacketConverter(input, output);
     }
 
+    @Deprecated
     public static boolean isFileVersionSupported(int input, int output) {
         return PROTOCOL_FOR_FILE_FORMAT.containsKey(input) &&
                 PROTOCOL_FOR_FILE_FORMAT.containsKey(output) &&
                 isProtocolVersionSupported(PROTOCOL_FOR_FILE_FORMAT.get(input), PROTOCOL_FOR_FILE_FORMAT.get(output));
+    }
+
+    public static boolean isFileVersionSupported(int fileVersion, int fileProtocol, int outputProtocol) {
+        if (fileVersion < 10) {
+            if (!PROTOCOL_FOR_FILE_FORMAT.containsKey(fileVersion)) return false;
+            fileProtocol = PROTOCOL_FOR_FILE_FORMAT.get(fileVersion);
+        }
+        return isProtocolVersionSupported(fileProtocol, outputProtocol);
     }
 
     public static boolean isProtocolVersionSupported(int input, int output) {

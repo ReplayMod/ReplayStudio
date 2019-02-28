@@ -64,6 +64,10 @@ import com.replaymod.replaystudio.util.Location;
 import com.replaymod.replaystudio.util.PacketUtils;
 import org.apache.commons.lang3.tuple.MutablePair;
 
+//#if MC>=11300
+import com.github.steveice10.mc.protocol.data.message.Message;
+//#endif
+
 //#if MC>=10904
 import com.github.steveice10.mc.protocol.data.game.chunk.Chunk;
 import com.github.steveice10.mc.protocol.data.game.chunk.Column;
@@ -122,9 +126,15 @@ public class SquashFilter extends StreamFilterBase {
         private final Status status;
 
         private String name;
-        private String displayName;
-        private String prefix;
-        private String suffix;
+        //#if MC>=11300
+        private Message displayName;
+        private Message prefix;
+        private Message suffix;
+        //#else
+        //$$ private String displayName;
+        //$$ private String prefix;
+        //$$ private String suffix;
+        //#endif
         //#if MC>=10800
         private boolean friendlyFire;
         private boolean seeingFriendlyInvisibles;
@@ -789,7 +799,11 @@ public class SquashFilter extends StreamFilterBase {
         private final int x;
         private final int z;
         private final Chunk[] changes = new Chunk[16];
-        private byte[] biomeData;
+        //#if MC>=11300
+        private int[] biomeData;
+        //#else
+        //$$ private byte[] biomeData;
+        //#endif
         @SuppressWarnings("unchecked")
         private Map<Short, MutablePair<Long, BlockChangeRecord>>[] blockChanges = new Map[16];
         //#if MC>=10904
@@ -802,10 +816,14 @@ public class SquashFilter extends StreamFilterBase {
             this.z = z;
         }
 
+        //#if MC>=11300
+        public void update(Chunk[] newChunks, int[] newBiomeData, CompoundTag[] newTileEntities) {
+        //#else
         //#if MC>=10904
-        public void update(Chunk[] newChunks, byte[] newBiomeData, CompoundTag[] newTileEntities) {
+        //$$ public void update(Chunk[] newChunks, byte[] newBiomeData, CompoundTag[] newTileEntities) {
         //#else
         //$$ public void update(Chunk[] newChunks, byte[] newBiomeData) {
+        //#endif
         //#endif
             for (int i = 0; i < newChunks.length; i++) {
                 if (newChunks[i] != null) {

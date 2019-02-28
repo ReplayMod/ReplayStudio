@@ -31,8 +31,17 @@ import java.util.Objects;
  * Meta data for replay files.
  */
 public class ReplayMetaData {
+    //#if MC>=10800
+    public static final int CURRENT_PROTOCOL_VERSION = com.github.steveice10.mc.protocol.MinecraftConstants.PROTOCOL_VERSION;
+    //#else
+    //$$ public static final int CURRENT_PROTOCOL_VERSION = 5;
+    //#endif
+
+    //#if MC>=11300
+    public static final int CURRENT_FILE_FORMAT_VERSION = 13;
+    //#else
     //#if MC>=11202
-    public static final int CURRENT_FILE_FORMAT_VERSION = 9;
+    //$$ public static final int CURRENT_FILE_FORMAT_VERSION = 9;
     //#else
     //#if MC>=11201
     //$$ public static final int CURRENT_FILE_FORMAT_VERSION = 7;
@@ -56,6 +65,7 @@ public class ReplayMetaData {
     //$$ public static final int CURRENT_FILE_FORMAT_VERSION = 1;
     //#else
     //$$ public static final int CURRENT_FILE_FORMAT_VERSION = 8;
+    //#endif
     //#endif
     //#endif
     //#endif
@@ -99,6 +109,11 @@ public class ReplayMetaData {
      * Version of the file format.
      */
     private int fileFormatVersion;
+
+    /**
+     * Minecraft protocol version. Mandatory for `fileFormatVersion >= 13`.
+     */
+    private int protocol;
 
     /**
      * The program which generated the file.
@@ -161,6 +176,10 @@ public class ReplayMetaData {
         return this.fileFormatVersion;
     }
 
+    public int getProtocolVersion() {
+        return protocol;
+    }
+
     public String getGenerator() {
         return this.generator;
     }
@@ -201,6 +220,10 @@ public class ReplayMetaData {
         this.fileFormatVersion = fileFormatVersion;
     }
 
+    public void setProtocolVersion(int protocol) {
+        this.protocol = protocol;
+    }
+
     public void setGenerator(String generator) {
         this.generator = generator;
     }
@@ -225,6 +248,7 @@ public class ReplayMetaData {
         if (!Objects.equals(this.mcversion, other.mcversion)) return false;
         if (!Objects.equals(this.fileFormat, other.fileFormat)) return false;
         if (this.fileFormatVersion != other.fileFormatVersion) return false;
+        if (this.protocol != other.protocol) return false;
         if (!Objects.equals(this.generator, other.generator)) return false;
         if (this.selfId != other.selfId) return false;
         return Arrays.deepEquals(this.players, other.players);
@@ -239,6 +263,7 @@ public class ReplayMetaData {
         result = result * 59 + (mcversion == null ? 0 : mcversion.hashCode());
         result = result * 59 + (fileFormat == null ? 0 : fileFormat.hashCode());
         result = result * 59 + this.fileFormatVersion;
+        result = result * 59 + this.protocol;
         result = result * 59 + (generator == null ? 0 : generator.hashCode());
         result = result * 59 + this.selfId;
         result = result * 59 + Arrays.deepHashCode(this.players);
@@ -259,6 +284,7 @@ public class ReplayMetaData {
                 ", mcversion='" + mcversion + '\'' +
                 ", fileFormat='" + fileFormat + '\'' +
                 ", fileFormatVersion=" + fileFormatVersion +
+                ", protocol=" + protocol +
                 ", generator='" + generator + '\'' +
                 ", selfId=" + selfId +
                 ", players=" + Arrays.toString(players) +

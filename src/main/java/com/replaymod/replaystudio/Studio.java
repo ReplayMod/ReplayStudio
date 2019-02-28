@@ -91,19 +91,26 @@ public interface Studio {
     Replay createReplay(ReplayFile file) throws IOException;
 
     /**
+     * @deprecated Use {@link #createReplay(InputStream, int, int)} instead
+     */
+    @Deprecated
+    Replay createReplay(InputStream in, int fileFormatVersion) throws IOException;
+
+    /**
      * Creates a new replay from the specified raw input stream.
      * @param in The InputStream to read from
      * @param fileFormatVersion The FileFormatVersion
+     * @param fileProtocol The MC protocol version
      * @return The created replay
      */
-    Replay createReplay(InputStream in, int fileFormatVersion) throws IOException;
+    Replay createReplay(InputStream in, int fileFormatVersion, int fileProtocol) throws IOException;
 
     /**
      * Creates a new replay from the specified input stream.
      * @param in The InputStream to read from
      * @param raw True if {@code in} does not contain meta data but only the packet data itself
      * @return The created replay
-     * @deprecated Use {@link #createReplay(InputStream, int)} or {@link #createReplay(InputStream)} instead
+     * @deprecated Use {@link #createReplay(InputStream, int, int)} or {@link #createReplay(InputStream)} instead
      */
     @Deprecated
     Replay createReplay(InputStream in, boolean raw) throws IOException;
@@ -128,7 +135,7 @@ public interface Studio {
      * @param raw True if {@code in} does not contain meta data but only the packet data itself
      * @return The packet stream
      * @deprecated Use {@link ReplayInputStream#asPacketStream()} instead.<br>
-     *             If raw, use {@link ReplayInputStream#ReplayInputStream(Studio, InputStream, int)},
+     *             If raw, use {@link ReplayInputStream#ReplayInputStream(Studio, InputStream, int, int)},
      *             otherwise use {@link ZipReplayFile#getPacketData()}
      */
     @Deprecated
@@ -180,12 +187,19 @@ public interface Studio {
 
 
     /**
-     * Return whether the specified replay file version can be read (and if necessary be converted to the
+     * @deprecated Use {@link #isCompatible(int, int)} instead
+     */
+    @Deprecated
+    boolean isCompatible(int fileVersion);
+
+    /**
+     * Return whether the specified replay and protocol file version can be read (and if necessary be converted to the
      * current version) by this Studio implementation.
      * @param fileVersion The file version
+     * @param protocolVersion The MC protocol version
      * @return {@code true} if the specified version is supported, {@code false} otherwise
      */
-    boolean isCompatible(int fileVersion);
+    boolean isCompatible(int fileVersion, int protocolVersion);
 
     /**
      * Returns the file format version of replay files written with this Studio implementation.

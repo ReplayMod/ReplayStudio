@@ -41,7 +41,7 @@ if (project.name != 'core') {
     mcVersion = "${major}${minor.padLeft(2, '0')}${(patch ?: '').padLeft(2, '0')}" as int
 } else {
     def f = file('mcVersion')
-    mcVersion = f.exists() ? f.readLines().first() as int : 11202
+    mcVersion = f.exists() ? f.readLines().first() as int : 11302
 }
 
 compileJava {
@@ -75,6 +75,7 @@ configurations.preshadow.resolutionStrategy.eachDependency { dep ->
 
 dependencies {
     preshadow group: 'com.github.ReplayMod', name: 'MCProtocolLib', version: [
+        11302: 'de699a0259', // longer hash because jitpack is broken and refuses to find the shorter one
         11202: 'a2d5797',
         11201: 'e7adaa7',
         11200: 'e261aca',

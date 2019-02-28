@@ -34,6 +34,7 @@ import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.collection.PacketList;
 import com.replaymod.replaystudio.replay.Replay;
+import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.studio.StudioPacketStream;
 import com.replaymod.replaystudio.studio.StudioReplay;
@@ -102,7 +103,7 @@ public class ReplayInputStream extends InputStream {
     private Queue<PacketData> buffer = new ArrayDeque<>();
 
     /**
-     * @deprecated Use {@link #ReplayInputStream(Studio, InputStream, int)} instead
+     * @deprecated Use {@link #ReplayInputStream(Studio, InputStream, int, int)} instead
      */
     @Deprecated
     public ReplayInputStream(Studio studio, InputStream in) {
@@ -110,17 +111,26 @@ public class ReplayInputStream extends InputStream {
     }
 
     /**
+     * @deprecated Use {@link #ReplayInputStream(Studio, InputStream, int, int)} instead
+     */
+    @Deprecated
+    public ReplayInputStream(Studio studio, InputStream in, int fileFormatVersion) {
+        this(studio, in, fileFormatVersion, 0);
+    }
+
+    /**
      * Creates a new replay input stream for reading raw packet data.
      * @param studio The studio
      * @param in The actual input stream.
      * @param fileFormatVersion The file format version of the replay packet data
+     * @param fileProtocol The MC protocol version
      */
-    public ReplayInputStream(Studio studio, InputStream in, int fileFormatVersion) {
+    public ReplayInputStream(Studio studio, InputStream in, int fileFormatVersion, int fileProtocol) {
         this.studio = studio;
         this.session = new StudioSession(studio, true);
         this.codec = new StudioCodec(session);
         this.in = in;
-        this.viaVersionConverter = ViaVersionPacketConverter.createForFileVersion(fileFormatVersion, studio.getCurrentFileFormatVersion());
+        this.viaVersionConverter = ViaVersionPacketConverter.createForFileVersion(fileFormatVersion, fileProtocol, ReplayMetaData.CURRENT_PROTOCOL_VERSION);
     }
 
     @Override

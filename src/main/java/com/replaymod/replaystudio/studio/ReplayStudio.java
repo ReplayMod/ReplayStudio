@@ -146,8 +146,15 @@ public class ReplayStudio implements Studio {
     }
 
     @Override
+    @Deprecated
     public Replay createReplay(InputStream in, int fileFormatVersion) throws IOException {
         return new ReplayInputStream(this, in, fileFormatVersion).toReplay();
+    }
+
+    @Override
+    @Deprecated
+    public Replay createReplay(InputStream in, int fileFormatVersion, int fileProtocol) throws IOException {
+        return new ReplayInputStream(this, in, fileFormatVersion, fileProtocol).toReplay();
     }
 
     @Override
@@ -236,8 +243,14 @@ public class ReplayStudio implements Studio {
     }
 
     @Override
+    @Deprecated
     public boolean isCompatible(int fileVersion) {
         return ViaVersionPacketConverter.isFileVersionSupported(fileVersion, getCurrentFileFormatVersion());
+    }
+
+    @Override
+    public boolean isCompatible(int fileVersion, int protocolVersion) {
+        return ViaVersionPacketConverter.isFileVersionSupported(fileVersion, protocolVersion, ReplayMetaData.CURRENT_PROTOCOL_VERSION);
     }
 
     @Override
