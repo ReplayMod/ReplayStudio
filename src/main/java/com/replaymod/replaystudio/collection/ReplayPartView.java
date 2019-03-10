@@ -27,7 +27,10 @@ package com.replaymod.replaystudio.collection;
 /**
  * Provides a view on another replay part.
  * Changes to the view will be reflected on the parent and vice versa.
+ *
+ * @deprecated Use some standard collection type instead.
  */
+@Deprecated
 public interface ReplayPartView extends ReplayPart {
 
     /**

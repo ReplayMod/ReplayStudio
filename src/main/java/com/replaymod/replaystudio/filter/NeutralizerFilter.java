@@ -168,7 +168,9 @@ public class NeutralizerFilter extends StreamFilterBase {
      * Applies this filter to a replay part.
      * @param part The replay part
      * @return The modified replay part. (No copying is performed)
+     * @deprecated {@link ReplayPart} is deprecated.
      */
+    @Deprecated
     public static ReplayPart neutralize(ReplayPart part) {
         return new NeutralizerFilter().apply(part);
     }

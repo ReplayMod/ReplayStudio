@@ -80,6 +80,7 @@ public class DaemonLauncher {
             this.out = new DataOutputStream(socket.getOutputStream());
         }
 
+        @SuppressWarnings("deprecation")
         @Override
         public void run() {
             try {

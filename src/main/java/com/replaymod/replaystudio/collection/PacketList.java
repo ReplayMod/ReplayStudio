@@ -38,7 +38,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * A list for PacketData allowing efficient modification.
  * The difference to LinkedList is that it always ensures correct packet ordering unless specified otherwise.
  * This list is not thread-safe.
+ *
+ * @deprecated Use some standard collection type instead.
  */
+@Deprecated
 public class PacketList implements List<PacketData> {
 
     /**

@@ -30,6 +30,7 @@ import com.replaymod.replaystudio.stream.IteratorStream;
 /**
  * Base class for stream filter which also want export their functionality as a regular filter.
  */
+@SuppressWarnings("deprecation")
 public abstract class StreamFilterBase implements StreamFilter, Filter {
 
     @Override

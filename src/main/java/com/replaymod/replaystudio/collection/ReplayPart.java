@@ -32,7 +32,10 @@ import java.util.ListIterator;
 
 /**
  * A part of a replay. Containing packets with their timestamps in their chronological order.
+ *
+ * @deprecated Use some standard collection type instead.
  */
+@Deprecated
 public interface ReplayPart extends Iterable<PacketData> {
 
     /**

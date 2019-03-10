@@ -35,7 +35,10 @@ import java.util.NoSuchElementException;
  * This iterator is not thread-safe.
  * Modifications to the underlying list through any other methods
  * than this iterator might result in undefined behavior.
+ *
+ * @deprecated Use some standard collection type instead.
  */
+@Deprecated
 public class PacketListIterator implements ListIterator<PacketData>, Cloneable {
 
     /**

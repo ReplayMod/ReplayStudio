@@ -30,7 +30,10 @@ import com.replaymod.replaystudio.collection.ReplayPart;
 
 /**
  * A manipulation that applies some effect on a supplied replay part and returns the resulting replay part.
+ *
+ * @deprecated Use {@link StreamFilter} instead.
  */
+@Deprecated
 public interface Filter {
 
     /**

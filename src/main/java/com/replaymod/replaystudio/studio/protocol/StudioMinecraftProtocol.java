@@ -50,18 +50,28 @@ public class StudioMinecraftProtocol extends MinecraftProtocol {
         //#endif
     }
 
+    /**
+     * @deprecated Use {@link #StudioMinecraftProtocol(Studio, Session, boolean, boolean)} instead.
+     */
+    @Deprecated
     public StudioMinecraftProtocol(Studio studio, Session session, boolean client) {
+        this(studio, session, client, false);
+    }
+
+    public StudioMinecraftProtocol(Studio studio, Session session, boolean client, boolean includeLoginPhase) {
         //#if MC>=10800
         super(SubProtocol.LOGIN);
         //#else
         //$$ super(ProtocolMode.LOGIN);
         //#endif
 
-        //#if MC>=10800
-        init(studio, session, client, SubProtocol.GAME);
-        //#else
-        //$$ init(studio, session, client, ProtocolMode.GAME);
-        //#endif
+        init(studio, session, client,
+                //#if MC>=10800
+                includeLoginPhase ? SubProtocol.LOGIN : SubProtocol.GAME
+                //#else
+                //$$ includeLoginPhase ? ProtocolMode.LOGIN : ProtocolMode.GAME
+                //#endif
+        );
     }
 
     //#if MC>=10800

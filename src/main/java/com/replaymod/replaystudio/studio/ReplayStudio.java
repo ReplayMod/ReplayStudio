@@ -25,6 +25,7 @@
 package com.replaymod.replaystudio.studio;
 
 import com.github.steveice10.mc.protocol.packet.ingame.server.ServerKeepAlivePacket;
+import com.github.steveice10.mc.protocol.packet.login.server.LoginSuccessPacket;
 import com.github.steveice10.packetlib.packet.Packet;
 import com.google.gson.Gson;
 import com.replaymod.replaystudio.PacketData;
@@ -66,6 +67,7 @@ public class ReplayStudio implements Studio {
      */
     private boolean wrappingEnabled = true;
 
+    @SuppressWarnings("deprecation")
     private final ServiceLoader<Filter> filterServiceLoader = ServiceLoader.load(Filter.class);
     private final ServiceLoader<StreamFilter> streamFilterServiceLoader = ServiceLoader.load(StreamFilter.class);
 
@@ -76,6 +78,7 @@ public class ReplayStudio implements Studio {
         setParsing(ServerSetCompressionPacket.class, true);
         //#endif
         setParsing(ServerKeepAlivePacket.class, true);
+        setParsing(LoginSuccessPacket.class, true);
     }
 
     @Override
@@ -89,6 +92,7 @@ public class ReplayStudio implements Studio {
     }
 
     @Override
+    @Deprecated
     public Filter loadFilter(String name) {
         for (Filter filter : filterServiceLoader) {
             if (filter.getName().equalsIgnoreCase(name)) {
@@ -119,6 +123,7 @@ public class ReplayStudio implements Studio {
     }
 
     @Override
+    @Deprecated
     public ReplayPart squash(ReplayPart part) {
         part = part.copy();
         new SquashFilter().apply(part);
@@ -126,21 +131,25 @@ public class ReplayStudio implements Studio {
     }
 
     @Override
+    @Deprecated
     public ReplayPart createReplayPart() {
         return new StudioReplayPart(new PacketList());
     }
 
     @Override
+    @Deprecated
     public ReplayPart createReplayPart(Collection<PacketData> packets) {
         return new StudioReplayPart(new PacketList(packets));
     }
 
     @Override
+    @Deprecated
     public Replay createReplay(InputStream in) throws IOException {
         return createReplay(in, false);
     }
 
     @Override
+    @Deprecated
     public Replay createReplay(ReplayFile file) throws IOException {
         return new StudioReplay(this, file);
     }
@@ -158,6 +167,7 @@ public class ReplayStudio implements Studio {
     }
 
     @Override
+    @Deprecated
     public Replay createReplay(InputStream in, boolean raw) throws IOException {
         if (raw) {
             return new StudioReplay(this, in);
@@ -187,6 +197,7 @@ public class ReplayStudio implements Studio {
     }
 
     @Override
+    @Deprecated
     public ReplayMetaData readReplayMetaData(InputStream in) throws IOException {
         try (ZipInputStream zipIn = new ZipInputStream(new BufferedInputStream(in))) {
             ZipEntry entry;
@@ -200,11 +211,13 @@ public class ReplayStudio implements Studio {
     }
 
     @Override
+    @Deprecated
     public Replay createReplay(ReplayPart part) {
         return new StudioDelegatingReplay(this, part);
     }
 
     @Override
+    @Deprecated
     public PacketStream createReplayStream(InputStream in, boolean raw) throws IOException {
         if (raw) {
             return new StudioPacketStream(this, in);

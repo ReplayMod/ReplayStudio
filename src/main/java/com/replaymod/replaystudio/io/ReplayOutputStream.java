@@ -24,6 +24,8 @@
  */
 package com.replaymod.replaystudio.io;
 
+import com.github.steveice10.mc.auth.data.GameProfile;
+import com.github.steveice10.mc.protocol.packet.login.server.LoginSuccessPacket;
 import com.github.steveice10.netty.buffer.ByteBuf;
 import com.github.steveice10.netty.buffer.ByteBufAllocator;
 import com.github.steveice10.netty.buffer.PooledByteBufAllocator;
@@ -39,12 +41,16 @@ import com.replaymod.replaystudio.studio.protocol.StudioSession;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 //#if MC>=10800
+import com.github.steveice10.mc.protocol.data.SubProtocol;
 import com.github.steveice10.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
 import com.replaymod.replaystudio.studio.protocol.StudioCompression;
+//#else
+//$$ import com.github.steveice10.mc.protocol.ProtocolMode;
 //#endif
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -98,18 +104,39 @@ public class ReplayOutputStream extends OutputStream {
      */
     private int duration;
 
+    private boolean loginPhase = true;
+    private boolean includesLoginPhase;
+
+    /**
+     * @deprecated Use {@link #ReplayOutputStream(Studio, OutputStream, boolean)} instead.
+     */
+    @Deprecated
+    public ReplayOutputStream(Studio studio, OutputStream out) {
+        this(studio, out, false);
+    }
+
     /**
      * Creates a new replay output stream which will not compress packets written to it nor write any meta data.
      * The resulting output can be read directly by a {@link ReplayInputStream}.
      * @param studio The studio
      * @param out The actual output stream
+     * @param includesLoginPhase Whether the data you will write includes Login phase packets
      */
-    public ReplayOutputStream(Studio studio, OutputStream out) {
-        this.session = new StudioSession(studio, false);
+    public ReplayOutputStream(Studio studio, OutputStream out, boolean includesLoginPhase) {
+        this.session = new StudioSession(studio, false, true);
         this.codec = new StudioCodec(session);
         this.out = out;
         this.zipOut = null;
         this.metaData = null;
+        this.includesLoginPhase = includesLoginPhase;
+    }
+
+    /**
+     * @deprecated Use {@link #ReplayOutputStream(Studio, OutputStream, ReplayMetaData, boolean)} instead.
+     */
+    @Deprecated
+    public ReplayOutputStream(Studio studio, OutputStream out, ReplayMetaData metaData) throws IOException {
+        this(studio, out, metaData, false);
     }
 
     /**
@@ -119,10 +146,11 @@ public class ReplayOutputStream extends OutputStream {
      * @param studio The studio
      * @param out The actual output stream
      * @param metaData The meta data written to the output
+     * @param includesLoginPhase Whether the data you will write includes Login phase packets
      * @throws IOException If an exception occurred while writing the first entry to the zip output stream
      */
-    public ReplayOutputStream(Studio studio, OutputStream out, ReplayMetaData metaData) throws IOException {
-        this.session = new StudioSession(studio, false);
+    public ReplayOutputStream(Studio studio, OutputStream out, ReplayMetaData metaData, boolean includesLoginPhase) throws IOException {
+        this.session = new StudioSession(studio, false, true);
         this.codec = new StudioCodec(session);
         if (metaData == null) {
             metaData = new ReplayMetaData();
@@ -135,6 +163,7 @@ public class ReplayOutputStream extends OutputStream {
         metaData.setProtocolVersion(ReplayMetaData.CURRENT_PROTOCOL_VERSION);
         metaData.setGenerator("ReplayStudio v" + studio.getVersion());
         this.metaData = metaData;
+        this.includesLoginPhase = includesLoginPhase;
 
         this.out = zipOut = new ZipOutputStream(out);
 
@@ -167,6 +196,26 @@ public class ReplayOutputStream extends OutputStream {
      * @see #write(PacketData)
      */
     public void write(long time, Packet packet) throws IOException {
+        if (!includesLoginPhase && loginPhase) {
+            doWrite(0, new LoginSuccessPacket(new GameProfile(UUID.nameUUIDFromBytes(new byte[0]), "Player")));
+        }
+        doWrite(time, packet);
+    }
+
+    private void doWrite(long time, Packet packet) throws IOException {
+        if (loginPhase && ReplayMetaData.CURRENT_FILE_FORMAT_VERSION < 14) {
+            // Generating an old format which does not include login phase packets
+            if (packet instanceof LoginSuccessPacket) {
+                loginPhase = false;
+                //#if MC>=10800
+                session.getPacketProtocol().setSubProtocol(SubProtocol.GAME, false, session);
+                //#else
+                //$$ session.getPacketProtocol().setMode(ProtocolMode.GAME, false, session);
+                //#endif
+            }
+            return;
+        }
+
         if (duration < time) {
             duration = (int) time;
         }
@@ -213,6 +262,15 @@ public class ReplayOutputStream extends OutputStream {
             }
         }
         //#endif
+
+        if (packet instanceof LoginSuccessPacket) {
+            loginPhase = false;
+            //#if MC>=10800
+            session.getPacketProtocol().setSubProtocol(SubProtocol.GAME, false, session);
+            //#else
+            //$$ session.getPacketProtocol().setMode(ProtocolMode.GAME, false, session);
+            //#endif
+        }
     }
 
     /**
@@ -249,7 +307,9 @@ public class ReplayOutputStream extends OutputStream {
      * @param output The output stream
      * @param replay The replay
      * @throws IOException - if an I/O error occurs.
+     * @deprecated {@link Replay} is deprecated.
      */
+    @Deprecated
     public static void writeReplay(Studio studio, OutputStream output, Replay replay) throws IOException {
         ReplayOutputStream out = new ReplayOutputStream(studio, output, replay.getMetaData());
         for (PacketData data : replay) {
@@ -265,7 +325,9 @@ public class ReplayOutputStream extends OutputStream {
      * @param output The output stream
      * @param packets Iterable of packet data
      * @throws IOException - if an I/O error occurs.
+     * @deprecated Use {@link #ReplayOutputStream(Studio, OutputStream, ReplayMetaData)} and iterate yourself.
      */
+    @Deprecated
     public static void writePackets(Studio studio, OutputStream output, Iterable<PacketData> packets) throws IOException {
         ReplayOutputStream out = new ReplayOutputStream(studio, output);
         for (PacketData data : packets) {

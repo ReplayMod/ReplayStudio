@@ -37,6 +37,7 @@ import java.io.*;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+@Deprecated
 public class StudioReplay extends StudioReplayPart implements Replay {
 
     private ReplayMetaData metaData;

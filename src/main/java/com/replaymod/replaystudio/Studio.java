@@ -58,20 +58,26 @@ public interface Studio {
      * Removes all redundant packets (such as spawning an entity which gets removed later)
      * @param part The original part
      * @return A new squashed copy
+     * @deprecated Use {@link com.replaymod.replaystudio.filter.SquashFilter} instead.
      */
+    @Deprecated
     ReplayPart squash(ReplayPart part);
 
     /**
      * Creates a new replay part.
      * @return The created replay part
+     * @deprecated Use some standard collection type instead.
      */
+    @Deprecated
     ReplayPart createReplayPart();
 
     /**
      * Creates a new replay part containing the specified packets.
      * @param packets Collection of packets with their timestamp in milliseconds
      * @return The created replay part
+     * @deprecated Use some standard collection type instead.
      */
+    @Deprecated
     ReplayPart createReplayPart(Collection<PacketData> packets);
 
     /**
@@ -87,7 +93,9 @@ public interface Studio {
      * Creates a new replay from the specified replay file.
      * @param file The replay file to read from
      * @return The created replay
+     * @deprecated Use {@link ZipReplayFile} instead
      */
+    @Deprecated
     Replay createReplay(ReplayFile file) throws IOException;
 
     /**
@@ -102,7 +110,9 @@ public interface Studio {
      * @param fileFormatVersion The FileFormatVersion
      * @param fileProtocol The MC protocol version
      * @return The created replay
+     * @deprecated Use {@link ReplayInputStream} instead
      */
+    @Deprecated
     Replay createReplay(InputStream in, int fileFormatVersion, int fileProtocol) throws IOException;
 
     /**
@@ -119,14 +129,18 @@ public interface Studio {
      * Creates a new replay from the specified replay part.
      * @param part The part from which to create the replay
      * @return The created replay
+     * @deprecated Use {@link ZipReplayFile} instead
      */
+    @Deprecated
     Replay createReplay(ReplayPart part);
 
     /**
      * Reads the replay meta data from the specified input.
      * @param in The InputStream to read from
      * @return The replay meta data
+     * @deprecated Use {@link ZipReplayFile} instead
      */
+    @Deprecated
     ReplayMetaData readReplayMetaData(InputStream in) throws IOException;
 
     /**
@@ -175,7 +189,9 @@ public interface Studio {
      * Loads a new instance of the specified filter.
      * @param name Name of the filter
      * @return New instance of the filter
+     * @deprecated {@link Filter} is deprecated.
      */
+    @Deprecated
     Filter loadFilter(String name);
 
     /**

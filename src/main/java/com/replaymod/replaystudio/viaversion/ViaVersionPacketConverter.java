@@ -126,11 +126,19 @@ public class ViaVersionPacketConverter {
     }
 
     /**
+     * @deprecated Use {@link #convertPacket(ByteBuf,State)} instead.
+     */
+    @Deprecated
+    public List<ByteBuf> convertPacket(ByteBuf buf) throws IOException {
+        return convertPacket(buf, State.PLAY);
+    }
+
+    /**
      * Converts the provided packet to the output protocol.
      * @param buf The ByteBuf containing the packet, may be modified
      * @return List of ByteBuf, one for each output packet, may be empty
      */
-    public List<ByteBuf> convertPacket(ByteBuf buf) throws IOException {
+    public List<ByteBuf> convertPacket(ByteBuf buf, State state) throws IOException {
         if (user == null) {
             buf.retain();
             return Collections.singletonList(buf);
@@ -141,7 +149,7 @@ public class ViaVersionPacketConverter {
             PacketWrapper packetWrapper = new PacketWrapper(packetId, buf, user);
 
             try {
-                pipeline.transform(Direction.OUTGOING, State.PLAY, packetWrapper);
+                pipeline.transform(Direction.OUTGOING, state, packetWrapper);
             } catch (CancelException e) {
                 if (!out.isEmpty()) {
                     return popOut();

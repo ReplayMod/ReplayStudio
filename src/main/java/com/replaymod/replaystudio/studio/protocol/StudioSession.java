@@ -40,8 +40,13 @@ public class StudioSession implements Session {
 
     private int compressionThreshold;
 
+    @Deprecated
     public StudioSession(Studio studio, boolean client) {
         packetProtocol = new StudioMinecraftProtocol(studio, this, client);
+    }
+
+    public StudioSession(Studio studio, boolean client, boolean includeLoginPhase) {
+        packetProtocol = new StudioMinecraftProtocol(studio, this, client, includeLoginPhase);
     }
 
     @Override

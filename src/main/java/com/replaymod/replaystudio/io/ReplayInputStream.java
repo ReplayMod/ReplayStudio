@@ -24,6 +24,7 @@
  */
 package com.replaymod.replaystudio.io;
 
+import com.github.steveice10.mc.auth.data.GameProfile;
 import com.github.steveice10.mc.protocol.packet.ingame.server.ServerKeepAlivePacket;
 import com.github.steveice10.mc.protocol.packet.login.server.LoginSuccessPacket;
 import com.github.steveice10.netty.buffer.ByteBuf;
@@ -40,6 +41,7 @@ import com.replaymod.replaystudio.studio.StudioPacketStream;
 import com.replaymod.replaystudio.studio.StudioReplay;
 import com.replaymod.replaystudio.studio.protocol.StudioCodec;
 import com.replaymod.replaystudio.studio.protocol.StudioSession;
+import com.replaymod.replaystudio.us.myles.ViaVersion.packets.State;
 import com.replaymod.replaystudio.viaversion.ViaVersionPacketConverter;
 
 //#if MC>=10800
@@ -58,6 +60,7 @@ import java.util.ArrayDeque;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.UUID;
 
 import static com.replaymod.replaystudio.util.Utils.readInt;
 
@@ -98,6 +101,17 @@ public class ReplayInputStream extends InputStream {
     private ViaVersionPacketConverter viaVersionConverter;
 
     /**
+     * Whether the packet stream (at the head of the input stream, not any already buffered packets) is currently
+     * in the login phase.
+     */
+    private boolean loginPhase;
+
+    /**
+     * Whether login phase packets are returned from the stream (otherwise they'll be silently dropped for backwards compatibility).
+     */
+    private boolean outputLoginPhase;
+
+    /**
      * Packets which have already been read from the input but have not yet been requested via {@link #readPacket()}.
      */
     private Queue<PacketData> buffer = new ArrayDeque<>();
@@ -118,16 +132,30 @@ public class ReplayInputStream extends InputStream {
         this(studio, in, fileFormatVersion, 0);
     }
 
+    @Deprecated
+    public ReplayInputStream(Studio studio, InputStream in, int fileFormatVersion, int fileProtocol) {
+        this(studio, in, fileFormatVersion, fileProtocol, true);
+    }
+
     /**
      * Creates a new replay input stream for reading raw packet data.
      * @param studio The studio
      * @param in The actual input stream.
      * @param fileFormatVersion The file format version of the replay packet data
      * @param fileProtocol The MC protocol version
+     * @param outputLoginPhase Whether to output packets in the login phase.
+     *                         Do not use {@code false} unless you have got a good reason to skip login phase packets.
      */
-    public ReplayInputStream(Studio studio, InputStream in, int fileFormatVersion, int fileProtocol) {
+    public ReplayInputStream(Studio studio, InputStream in, int fileFormatVersion, int fileProtocol, boolean outputLoginPhase) {
         this.studio = studio;
-        this.session = new StudioSession(studio, true);
+        boolean includeLoginPhase = fileFormatVersion >= 14;
+        this.session = new StudioSession(studio, true, includeLoginPhase);
+        this.loginPhase = includeLoginPhase;
+        this.outputLoginPhase = outputLoginPhase;
+        if (!includeLoginPhase && outputLoginPhase) {
+            // For Replays older than version 14, immediately end the Login phase to enter Play phase where the replay starts
+            buffer.offer(new PacketData(0, new LoginSuccessPacket(new GameProfile(UUID.nameUUIDFromBytes(new byte[0]), "Player"))));
+        }
         this.codec = new StudioCodec(session);
         this.in = in;
         this.viaVersionConverter = ViaVersionPacketConverter.createForFileVersion(fileFormatVersion, fileProtocol, ReplayMetaData.CURRENT_PROTOCOL_VERSION);
@@ -197,7 +225,7 @@ public class ReplayInputStream extends InputStream {
 
             List<Object> decoded = new LinkedList<>();
             try {
-                for (ByteBuf packet : viaVersionConverter.convertPacket(decompressed)) {
+                for (ByteBuf packet : viaVersionConverter.convertPacket(decompressed, loginPhase ? State.LOGIN : State.PLAY)) {
                     codec.decode(null, packet, decoded);
                     packet.release();
                 }
@@ -232,11 +260,15 @@ public class ReplayInputStream extends InputStream {
                 }
                 //#endif
                 if (o instanceof LoginSuccessPacket) {
+                    loginPhase = false;
                     //#if MC>=10800
                     session.getPacketProtocol().setSubProtocol(SubProtocol.GAME, true, session);
                     //#else
                     //$$ session.getPacketProtocol().setMode(ProtocolMode.GAME, true, session);
                     //#endif
+                }
+                if ((loginPhase || o instanceof LoginSuccessPacket) && !outputLoginPhase) {
+                    continue;
                 }
                 buffer.offer(new PacketData(next, (Packet) o));
             }
@@ -264,6 +296,7 @@ public class ReplayInputStream extends InputStream {
 
     /**
      * Reads all remaining packets from this input stream into a new packet list.
+     * @deprecated {@link PacketList} is deprecated.
      */
     public PacketList readAll() throws IOException {
         List<PacketData> packets = new LinkedList<>();
@@ -279,7 +312,9 @@ public class ReplayInputStream extends InputStream {
     /**
      * Reads all remaining packets from this input stream into a new packet list.
      * Finally, close this input stream.
+     * @deprecated {@link PacketList} is deprecated.
      */
+    @Deprecated
     public PacketList readAllAndClose() throws IOException {
         try {
             return readAll();
@@ -298,7 +333,9 @@ public class ReplayInputStream extends InputStream {
 
     /**
      * Reads all remaining packets into a {@link Replay} and closes this input stream.
+     * @deprecated {@link Replay} is deprecated.
      */
+    @Deprecated
     public Replay toReplay() throws IOException {
         return new StudioReplay(studio, readAllAndClose());
     }

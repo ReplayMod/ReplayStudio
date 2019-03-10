@@ -41,6 +41,7 @@ import java.util.ListIterator;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+@Deprecated
 public class StudioDelegatingReplay implements Replay {
 
     private ReplayMetaData metaData;

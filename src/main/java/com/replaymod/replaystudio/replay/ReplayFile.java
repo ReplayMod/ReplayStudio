@@ -99,10 +99,32 @@ public interface ReplayFile extends Closeable {
     ReplayMetaData getMetaData() throws IOException;
     void writeMetaData(ReplayMetaData metaData) throws IOException;
 
+    /**
+     * @deprecated Use {@link #getPacketData(Studio, boolean)} instead.
+     */
+    @Deprecated
     ReplayInputStream getPacketData() throws IOException;
+
+    /**
+     * @deprecated Use {@link #getPacketData(Studio, boolean)} instead.
+     */
+    @Deprecated
     ReplayInputStream getPacketData(Studio studio) throws IOException;
+
+    ReplayInputStream getPacketData(Studio studio, boolean outputLoginPhase) throws IOException;
+
+    /**
+     * @deprecated Use {@link #writePacketData(boolean)} instead.
+     */
+    @Deprecated
     ReplayOutputStream writePacketData() throws IOException;
 
+    ReplayOutputStream writePacketData(boolean includesLoginPhase) throws IOException;
+
+    /**
+     * @deprecated {@link Replay} is deprecated.
+     */
+    @Deprecated
     Replay toReplay() throws IOException;
 
     Map<Integer, String> getResourcePackIndex() throws IOException;

@@ -98,12 +98,12 @@ public class StreamLauncher {
         ReplayOutputStream out;
         if (!"x".equals(output)) {
             OutputStream buffOut = new BufferedOutputStream(new FileOutputStream(output));
-            out = new ReplayOutputStream(studio, buffOut, null);
+            out = new ReplayOutputStream(studio, buffOut, null, true);
         } else {
             out = null;
         }
         ReplayMetaData meta = inFile.getMetaData();
-        PacketStream stream = inFile.getPacketData().asPacketStream();
+        PacketStream stream = inFile.getPacketData(new ReplayStudio(), true).asPacketStream();
 
         // Process stream
         stream.start();

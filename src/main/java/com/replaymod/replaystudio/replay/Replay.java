@@ -33,7 +33,10 @@ import java.io.OutputStream;
 
 /**
  * A replay which consist out of multiple packets with their timestamps and some meta data.
+ *
+ * @deprecated Use {@link ReplayFile} with your standard collection types instead.
  */
+@Deprecated
 public interface Replay extends ReplayPart {
 
     /**

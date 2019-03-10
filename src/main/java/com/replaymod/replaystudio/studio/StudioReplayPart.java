@@ -36,6 +36,7 @@ import java.util.*;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+@Deprecated
 public class StudioReplayPart implements ReplayPart {
 
     private final PacketList packets;

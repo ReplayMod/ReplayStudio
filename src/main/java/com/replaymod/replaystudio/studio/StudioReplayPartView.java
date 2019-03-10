@@ -35,6 +35,7 @@ import org.apache.commons.lang3.Validate;
 import java.util.Collection;
 import java.util.ListIterator;
 
+@Deprecated
 public class StudioReplayPartView implements ReplayPartView {
 
     private final ReplayPart viewed;

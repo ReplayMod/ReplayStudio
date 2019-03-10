@@ -38,7 +38,7 @@ public class ReplayMetaData {
     //#endif
 
     //#if MC>=11300
-    public static final int CURRENT_FILE_FORMAT_VERSION = 13;
+    public static final int CURRENT_FILE_FORMAT_VERSION = 14;
     //#else
     //#if MC>=11202
     //$$ public static final int CURRENT_FILE_FORMAT_VERSION = 9;

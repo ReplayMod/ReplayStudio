@@ -40,6 +40,10 @@ import java.io.*;
 import java.util.*;
 import java.util.regex.Pattern;
 
+/**
+ * @deprecated Use {@link StreamLauncher} instead.
+ */
+@Deprecated
 public class Launcher {
 
     public static void main(String[] args) throws Exception {
