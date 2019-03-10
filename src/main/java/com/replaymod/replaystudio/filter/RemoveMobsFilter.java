@@ -30,7 +30,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
-import com.replaymod.replaystudio.collection.ReplayPart;
+import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.util.PacketUtils;
 
 //#if MC>=10904
@@ -47,16 +47,17 @@ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntit
 
 import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 
-public class RemoveMobsFilter implements Filter {
+public class RemoveMobsFilter extends StreamFilterBase {
 
     //#if MC>=10800
     private Set<MobType> filterTypes;
     //#else
     //$$ private Set<Type> filterTypes;
     //#endif
+
+    private Set<Integer> removedEntities;
 
     @Override
     public String getName() {
@@ -65,6 +66,8 @@ public class RemoveMobsFilter implements Filter {
 
     @Override
     public void init(Studio studio, JsonObject config) {
+        removedEntities = new HashSet<>();
+
         //#if MC>=10800
         filterTypes = EnumSet.noneOf(MobType.class);
         //#else
@@ -80,45 +83,46 @@ public class RemoveMobsFilter implements Filter {
     }
 
     @Override
-    public ReplayPart apply(ReplayPart part) {
-        Set<Integer> removedEntities = new HashSet<>();
-        for (Iterator<PacketData> iter = part.iterator(); iter.hasNext(); ) {
-            Packet packet = iter.next().getPacket();
-            if (packet instanceof ServerSpawnMobPacket) {
-                ServerSpawnMobPacket p = (ServerSpawnMobPacket) packet;
-                if (filterTypes.contains(p.getType())) {
-                    removedEntities.add(p.getEntityId());
-                }
+    public void onStart(PacketStream stream) {
+    }
+
+    @Override
+    public boolean onPacket(PacketStream stream, PacketData data) {
+        Packet packet = data.getPacket();
+        if (packet instanceof ServerSpawnMobPacket) {
+            ServerSpawnMobPacket p = (ServerSpawnMobPacket) packet;
+            if (filterTypes.contains(p.getType())) {
+                removedEntities.add(p.getEntityId());
             }
-            //#if MC>=10904
-            if (packet instanceof ServerEntityDestroyPacket) {
-                ServerEntityDestroyPacket p = (ServerEntityDestroyPacket) packet;
+        }
+        //#if MC>=10904
+        if (packet instanceof ServerEntityDestroyPacket) {
+            ServerEntityDestroyPacket p = (ServerEntityDestroyPacket) packet;
             //#else
             //$$ if (packet instanceof ServerDestroyEntitiesPacket) {
             //$$     ServerDestroyEntitiesPacket p = (ServerDestroyEntitiesPacket) packet;
             //#endif
-                for (int id : p.getEntityIds()) {
-                    removedEntities.remove(id);
-                }
-            }
-            Integer entityId = PacketUtils.getEntityId(packet);
-            if (entityId == null) {
-                continue;
-            }
-            if (entityId == -1) {
-                for (int id : PacketUtils.getEntityIds(packet)) {
-                    if (removedEntities.contains(id)) {
-                        iter.remove();
-                        break;
-                    }
-                }
-            } else {
-                if (removedEntities.contains(entityId)) {
-                    iter.remove();
-                }
+            for (int id : p.getEntityIds()) {
+                removedEntities.remove(id);
             }
         }
-        return part;
+        Integer entityId = PacketUtils.getEntityId(packet);
+        if (entityId == null) {
+            return true;
+        }
+        if (entityId == -1) {
+            for (int id : PacketUtils.getEntityIds(packet)) {
+                if (removedEntities.contains(id)) {
+                    return false;
+                }
+            }
+        } else {
+            return !removedEntities.contains(entityId);
+        }
+        return true;
     }
 
+    @Override
+    public void onEnd(PacketStream stream, long timestamp) {
+    }
 }
