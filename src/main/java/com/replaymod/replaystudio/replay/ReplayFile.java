@@ -57,6 +57,14 @@ public interface ReplayFile extends Closeable {
     Optional<InputStream> get(String entry) throws IOException;
 
     /**
+     * Returns an input stream for the specified entry in the cache of this replay file.
+     * @param entry The entry
+     * @return Optional input stream
+     * @throws IOException If an I/O error occurs
+     */
+    Optional<InputStream> getCache(String entry) throws IOException;
+
+    /**
      * Returns input streams for each entry matching in this replay file.
      * @param pattern The pattern used for matching entries
      * @return Map with entry names as keys and their input streams as values
@@ -75,12 +83,31 @@ public interface ReplayFile extends Closeable {
     OutputStream write(String entry) throws IOException;
 
     /**
+     * Write to the specified cache entry of this replay file.
+     * Since the cache in not part of the original replay file, there's no need to call {@link #save()} to persist it.
+     * There's also no guarantee of persistence, the cache may be cleared (but shouldn't be most of the time) when the
+     * cache entry is closed. The cache will always be cleared when the replay data is being re-written.
+     * Writing to the cache while an OutputStream to the replay data is open results in undefined behavior.
+     * @param entry The entry
+     * @return An output stream to write to
+     * @throws IOException If an I/O error occurs
+     */
+    OutputStream writeCache(String entry) throws IOException;
+
+    /**
      * Removes the entry from this replay file.
      * Changes will not be written unless {@link #save()} is called.
      * @param entry The entry
      * @throws IOException
      */
     void remove(String entry) throws IOException;
+
+    /**
+     * Removes the cache entry of this replay file.
+     * @param entry The entry
+     * @throws IOException
+     */
+    void removeCache(String entry) throws IOException;
 
     /**
      * Saves the changes to this replay file.
@@ -91,6 +118,7 @@ public interface ReplayFile extends Closeable {
 
     /**
      * Saves this replay file and all changes to the specified file.
+     * Does not include any cache entries.
      * @param target The target file location
      * @throws IOException If an I/O error occurs
      */

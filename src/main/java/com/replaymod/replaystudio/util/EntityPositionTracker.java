@@ -78,7 +78,12 @@ public class EntityPositionTracker {
     public void load(Consumer<Double> progressMonitor) throws IOException {
         Optional<InputStream> cached;
         synchronized (replayFile) {
-            cached = replayFile.get(CACHE_ENTRY);
+            Optional<InputStream> oldCache = replayFile.get(CACHE_ENTRY);
+            if (oldCache.isPresent()) {
+                oldCache.get().close();
+                replayFile.remove(CACHE_ENTRY);
+            }
+            cached = replayFile.getCache(CACHE_ENTRY);
         }
         if (cached.isPresent()) {
             try (InputStream in = cached.get()) {
@@ -87,7 +92,7 @@ public class EntityPositionTracker {
                 // Cache contains invalid json, probably due to a previous crash / full disk
                 loadFromPacketData(progressMonitor);
                 synchronized (replayFile) {
-                    replayFile.remove(CACHE_ENTRY);
+                    replayFile.removeCache(CACHE_ENTRY);
                 }
                 saveToCache();
             }
@@ -104,14 +109,14 @@ public class EntityPositionTracker {
 
     private void saveToCache() throws IOException {
         synchronized (replayFile) {
-            Optional<InputStream> cached = replayFile.get(CACHE_ENTRY);
+            Optional<InputStream> cached = replayFile.getCache(CACHE_ENTRY);
             if (cached.isPresent()) {
                 // Someone was faster than we were
                 cached.get().close();
                 return;
             }
 
-            try (OutputStream out = replayFile.write(CACHE_ENTRY);
+            try (OutputStream out = replayFile.writeCache(CACHE_ENTRY);
                  OutputStreamWriter writer = new OutputStreamWriter(out, Charsets.UTF_8)) {
                 new Gson().toJson(entityPositions, writer);
             }

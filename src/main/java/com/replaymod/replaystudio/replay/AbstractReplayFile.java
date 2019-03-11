@@ -46,7 +46,7 @@ import java.util.regex.Pattern;
 public abstract class AbstractReplayFile implements ReplayFile {
 
     private static final String ENTRY_META_DATA = "metaData.json";
-    private static final String ENTRY_RECORDING = "recording.tmcpr";
+    protected static final String ENTRY_RECORDING = "recording.tmcpr";
     private static final String ENTRY_RESOURCE_PACK = "resourcepack/%s.zip";
     private static final String ENTRY_RESOURCE_PACK_INDEX = "resourcepack/index.json";
     private static final String ENTRY_THUMB = "thumb";
