@@ -753,7 +753,7 @@ public class SquashFilter extends StreamFilterBase {
         //#else
         //$$ BlockChangeRecord pos = record;
         //#endif
-        ChunkData data = chunks.get(ChunkData.coordToLong(pos.getX(), pos.getZ()));
+        ChunkData data = chunks.get(ChunkData.coordToLong(pos.getX() >> 4, pos.getZ() >> 4));
         if (data != null) {
             data.updateBlock(time, record);
         }
@@ -853,7 +853,7 @@ public class SquashFilter extends StreamFilterBase {
             if (blockChanges[y] == null) {
                 blockChanges[y] = new HashMap<>();
             }
-            short index = (short) ((x % 16) << 10 | (y % 16) << 5 | (z % 16));
+            short index = (short) ((x & 15) << 10 | (y & 15) << 5 | (z & 15));
             MutablePair<Long, BlockChangeRecord> pair = blockChanges[y].get(index);
             if (pair == null) {
                 blockChanges[y].put(index, pair = MutablePair.of(0l, null));
