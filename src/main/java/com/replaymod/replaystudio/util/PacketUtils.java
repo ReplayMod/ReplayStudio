@@ -156,6 +156,14 @@ public class PacketUtils {
         //#endif
     }
 
+    public static boolean isSpawnEntityPacket(Packet packet) {
+        return packet instanceof ServerSpawnPlayerPacket
+                || packet instanceof ServerSpawnMobPacket
+                || packet instanceof ServerSpawnObjectPacket
+                || packet instanceof ServerSpawnExpOrbPacket
+                || packet instanceof ServerSpawnPaintingPacket;
+    }
+
     /**
      * Returns the entity id in the specified packet.
      * If no entity is associated with the packet this returns {@code null}.

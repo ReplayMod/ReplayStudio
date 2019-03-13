@@ -62,6 +62,7 @@ import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.util.Location;
 import com.replaymod.replaystudio.util.PacketUtils;
+import com.replaymod.replaystudio.util.Utils;
 import org.apache.commons.lang3.tuple.MutablePair;
 
 //#if MC>=11300
@@ -110,7 +111,6 @@ import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerWorldB
 import java.util.*;
 
 import static com.replaymod.replaystudio.io.WrappedPacket.instanceOf;
-import static com.replaymod.replaystudio.util.Java8.Map8.getOrCreate;
 import static com.replaymod.replaystudio.util.Utils.within;
 
 public class SquashFilter extends StreamFilterBase {
@@ -155,6 +155,8 @@ public class SquashFilter extends StreamFilterBase {
     }
 
     private static class Entity {
+        private boolean complete;
+        private boolean despawned;
         private List<PacketData> packets = new ArrayList<>();
         private long lastTimestamp = 0;
         private Location loc = null;
@@ -175,7 +177,6 @@ public class SquashFilter extends StreamFilterBase {
     private final Map<Integer, ServerMapDataPacket> maps = new HashMap<>();
 
     private final List<PacketData> currentWorld = new ArrayList<>();
-    private final List<BlockChangeRecord> currentBlocks = new ArrayList<>();
     private final List<PacketData> currentWindow = new ArrayList<>();
     private final List<PacketData> closeWindows = new ArrayList<>();
 
@@ -225,13 +226,18 @@ public class SquashFilter extends StreamFilterBase {
                     //#else
                     //$$ if (packet instanceof ServerDestroyEntitiesPacket) {
                     //#endif
-                        entities.remove(id);
+                        Entity entity = entities.computeIfAbsent(id, i -> new Entity());
+                        entity.packets.clear();
+                        entity.despawned = true;
+                        if (entity.complete) {
+                            entities.remove(id);
+                        }
                     } else {
-                        getOrCreate(entities, id, Entity::new).packets.add(data);
+                        entities.compute(id, (i, e) -> e == null || e.despawned ? new Entity() : e).packets.add(data);
                     }
                 }
             } else { // Only one entity
-                Entity entity = getOrCreate(entities, entityId, Entity::new);
+                Entity entity = entities.compute(entityId, (i, e) -> e == null || e.despawned ? new Entity() : e);
                 if (packet instanceof ServerEntityMovementPacket) {
                     ServerEntityMovementPacket p = (ServerEntityMovementPacket) packet;
                     double mx = p.getMovementX();
@@ -259,6 +265,9 @@ public class SquashFilter extends StreamFilterBase {
                     entity.onGround = p.isOnGround();
                     //#endif
                 } else {
+                    if (PacketUtils.isSpawnEntityPacket(packet)) {
+                        entity.complete = true;
+                    }
                     entity.packets.add(data);
                 }
                 entity.lastTimestamp = lastTimestamp;
@@ -330,7 +339,6 @@ public class SquashFilter extends StreamFilterBase {
             currentWorld.clear();
             chunks.clear();
             unloadedChunks.clear();
-            currentBlocks.clear();
             currentWindow.clear();
             entities.clear();
             respawn = data;
@@ -575,6 +583,15 @@ public class SquashFilter extends StreamFilterBase {
         for (Map.Entry<Integer, Entity> e : entities.entrySet()) {
             Entity entity = e.getValue();
 
+            if (entity.despawned) {
+                //#if MC>=10904
+                result.add(new PacketData(entity.lastTimestamp, new ServerEntityDestroyPacket(e.getKey())));
+                //#else
+                //$$ result.add(new PacketData(entity.lastTimestamp, new ServerDestroyEntitiesPacket(e.getKey())));
+                //#endif
+                continue;
+            }
+
             FOR_PACKETS:
             for (PacketData data : entity.packets) {
                 Packet packet = data.getPacket();
@@ -582,7 +599,8 @@ public class SquashFilter extends StreamFilterBase {
                 if (id == -1) { // Multiple entities
                     List<Integer> allIds = PacketUtils.getEntityIds(packet);
                     for (int i : allIds) {
-                        if (!entities.containsKey(i)) { // Other entity doesn't exist
+                        Entity other = entities.get(i);
+                        if (other == null || other.despawned) { // Other entity doesn't exist
                             continue FOR_PACKETS;
                         }
                     }
@@ -632,12 +650,14 @@ public class SquashFilter extends StreamFilterBase {
         }
 
         for (ChunkData chunk : chunks.values()) {
-            //#if MC>=10904
-            Packet packet = new ServerChunkDataPacket(new Column(chunk.x, chunk.z, chunk.changes, chunk.biomeData, chunk.tileEntities));
-            //#else
-            //$$ Packet packet = new ServerChunkDataPacket(chunk.x, chunk.z, chunk.changes, chunk.biomeData);
-            //#endif
-            result.add(new PacketData(chunk.firstAppearance, packet));
+            if (!Utils.containsOnlyNull(chunk.changes)) {
+                //#if MC>=10904
+                Packet packet = new ServerChunkDataPacket(new Column(chunk.x, chunk.z, chunk.changes, chunk.biomeData, chunk.tileEntities));
+                //#else
+                //$$ Packet packet = new ServerChunkDataPacket(chunk.x, chunk.z, chunk.changes, chunk.biomeData);
+                //#endif
+                result.add(new PacketData(chunk.firstAppearance, packet));
+            }
             for (Map<Short, MutablePair<Long, BlockChangeRecord>> e : chunk.blockChanges) {
                 if (e != null) {
                     for (MutablePair<Long, BlockChangeRecord> pair : e.values()) {
@@ -753,18 +773,17 @@ public class SquashFilter extends StreamFilterBase {
         //#else
         //$$ BlockChangeRecord pos = record;
         //#endif
-        ChunkData data = chunks.get(ChunkData.coordToLong(pos.getX() >> 4, pos.getZ() >> 4));
-        if (data != null) {
-            data.updateBlock(time, record);
-        }
+        chunks.computeIfAbsent(
+                ChunkData.coordToLong(pos.getX() >> 4, pos.getZ() >> 4),
+                idx -> new ChunkData(time, pos.getX() >> 4, pos.getZ() >> 4)
+        ).updateBlock(time, record);
     }
 
     //#if MC>=10904
     private void unloadChunk(long time, int x, int z) {
         long coord = ChunkData.coordToLong(x, z);
-        if (chunks.remove(coord) == null) {
-            unloadedChunks.put(coord, time);
-        }
+        chunks.remove(coord);
+        unloadedChunks.put(coord, time);
     }
 
     private void updateChunk(long time, Column column) {
@@ -780,9 +799,8 @@ public class SquashFilter extends StreamFilterBase {
     //$$ private void updateChunk(long time, int x, int z, Chunk[] chunkArray, byte[] biomeData) {
     //$$     long coord = ChunkData.coordToLong(x, z);
     //$$     if (Utils.containsOnlyNull(chunkArray)) { // UNLOAD
-    //$$         if (chunks.remove(coord) == null) {
-    //$$             unloadedChunks.put(coord, time);
-    //$$         }
+    //$$         chunks.remove(coord);
+    //$$         unloadedChunks.put(coord, time);
     //$$     } else { // LOAD
     //$$         unloadedChunks.remove(coord);
     //$$         ChunkData chunk = chunks.get(coord);
@@ -828,6 +846,7 @@ public class SquashFilter extends StreamFilterBase {
             for (int i = 0; i < newChunks.length; i++) {
                 if (newChunks[i] != null) {
                     changes[i] = newChunks[i];
+                    blockChanges[i] = null;
                 }
             }
 
