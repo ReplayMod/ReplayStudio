@@ -87,7 +87,7 @@ dependencies {
         10710: '2ac83bf',
     ][mcVersion]
 
-    def viaversion = 'com.github.replaymod.viaversion:viaversion:563dc3c'
+    def viaversion = 'com.github.replaymod.viaversion:viaversion:720a453'
     preshadow(viaversion){
         transitive = false // 'provided' dependencies, manually added below
     }

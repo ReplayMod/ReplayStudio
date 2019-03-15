@@ -176,6 +176,16 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
+    public boolean is1_13TeamColourFix() {
+        return true;
+    }
+
+    @Override
+    public boolean is1_12QuickMoveActionFix() {
+        return false;
+    }
+
+    @Override
     public List<Integer> getBlockedProtocols() {
         return null;
     }
@@ -188,5 +198,55 @@ public class CustomViaConfig implements ViaVersionConfig {
     @Override
     public String getReloadDisconnectMsg() {
         return null;
+    }
+
+    @Override
+    public boolean isSuppress1_13ConversionErrors() {
+        return false;
+    }
+
+    @Override
+    public boolean isDisable1_13AutoComplete() {
+        return false;
+    }
+
+    @Override
+    public boolean isMinimizeCooldown() {
+        return true;
+    }
+
+    @Override
+    public boolean isServersideBlockConnections() {
+        return true;
+    }
+
+    @Override
+    public String getBlockConnectionMethod() {
+        return "packet";
+    }
+
+    @Override
+    public boolean isReduceBlockStorageMemory() {
+        return false;
+    }
+
+    @Override
+    public boolean isStemWhenBlockAbove() {
+        return true;
+    }
+
+    @Override
+    public boolean isSnowCollisionFix() {
+        return false;
+    }
+
+    @Override
+    public int get1_13TabCompleteDelay() {
+        return 0;
+    }
+
+    @Override
+    public boolean isLeftHandedHandling() {
+        return true;
     }
 }

@@ -69,6 +69,11 @@ public class CustomViaPlatform implements ViaPlatform {
     }
 
     @Override
+    public TaskId runSync(Runnable runnable, Long aLong) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public TaskId runRepeatingSync(Runnable runnable, Long aLong) {
         throw new UnsupportedOperationException();
     }

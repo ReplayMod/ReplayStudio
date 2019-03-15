@@ -26,6 +26,7 @@ package com.replaymod.replaystudio.viaversion;
 
 import com.github.steveice10.netty.buffer.ByteBuf;
 import com.github.steveice10.netty.channel.ChannelFuture;
+import com.github.steveice10.netty.channel.embedded.EmbeddedChannel;
 import com.github.steveice10.packetlib.tcp.io.ByteBufNetInput;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.PacketWrapper;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.Pair;
@@ -192,7 +193,7 @@ public class ViaVersionPacketConverter {
      */
     private final class DummyUserConnection extends UserConnection {
         DummyUserConnection() {
-            super(null);
+            super(new EmbeddedChannel());
         }
 
         @Override
