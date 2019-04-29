@@ -39,7 +39,6 @@ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntit
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityTeleportPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityVelocityPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerPositionRotationPacket;
-import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerUseBedPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnExpOrbPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnGlobalEntityPacket;
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.spawn.ServerSpawnMobPacket;
@@ -51,6 +50,13 @@ import com.github.steveice10.packetlib.packet.Packet;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.replaymod.replaystudio.Studio;
+
+//#if MC>=11400
+import com.github.steveice10.mc.protocol.packet.ingame.server.ServerEntitySoundEffectPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.window.ServerOpenHorseWindowPacket;
+//#else
+//$$ import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerUseBedPacket;
+//#endif
 
 //#if MC>=10904
 import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityAnimationPacket;
@@ -110,7 +116,12 @@ public class PacketUtils {
      * @param studio The studio
      */
     public static void registerAllEntityRelated(Studio studio) {
-        studio.setParsing(ServerPlayerUseBedPacket.class, true);
+        //#if MC>=11400
+        studio.setParsing(ServerOpenHorseWindowPacket.class, true);
+        studio.setParsing(ServerEntitySoundEffectPacket.class, true);
+        //#else
+        //$$ studio.setParsing(ServerPlayerUseBedPacket.class, true);
+        //#endif
         studio.setParsing(ServerSpawnExpOrbPacket.class, true);
         studio.setParsing(ServerSpawnGlobalEntityPacket.class, true);
         studio.setParsing(ServerSpawnMobPacket.class, true);
@@ -172,9 +183,18 @@ public class PacketUtils {
      * @return Entity id or {@code null}
      */
     public static Integer getEntityId(Packet packet) {
-        if (packet instanceof ServerPlayerUseBedPacket) {
-            return ((ServerPlayerUseBedPacket) packet).getEntityId();
+        //#if MC>=11400
+        if (packet instanceof ServerOpenHorseWindowPacket) {
+            return ((ServerOpenHorseWindowPacket) packet).getEntityId();
         }
+        if (packet instanceof ServerEntitySoundEffectPacket) {
+            return ((ServerEntitySoundEffectPacket) packet).getEntityId();
+        }
+        //#else
+        //$$ if (packet instanceof ServerPlayerUseBedPacket) {
+        //$$     return ((ServerPlayerUseBedPacket) packet).getEntityId();
+        //$$ }
+        //#endif
         if (packet instanceof ServerSpawnExpOrbPacket) {
             return ((ServerSpawnExpOrbPacket) packet).getEntityId();
         }

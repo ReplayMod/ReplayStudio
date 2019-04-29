@@ -65,6 +65,14 @@ import com.replaymod.replaystudio.util.PacketUtils;
 import com.replaymod.replaystudio.util.Utils;
 import org.apache.commons.lang3.tuple.MutablePair;
 
+//#if MC>=11400
+import com.github.steveice10.mc.protocol.data.game.chunk.NibbleArray3d;
+import com.github.steveice10.mc.protocol.packet.ingame.server.window.ServerTradeListPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerUpdateLightPacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerUpdateViewDistancePacket;
+import com.github.steveice10.mc.protocol.packet.ingame.server.world.ServerUpdateViewPositionPacket;
+//#endif
+
 //#if MC>=11300
 import com.github.steveice10.mc.protocol.data.message.Message;
 //#endif
@@ -188,12 +196,19 @@ public class SquashFilter extends StreamFilterBase {
     private GameMode gameMode = null;
     private Integer dimension = null;
     private Difficulty difficulty = null;
+    //#if MC>=11400
+    private boolean difficultyLocked;
+    //#endif
     private WorldType worldType = null;
     //#if MC>=10800
     private Boolean reducedDebugInfo = null;
     //#endif
     private PacketData joinGame;
     private PacketData respawn;
+    //#if MC>=11400
+    private PacketData viewPosition;
+    private PacketData viewDistance;
+    //#endif
     private PacketData mainInventory;
     //#if MC>=10904
     private ServerPlayerSetExperiencePacket experience = null;
@@ -307,6 +322,9 @@ public class SquashFilter extends StreamFilterBase {
         //#if MC>=10800
         if (packet instanceof ServerDifficultyPacket) {
             difficulty = ((ServerDifficultyPacket) packet).getDifficulty();
+            //#if MC>=11400
+            difficultyLocked = ((ServerDifficultyPacket) packet).isDifficultyLocked();
+            //#endif
             return false;
         }
         //#endif
@@ -315,7 +333,9 @@ public class SquashFilter extends StreamFilterBase {
             ServerJoinGamePacket p = (ServerJoinGamePacket) packet;
             gameMode = p.getGameMode();
             dimension = p.getDimension();
-            difficulty = p.getDifficulty();
+            //#if MC<11400
+            //$$ difficulty = p.getDifficulty();
+            //#endif
             worldType = p.getWorldType();
             //#if MC>=10800
             reducedDebugInfo = p.getReducedDebugInfo();
@@ -328,7 +348,9 @@ public class SquashFilter extends StreamFilterBase {
             ServerRespawnPacket p = (ServerRespawnPacket) packet;
             dimension = p.getDimension();
             //#if MC>=10800
-            difficulty = p.getDifficulty();
+            //#if MC<11400
+            //$$ difficulty = p.getDifficulty();
+            //#endif
             worldType = p.getWorldType();
             gameMode = p.getGameMode();
             //#else
@@ -344,6 +366,24 @@ public class SquashFilter extends StreamFilterBase {
             respawn = data;
             return false;
         }
+
+        //#if MC>=11400
+        if (packet instanceof ServerUpdateViewPositionPacket) {
+            viewPosition = data;
+        }
+
+        if (packet instanceof ServerUpdateViewDistancePacket) {
+            viewDistance = data;
+        }
+
+        if (packet instanceof ServerUpdateLightPacket) {
+            ServerUpdateLightPacket p = (ServerUpdateLightPacket) packet;
+            chunks.computeIfAbsent(
+                    ChunkData.coordToLong(p.getX(), p.getZ()),
+                    idx -> new ChunkData(data.getTime(), p.getX(), p.getZ())
+            ).updateLight((ServerUpdateLightPacket) packet);
+        }
+        //#endif
 
         if (packet instanceof ServerChunkDataPacket) {
             ServerChunkDataPacket p = (ServerChunkDataPacket) packet;
@@ -420,6 +460,9 @@ public class SquashFilter extends StreamFilterBase {
         }
 
         if (instanceOf(packet, ServerOpenWindowPacket.class)
+                //#if MC>=11400
+                || instanceOf(packet, ServerTradeListPacket.class)
+                //#endif
                 || instanceOf(packet, ServerWindowPropertyPacket.class)) {
             currentWindow.add(data);
             return false;
@@ -539,7 +582,14 @@ public class SquashFilter extends StreamFilterBase {
         if (joinGame != null) {
             ServerJoinGamePacket org = (ServerJoinGamePacket) joinGame.getPacket();
             Packet packet = new ServerJoinGamePacket(org.getEntityId(), org.getHardcore(), gameMode, dimension,
-                    difficulty, org.getMaxPlayers(), worldType
+                    //#if MC<11400
+                    //$$ difficulty,
+                    //#endif
+                    org.getMaxPlayers(),
+                    worldType
+                    //#if MC>=11400
+                    , org.getViewDistance()
+                    //#endif
                     //#if MC>=10800
                     , reducedDebugInfo
                     //#endif
@@ -548,7 +598,11 @@ public class SquashFilter extends StreamFilterBase {
         } else if (respawn != null) {
             Packet packet = new ServerRespawnPacket(dimension,
                     //#if MC>=10800
-                    difficulty, gameMode, worldType
+                    //#if MC<11400
+                    //$$ difficulty,
+                    //#endif
+                    gameMode,
+                    worldType
                     //#else
                     //$$ ServerRespawnPacket.Difficulty.valueOf(difficulty.toString()),
                     //$$ ServerRespawnPacket.GameMode.valueOf(gameMode.toString()),
@@ -559,7 +613,12 @@ public class SquashFilter extends StreamFilterBase {
         } else {
             //#if MC>=10800
             if (difficulty != null) {
-                result.add(new PacketData(lastTimestamp, new ServerDifficultyPacket(difficulty)));
+                result.add(new PacketData(lastTimestamp, new ServerDifficultyPacket(
+                        difficulty
+                        //#if MC>=11400
+                        , difficultyLocked
+                        //#endif
+                )));
             }
             //#endif
             if (gameMode != null) {
@@ -572,6 +631,19 @@ public class SquashFilter extends StreamFilterBase {
                 result.add(new PacketData(lastTimestamp, packet));
             }
         }
+
+        //#if MC>=11400
+        if (viewPosition != null) {
+            result.add(viewPosition);
+        }
+
+        if (viewDistance != null) {
+            // TODO: Sending this packet causes the client to unload chunks, we might need to be more careful with
+            //       when exactly we're sending it. Also not sure what happens if entities temporarily move outside
+            //       of it or chunks outside are sent.
+            result.add(viewDistance);
+        }
+        //#endif
 
         if (experience != null) {
             result.add(new PacketData(lastTimestamp, experience));
@@ -652,7 +724,12 @@ public class SquashFilter extends StreamFilterBase {
         for (ChunkData chunk : chunks.values()) {
             if (!Utils.containsOnlyNull(chunk.changes)) {
                 //#if MC>=10904
-                Packet packet = new ServerChunkDataPacket(new Column(chunk.x, chunk.z, chunk.changes, chunk.biomeData, chunk.tileEntities));
+                Packet packet = new ServerChunkDataPacket(new Column(
+                        chunk.x, chunk.z, chunk.changes, chunk.biomeData, chunk.tileEntities
+                        //#if MC>=11400
+                        , chunk.heightmaps
+                        //#endif
+                ));
                 //#else
                 //$$ Packet packet = new ServerChunkDataPacket(chunk.x, chunk.z, chunk.changes, chunk.biomeData);
                 //#endif
@@ -665,6 +742,12 @@ public class SquashFilter extends StreamFilterBase {
                     }
                 }
             }
+            //#if MC>=11400
+            if (chunk.hasLight()) {
+                result.add(new PacketData(chunk.firstAppearance, new ServerUpdateLightPacket(
+                        chunk.x, chunk.z, Arrays.asList(chunk.skyLight), Arrays.asList(chunk.blockLight))));
+            }
+            //#endif
         }
 
         Collections.sort(result, (e1, e2) -> Long.compare(e1.getTime(), e2.getTime()));
@@ -793,7 +876,14 @@ public class SquashFilter extends StreamFilterBase {
         if (chunk == null) {
             chunks.put(coord, chunk = new ChunkData(time, column.getX(), column.getZ()));
         }
-        chunk.update(column.getChunks(), column.getBiomeData(), column.getTileEntities());
+        chunk.update(
+                column.getChunks(),
+                column.getBiomeData(),
+                column.getTileEntities()
+                //#if MC>=11400
+                , column.getHeightmaps()
+                //#endif
+        );
     }
     //#else
     //$$ private void updateChunk(long time, int x, int z, Chunk[] chunkArray, byte[] biomeData) {
@@ -827,6 +917,11 @@ public class SquashFilter extends StreamFilterBase {
         //#if MC>=10904
         public CompoundTag[] tileEntities;
         //#endif
+        //#if MC>=11400
+        private CompoundTag heightmaps;
+        private NibbleArray3d[] skyLight = new NibbleArray3d[18];
+        private NibbleArray3d[] blockLight = new NibbleArray3d[18];
+        //#endif
 
         public ChunkData(long firstAppearance, int x, int z) {
             this.firstAppearance = firstAppearance;
@@ -834,15 +929,20 @@ public class SquashFilter extends StreamFilterBase {
             this.z = z;
         }
 
-        //#if MC>=11300
-        public void update(Chunk[] newChunks, int[] newBiomeData, CompoundTag[] newTileEntities) {
-        //#else
-        //#if MC>=10904
-        //$$ public void update(Chunk[] newChunks, byte[] newBiomeData, CompoundTag[] newTileEntities) {
-        //#else
-        //$$ public void update(Chunk[] newChunks, byte[] newBiomeData) {
-        //#endif
-        //#endif
+        public void update(
+                Chunk[] newChunks,
+                //#if MC>=11302
+                int[] newBiomeData
+                //#else
+                //$$ byte[] newBiomeData
+                //#endif
+                //#if MC>=10904
+                , CompoundTag[] newTileEntities
+                //#endif
+                //#if MC>=11400
+                , CompoundTag newHeightmaps
+                //#endif
+        ) {
             for (int i = 0; i < newChunks.length; i++) {
                 if (newChunks[i] != null) {
                     changes[i] = newChunks[i];
@@ -858,7 +958,44 @@ public class SquashFilter extends StreamFilterBase {
                 this.tileEntities = newTileEntities;
             }
             //#endif
+            //#if MC>=11400
+            if (newHeightmaps != null) {
+                this.heightmaps = newHeightmaps;
+            }
+            //#endif
         }
+
+        //#if MC>=11400
+        private void updateLight(ServerUpdateLightPacket packet) {
+            int i = 0;
+            for (NibbleArray3d light : packet.getSkyLight()) {
+                if (light != null) {
+                    skyLight[i] = light;
+                }
+                i++;
+            }
+            for (NibbleArray3d light : packet.getBlockLight()) {
+                if (light != null) {
+                    blockLight[i] = light;
+                }
+                i++;
+            }
+        }
+
+        private boolean hasLight() {
+            for (NibbleArray3d light : skyLight) {
+                if (light != null) {
+                    return true;
+                }
+            }
+            for (NibbleArray3d light : blockLight) {
+                if (light != null) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        //#endif
 
         //#if MC>=10800
         private MutablePair<Long, BlockChangeRecord> blockChanges(Position pos) {
