@@ -75,7 +75,7 @@ configurations.preshadow.resolutionStrategy.eachDependency { dep ->
 
 dependencies {
     preshadow group: 'com.github.ReplayMod', name: 'MCProtocolLib', version: [
-        11400: '228535b',
+        11400: 'f2b170b',
         11302: '20e209f',
         11202: 'a2d5797',
         11201: 'e7adaa7',
