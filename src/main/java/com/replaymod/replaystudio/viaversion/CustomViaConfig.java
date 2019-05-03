@@ -246,7 +246,22 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
+    public boolean isTruncate1_14Books() {
+        return false;
+    }
+
+    @Override
     public boolean isLeftHandedHandling() {
+        return true;
+    }
+
+    @Override
+    public boolean is1_9HitboxFix() {
+        return true;
+    }
+
+    @Override
+    public boolean is1_14HitboxFix() {
         return true;
     }
 }

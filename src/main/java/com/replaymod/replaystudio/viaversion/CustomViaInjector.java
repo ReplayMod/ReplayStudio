@@ -24,6 +24,7 @@
  */
 package com.replaymod.replaystudio.viaversion;
 
+import com.google.gson.JsonObject;
 import com.replaymod.replaystudio.studio.ReplayStudio;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.platform.ViaInjector;
 
@@ -48,6 +49,11 @@ public class CustomViaInjector implements ViaInjector {
 
     @Override
     public String getDecoderName() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public JsonObject getDump() {
         throw new UnsupportedOperationException();
     }
 }
