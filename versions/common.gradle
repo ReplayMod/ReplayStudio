@@ -41,7 +41,7 @@ if (project.name != 'core') {
     mcVersion = "${major}${minor.padLeft(2, '0')}${(patch ?: '').padLeft(2, '0')}" as int
 } else {
     def f = file('mcVersion')
-    mcVersion = f.exists() ? f.readLines().first() as int : 11400
+    mcVersion = f.exists() ? f.readLines().first() as int : 11401
 }
 
 compileJava {
@@ -75,7 +75,7 @@ configurations.preshadow.resolutionStrategy.eachDependency { dep ->
 
 dependencies {
     preshadow group: 'com.github.ReplayMod', name: 'MCProtocolLib', version: [
-        11400: 'f2b170b',
+        11401: 'ed60afc',
         11302: '20e209f',
         11202: 'a2d5797',
         11201: 'e7adaa7',
@@ -88,7 +88,7 @@ dependencies {
         10710: '2ac83bf',
     ][mcVersion]
 
-    def viaversion = 'com.github.replaymod.viaversion:viaversion:af4a03f'
+    def viaversion = 'com.github.replaymod.viaversion:viaversion:6c2a87d7'
     preshadow(viaversion){
         transitive = false // 'provided' dependencies, manually added below
     }
