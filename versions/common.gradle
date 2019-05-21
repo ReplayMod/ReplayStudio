@@ -88,21 +88,17 @@ dependencies {
         10710: '2ac83bf',
     ][mcVersion]
 
-    def viaversion = 'com.github.replaymod.viaversion:viaversion:6c2a87d7'
-    preshadow(viaversion){
-        transitive = false // 'provided' dependencies, manually added below
-    }
-    compile 'com.google.guava:guava:17.0' // for ViaVersion
-    // ViaVersion will use the relocated netty of MCProtocolLib
+    preshadow 'com.github.replaymod.viaversion:viaversion-common:3446ca29'
 
-    // un-shaded from MCAuthLib (is shaded into MCProtocolLib) and ViaVersion (has gson shaded with relocation)
-    // see configuration of preshadowJar task
+    // ViaVersion will use the relocated netty of MCProtocolLib
+    // un-shaded from ViaVersion
+    compile 'com.google.guava:guava:17.0'
     compile 'com.google.code.gson:gson:2.3.1'
 
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'
     compile 'commons-cli:commons-cli:1.2'
-    compile "org.projectlombok:lombok:1.16.6"
+    compileOnly "org.projectlombok:lombok:1.16.6"
     testCompile 'junit:junit:4.11'
     testCompile 'com.google.guava:guava-testlib:18.0'
     testCompile 'pl.pragmatists:JUnitParams:1.0.4'
@@ -134,11 +130,12 @@ preshadowJar {
     relocate 'io.netty', 'com.github.steveice10.netty'
     relocate 'us.myles.ViaVersion', 'com.replaymod.replaystudio.us.myles.ViaVersion'
 
-    // un-shading from MCAuthLib (see dependencies)
-    exclude 'com/google/gson/**'
-    // also un-shading (and un-relocating) from ViaVersion
-    exclude 'us/myles/viaversion/libs/gson/**'
-    relocate 'us.myles.viaversion.libs.gson', 'com.google.gson'
+    // un-shading from ViaVersion (see dependencies)
+    exclude 'com/google/gson/**' // gson
+    exclude 'com/google/common/**' // guava
+    exclude 'com/google/thirdparty/publicsuffix/**' // also part of guava
+    // don't need this one, ViaVersion uses it to parse configs (which we never need to do)
+    exclude 'org/yaml/snakeyaml/**' // snakeyaml
 }
 
 shadowJar {
