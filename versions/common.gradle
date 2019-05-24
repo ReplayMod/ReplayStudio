@@ -64,15 +64,6 @@ repositories {
     }
 }
 
-configurations.preshadow.resolutionStrategy.eachDependency { dep ->
-    def req = dep.requested
-    if (req.group == 'com.github.steveice10' && req.name == 'opennbt' && req.version == '1.0') {
-        // Need to use commit hash because there's a conflicting version in maven central
-        // This might still get the wrong sources artifact but we don't care about that
-        dep.useVersion '659bda0'
-    }
-}
-
 dependencies {
     preshadow group: 'com.github.ReplayMod', name: 'MCProtocolLib', version: [
         11401: 'ed60afc',
@@ -94,6 +85,9 @@ dependencies {
     // un-shaded from ViaVersion
     compile 'com.google.guava:guava:17.0'
     compile 'com.google.code.gson:gson:2.3.1'
+
+    // Un-shaded from MCProtocolLib, also updated to 1.2 for ViaVersion
+    compile 'com.github.steveice10:opennbt:d50274d' // 1.2
 
     compile 'org.apache.commons:commons-lang3:3.3.2'
     compile 'org.apache.commons:commons-collections4:4.0'
@@ -136,6 +130,10 @@ preshadowJar {
     exclude 'com/google/thirdparty/publicsuffix/**' // also part of guava
     // don't need this one, ViaVersion uses it to parse configs (which we never need to do)
     exclude 'org/yaml/snakeyaml/**' // snakeyaml
+
+    // un-shading from MCProtocolLib (see dependencies)
+    exclude 'com/github/steveice10/opennbt/**' // opennbt
+    exclude 'org/spacehq/opennbt/**' // opennbt (pre 1.12)
 }
 
 shadowJar {
