@@ -41,7 +41,7 @@ if (project.name != 'core') {
     mcVersion = "${major}${minor.padLeft(2, '0')}${(patch ?: '').padLeft(2, '0')}" as int
 } else {
     def f = file('mcVersion')
-    mcVersion = f.exists() ? f.readLines().first() as int : 11401
+    mcVersion = f.exists() ? f.readLines().first() as int : 11402
 }
 
 compileJava {
@@ -66,7 +66,7 @@ repositories {
 
 dependencies {
     preshadow group: 'com.github.ReplayMod', name: 'MCProtocolLib', version: [
-        11401: 'ed60afc',
+        11402: 'b21d9d7',
         11302: '72a4bc8',
         11202: '5f4c44b',
         11201: '0220bc1',
@@ -79,7 +79,7 @@ dependencies {
         10710: '2ac83bf',
     ][mcVersion]
 
-    preshadow 'com.github.replaymod.viaversion:viaversion-common:3446ca29'
+    preshadow 'com.github.replaymod.viaversion:viaversion-common:c1fb0301'
 
     // ViaVersion will use the relocated netty of MCProtocolLib
     // un-shaded from ViaVersion

@@ -881,7 +881,7 @@ public class SquashFilter extends StreamFilterBase {
                 column.getBiomeData(),
                 column.getTileEntities()
                 //#if MC>=11400
-                , column.getHeightmaps()
+                , column.getHeightMaps()
                 //#endif
         );
     }
