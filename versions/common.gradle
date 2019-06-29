@@ -112,6 +112,7 @@ license {
     }
     exclude 'LICENSE.txt'
     exclude 'META-INF/*'
+    exclude 'com/github/steveice10/packetlib/packet/PacketProtocol.java'
 }
 
 preshadowJar {

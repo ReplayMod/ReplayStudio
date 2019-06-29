@@ -78,8 +78,7 @@ public class WrappedPacket implements IWrappedPacket {
      * @param wrapper The wrapper whose packet class to get
      * @return The packet class or the specified class if it is no wrapper class
      */
-    @SuppressWarnings("unchecked")
-    public static synchronized Class<? extends Packet> getWrappedClassFor(Class<? extends IWrappedPacket> wrapper) {
+    public static synchronized Class<? extends Packet> getWrappedClassFor(Class<? extends Packet> wrapper) {
         ClassLoader loader = wrapper.getClassLoader();
         return loader instanceof WrappingClassLoader ? ((WrappingClassLoader) loader).wrapped : wrapper;
     }
@@ -90,7 +89,6 @@ public class WrappedPacket implements IWrappedPacket {
      * @param wrapper The packet
      * @return The real class
      */
-    @SuppressWarnings("unchecked")
     public static Class<? extends Packet> getWrapped(Packet wrapper) {
         return wrapper instanceof IWrappedPacket ? ((IWrappedPacket) wrapper).getWrapped() : wrapper.getClass();
     }

@@ -27,10 +27,8 @@ package com.replaymod.replaystudio.studio.protocol;
 import com.github.steveice10.mc.protocol.MinecraftProtocol;
 import com.github.steveice10.packetlib.Session;
 import com.github.steveice10.packetlib.packet.Packet;
-import com.github.steveice10.packetlib.packet.PacketProtocol;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.io.WrappedPacket;
-import com.replaymod.replaystudio.util.Reflection;
 
 //#if MC>=10800
 import com.github.steveice10.mc.protocol.data.SubProtocol;
@@ -39,16 +37,11 @@ import com.github.steveice10.mc.protocol.data.SubProtocol;
 //#endif
 
 import java.util.HashMap;
+import java.util.Map;
 
 public class StudioMinecraftProtocol extends MinecraftProtocol {
 
-    public StudioMinecraftProtocol() {
-        //#if MC>=10800
-        super(SubProtocol.LOGIN);
-        //#else
-        //$$ super(ProtocolMode.LOGIN);
-        //#endif
-    }
+    private final Studio studio;
 
     /**
      * @deprecated Use {@link #StudioMinecraftProtocol(Studio, Session, boolean, boolean)} instead.
@@ -65,50 +58,45 @@ public class StudioMinecraftProtocol extends MinecraftProtocol {
         //$$ super(ProtocolMode.LOGIN);
         //#endif
 
-        init(studio, session, client,
-                //#if MC>=10800
-                includeLoginPhase ? SubProtocol.LOGIN : SubProtocol.GAME
-                //#else
-                //$$ includeLoginPhase ? ProtocolMode.LOGIN : ProtocolMode.GAME
-                //#endif
-        );
+        this.studio = studio;
+
+        //#if MC>=10800
+        setSubProtocol(includeLoginPhase ? SubProtocol.LOGIN : SubProtocol.GAME, client, session);
+        //#else
+        //$$ setMode(includeLoginPhase ? ProtocolMode.LOGIN : ProtocolMode.GAME, client, session);
+        //#endif
     }
 
-    //#if MC>=10800
-    public void init(Studio studio, Session session, boolean client, SubProtocol mode) {
-    //#else
-    //$$ public void init(Studio studio, Session session, boolean client, ProtocolMode mode) {
-    //#endif
-        Reflection.setField(PacketProtocol.class, "incoming", this, new HashMap() {
+    @Override
+    protected Map<Integer, Class<? extends Packet>> createIncomingMap() {
+        return new HashMap<Integer, Class<? extends Packet>>() {
             @Override
-            @SuppressWarnings("unchecked")
-            public Object get(Object key) {
-                Class<? extends Packet> value = (Class<? extends Packet>) super.get(key);
-                return getPacketClass(studio, value);
+            public Class<? extends Packet> get(Object key) {
+                return getPacketClass(studio, super.get(key));
             }
-        });
+        };
+    }
 
-        Reflection.setField(PacketProtocol.class, "outgoing", this, new HashMap() {
+    @Override
+    protected Map<Class<? extends Packet>, Integer> createOutgoingMap() {
+        return new HashMap<Class<? extends Packet>, Integer>() {
             @Override
             public boolean containsKey(Object key) {
                 return get(key) != null;
             }
 
             @Override
-            @SuppressWarnings("unchecked")
-            public Object get(Object key) {
+            public Integer get(Object key) {
                 if (!(key instanceof Class)) {
                     return super.get(key);
                 }
-                return super.get(WrappedPacket.getWrappedClassFor((Class) key));
+                Class<?> cls = (Class<?>) key;
+                if (!cls.isAssignableFrom(Packet.class)) {
+                    return super.get(key);
+                }
+                return super.get(WrappedPacket.getWrappedClassFor(cls.asSubclass(Packet.class)));
             }
-        });
-
-        //#if MC>=10800
-        setSubProtocol(mode, client, session);
-        //#else
-        //$$ setMode(mode, client, session);
-        //#endif
+        };
     }
 
     //#if MC>=10800
@@ -123,7 +111,7 @@ public class StudioMinecraftProtocol extends MinecraftProtocol {
     //$$ }
     //#endif
 
-    private Class<?> getPacketClass(Studio studio, Class<? extends Packet> cls) {
+    private Class<? extends Packet> getPacketClass(Studio studio, Class<? extends Packet> cls) {
         if (studio.isWrappingEnabled() && !studio.willBeParsed(cls)) {
             return WrappedPacket.getClassFor(cls);
         } else {
