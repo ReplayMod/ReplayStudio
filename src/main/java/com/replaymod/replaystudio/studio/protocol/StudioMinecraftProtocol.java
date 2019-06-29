@@ -91,7 +91,7 @@ public class StudioMinecraftProtocol extends MinecraftProtocol {
                     return super.get(key);
                 }
                 Class<?> cls = (Class<?>) key;
-                if (!cls.isAssignableFrom(Packet.class)) {
+                if (!Packet.class.isAssignableFrom(cls)) {
                     return super.get(key);
                 }
                 return super.get(WrappedPacket.getWrappedClassFor(cls.asSubclass(Packet.class)));
