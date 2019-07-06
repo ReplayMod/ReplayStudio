@@ -1000,19 +1000,20 @@ public class SquashFilter extends StreamFilterBase {
         //#if MC>=10800
         private MutablePair<Long, BlockChangeRecord> blockChanges(Position pos) {
             int x = pos.getX();
-            int y = pos.getY() / 16;
+            int y = pos.getY();
+            int chunkY = y / 16;
             int z = pos.getZ();
         //#else
         //$$ private MutablePair<Long, BlockChangeRecord> blockChanges(int x, int y, int z) {
-        //$$     y = y / 16;
+        //$$     int chunkY = y / 16;
         //#endif
-            if (blockChanges[y] == null) {
-                blockChanges[y] = new HashMap<>();
+            if (blockChanges[chunkY] == null) {
+                blockChanges[chunkY] = new HashMap<>();
             }
             short index = (short) ((x & 15) << 10 | (y & 15) << 5 | (z & 15));
-            MutablePair<Long, BlockChangeRecord> pair = blockChanges[y].get(index);
+            MutablePair<Long, BlockChangeRecord> pair = blockChanges[chunkY].get(index);
             if (pair == null) {
-                blockChanges[y].put(index, pair = MutablePair.of(0l, null));
+                blockChanges[chunkY].put(index, pair = MutablePair.of(0l, null));
             }
             return pair;
         }
