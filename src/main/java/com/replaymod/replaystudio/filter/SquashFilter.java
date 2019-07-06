@@ -1007,6 +1007,9 @@ public class SquashFilter extends StreamFilterBase {
         //$$ private MutablePair<Long, BlockChangeRecord> blockChanges(int x, int y, int z) {
         //$$     int chunkY = y / 16;
         //#endif
+            if (chunkY < 0 || chunkY >= blockChanges.length) {
+                return null;
+            }
             if (blockChanges[chunkY] == null) {
                 blockChanges[chunkY] = new HashMap<>();
             }
@@ -1026,7 +1029,7 @@ public class SquashFilter extends StreamFilterBase {
                     //$$ record.getX(), record.getY(), record.getZ()
                     //#endif
             );
-            if (pair.getLeft() < time) {
+            if (pair != null && pair.getLeft() < time) {
                 pair.setLeft(time);
                 pair.setRight(record);
             }
