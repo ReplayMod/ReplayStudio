@@ -71,12 +71,12 @@ dependencies {
         11202: '5f4c44b',
         11201: '0220bc1',
         11200: 'cb65733',
-        11102: 'ed39d6b',
-        11100: '56a33a5',
-        11002: '26ed704',
-        10904: 'f3490e1',
-        10800: 'e53c82c',
-        10710: '2ac83bf',
+        11102: '35a0eb6',
+        11100: '27ef52c',
+        11002: 'be3fafb',
+        10904: 'bc4b0b8',
+        10800: '5383189',
+        10710: '63c1212',
     ][mcVersion]
 
     preshadow 'com.github.replaymod.viaversion:viaversion-common:67fb6506'
