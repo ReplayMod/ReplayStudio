@@ -79,7 +79,7 @@ dependencies {
         10710: '63c1212',
     ][mcVersion]
 
-    preshadow 'com.github.replaymod.viaversion:viaversion-common:67fb6506'
+    preshadow 'com.github.replaymod.viaversion:viaversion-common:506171d7'
 
     // ViaVersion will use the relocated netty of MCProtocolLib
     // un-shaded from ViaVersion
