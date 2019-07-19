@@ -65,6 +65,10 @@ import com.replaymod.replaystudio.util.PacketUtils;
 import com.replaymod.replaystudio.util.Utils;
 import org.apache.commons.lang3.tuple.MutablePair;
 
+//#if MC>=11404
+import com.github.steveice10.mc.protocol.packet.ingame.server.entity.player.ServerPlayerActionAckPacket;
+//#endif
+
 //#if MC>=11400
 import com.github.steveice10.mc.protocol.data.game.chunk.NibbleArray3d;
 import com.github.steveice10.mc.protocol.packet.ingame.server.window.ServerTradeListPacket;
@@ -227,7 +231,13 @@ public class SquashFilter extends StreamFilterBase {
         Packet packet = data.getPacket();
         lastTimestamp = data.getTime();
 
-        if (instanceOf(packet, ServerSpawnParticlePacket.class)) {
+        if (instanceOf(packet, ServerSpawnParticlePacket.class)
+                //#if MC>=11404
+                // Appears to only be used to reset blocks which have speculatively been changed in the client world
+                // and as such should never do anything useful in a a replay.
+                || instanceOf(packet, ServerPlayerActionAckPacket.class)
+                //#endif
+        ) {
             return false;
         }
 
