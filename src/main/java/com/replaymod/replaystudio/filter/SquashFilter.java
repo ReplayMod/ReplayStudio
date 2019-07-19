@@ -246,20 +246,23 @@ public class SquashFilter extends StreamFilterBase {
         if (entityId != null) { // Some entity is associated with this packet
             if (entityId == -1) { // Multiple entities in fact
                 for (int id : PacketUtils.getEntityIds(packet)) {
+                    Entity entity;
                     //#if MC>=10904
                     if (packet instanceof ServerEntityDestroyPacket) {
                     //#else
                     //$$ if (packet instanceof ServerDestroyEntitiesPacket) {
                     //#endif
-                        Entity entity = entities.computeIfAbsent(id, i -> new Entity());
+                        entity = entities.computeIfAbsent(id, i -> new Entity());
                         entity.packets.clear();
                         entity.despawned = true;
                         if (entity.complete) {
                             entities.remove(id);
                         }
                     } else {
-                        entities.compute(id, (i, e) -> e == null || e.despawned ? new Entity() : e).packets.add(data);
+                        entity = entities.compute(id, (i, e) -> e == null || e.despawned ? new Entity() : e);
+                        entity.packets.add(data);
                     }
+                    entity.lastTimestamp = lastTimestamp;
                 }
             } else { // Only one entity
                 Entity entity = entities.compute(entityId, (i, e) -> e == null || e.despawned ? new Entity() : e);
