@@ -984,6 +984,7 @@ public class SquashFilter extends StreamFilterBase {
                 }
                 i++;
             }
+            i = 0;
             for (NibbleArray3d light : packet.getBlockLight()) {
                 if (light != null) {
                     blockLight[i] = light;
