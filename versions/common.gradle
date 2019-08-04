@@ -66,11 +66,11 @@ repositories {
 
 dependencies {
     preshadow group: 'com.github.ReplayMod', name: 'MCProtocolLib', version: [
-        11404: '1ec9844',
-        11302: '777bd45',
-        11202: '556c9f2',
-        11201: '0220bc1',
-        11200: 'cb65733',
+        11404: '3a7bb7e',
+        11302: '34c8f61',
+        11202: 'f0531e3',
+        11201: '6194c2a',
+        11200: '766bebe',
         11102: '35a0eb6',
         11100: '27ef52c',
         11002: 'be3fafb',
