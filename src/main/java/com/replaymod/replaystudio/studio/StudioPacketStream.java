@@ -25,24 +25,14 @@
 package com.replaymod.replaystudio.studio;
 
 import com.replaymod.replaystudio.PacketData;
-import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.io.ReplayInputStream;
 import com.replaymod.replaystudio.stream.AbstractPacketStream;
 
 import java.io.IOException;
-import java.io.InputStream;
 
 public class StudioPacketStream extends AbstractPacketStream {
 
     private final ReplayInputStream in;
-
-    /**
-     * @deprecated Use {@link ReplayInputStream#asPacketStream()} instead.
-     */
-    @Deprecated
-    public StudioPacketStream(Studio studio, InputStream in) {
-        this.in = new ReplayInputStream(studio, in);
-    }
 
     public StudioPacketStream(ReplayInputStream in) {
         this.in = in;

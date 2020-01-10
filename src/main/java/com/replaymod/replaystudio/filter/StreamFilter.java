@@ -29,6 +29,8 @@ import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.stream.PacketStream;
 
+import java.io.IOException;
+
 /**
  * A manipulation that applies some effect onto the supplied packet stream on the fly.
  */
@@ -54,7 +56,7 @@ public interface StreamFilter {
      * Called at the beginning of a new stream.
      * @param stream The stream of packets
      */
-    void onStart(PacketStream stream);
+    void onStart(PacketStream stream) throws IOException;
 
     /**
      * Called for each packet traversing the stream.
@@ -62,13 +64,13 @@ public interface StreamFilter {
      * @param data The packet
      * @return {@code true} if the packet should remain in the stream, {@code false} if it should be removed
      */
-    boolean onPacket(PacketStream stream, PacketData data);
+    boolean onPacket(PacketStream stream, PacketData data) throws IOException;
 
     /**
      * Called at the end of a stream.
      * @param stream The stream of packets
      * @param timestamp The current time int this stream in milliseconds
      */
-    void onEnd(PacketStream stream, long timestamp);
+    void onEnd(PacketStream stream, long timestamp) throws IOException;
 
 }

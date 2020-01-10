@@ -1,8 +1,8 @@
 /*
  * This file is part of ReplayStudio, licensed under the MIT License (MIT).
  *
- * Copyright (c) 2016 johni0702 <https://github.com/johni0702>
- * Copyright (c) contributors
+ * Copyright (c) 2020 johni0702 <https://github.com/johni0702>
+ * Copyright (c) ReplayStudio contributors (see git)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,33 +22,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.replaymod.replaystudio.collection;
+package com.replaymod.replaystudio.protocol.packets;
 
-/**
- * Provides a view on another replay part.
- * Changes to the view will be reflected on the parent and vice versa.
- *
- * @deprecated Use some standard collection type instead.
- */
-@Deprecated
-public interface ReplayPartView extends ReplayPart {
+import com.replaymod.replaystudio.protocol.Packet;
 
-    /**
-     * Get the part to which this provides a view.
-     * @return The viewed part
-     */
-    ReplayPart getViewed();
+import java.io.IOException;
 
-    /**
-     * Returns the time in the parent at which this view starts.
-     * @return Time in milliseconds
-     */
-    long getFrom();
+public class PacketSetSlot {
+    public static int getWindowId(Packet packet) throws IOException {
+        try (Packet.Reader in = packet.reader()) {
+            return in.readUnsignedByte();
+        }
+    }
 
-    /**
-     * Returns the time in the parent at which this view ends.
-     * @return Time in milliseconds
-     */
-    long getTo();
-
+    public static int getSlot(Packet packet) throws IOException {
+        try (Packet.Reader in = packet.reader()) {
+            in.readUnsignedByte(); // window id
+            return in.readShort();
+        }
+    }
 }

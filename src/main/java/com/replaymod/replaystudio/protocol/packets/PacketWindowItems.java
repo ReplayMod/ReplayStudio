@@ -1,8 +1,8 @@
 /*
  * This file is part of ReplayStudio, licensed under the MIT License (MIT).
  *
- * Copyright (c) 2016 johni0702 <https://github.com/johni0702>
- * Copyright (c) contributors
+ * Copyright (c) 2020 johni0702 <https://github.com/johni0702>
+ * Copyright (c) ReplayStudio contributors (see git)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,21 +22,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.replaymod.replaystudio.filter;
+package com.replaymod.replaystudio.protocol.packets;
 
-import com.replaymod.replaystudio.collection.ReplayPart;
-import com.replaymod.replaystudio.stream.IteratorStream;
+import com.replaymod.replaystudio.protocol.Packet;
 
-/**
- * Base class for stream filter which also want export their functionality as a regular filter.
- */
-@SuppressWarnings("deprecation")
-public abstract class StreamFilterBase implements StreamFilter, Filter {
+import java.io.IOException;
 
-    @Override
-    public ReplayPart apply(ReplayPart part) {
-        new IteratorStream(part.iterator(), this).processAll();
-        return part;
+public class PacketWindowItems {
+    public static int getWindowId(Packet packet) throws IOException {
+        try (Packet.Reader in = packet.reader()) {
+            return in.readUnsignedByte();
+        }
     }
-
 }

@@ -25,7 +25,6 @@
 package com.replaymod.replaystudio.replay;
 
 import com.google.common.base.Optional;
-import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.data.Marker;
 import com.replaymod.replaystudio.data.ModInfo;
 import com.replaymod.replaystudio.data.ReplayAssetEntry;
@@ -33,6 +32,7 @@ import com.replaymod.replaystudio.io.ReplayInputStream;
 import com.replaymod.replaystudio.io.ReplayOutputStream;
 import com.replaymod.replaystudio.pathing.PathingRegistry;
 import com.replaymod.replaystudio.pathing.path.Timeline;
+import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 
 import java.awt.image.BufferedImage;
 import java.io.Closeable;
@@ -125,35 +125,11 @@ public interface ReplayFile extends Closeable {
     void saveTo(File target) throws IOException;
 
     ReplayMetaData getMetaData() throws IOException;
-    void writeMetaData(ReplayMetaData metaData) throws IOException;
+    void writeMetaData(PacketTypeRegistry registry, ReplayMetaData metaData) throws IOException;
 
-    /**
-     * @deprecated Use {@link #getPacketData(Studio, boolean)} instead.
-     */
-    @Deprecated
-    ReplayInputStream getPacketData() throws IOException;
+    ReplayInputStream getPacketData(PacketTypeRegistry registry) throws IOException;
 
-    /**
-     * @deprecated Use {@link #getPacketData(Studio, boolean)} instead.
-     */
-    @Deprecated
-    ReplayInputStream getPacketData(Studio studio) throws IOException;
-
-    ReplayInputStream getPacketData(Studio studio, boolean outputLoginPhase) throws IOException;
-
-    /**
-     * @deprecated Use {@link #writePacketData(boolean)} instead.
-     */
-    @Deprecated
     ReplayOutputStream writePacketData() throws IOException;
-
-    ReplayOutputStream writePacketData(boolean includesLoginPhase) throws IOException;
-
-    /**
-     * @deprecated {@link Replay} is deprecated.
-     */
-    @Deprecated
-    Replay toReplay() throws IOException;
 
     Map<Integer, String> getResourcePackIndex() throws IOException;
     void writeResourcePackIndex(Map<Integer, String> index) throws IOException;

@@ -1,8 +1,8 @@
 /*
  * This file is part of ReplayStudio, licensed under the MIT License (MIT).
  *
- * Copyright (c) 2016 johni0702 <https://github.com/johni0702>
- * Copyright (c) contributors
+ * Copyright (c) 2020 johni0702 <https://github.com/johni0702>
+ * Copyright (c) ReplayStudio contributors (see git)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,59 +22,26 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.replaymod.replaystudio.mock;
+package com.replaymod.replaystudio.protocol.packets;
 
-import com.github.steveice10.packetlib.packet.Packet;
-import com.replaymod.replaystudio.PacketData;
-import com.replaymod.replaystudio.filter.StreamFilter;
-import com.replaymod.replaystudio.stream.PacketStream;
+import com.replaymod.replaystudio.protocol.Packet;
+import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolVersion;
 
-import java.util.Collection;
-import java.util.List;
+import java.io.IOException;
 
-public class PacketStreamMock implements PacketStream {
-    @Override
-    public void insert(PacketData packet) {
-
-    }
-
-    @Override
-    public void insert(long time, Packet packet) {
-
-    }
-
-    @Override
-    public void addFilter(StreamFilter filter) {
-
-    }
-
-    @Override
-    public void addFilter(StreamFilter filter, long from, long to) {
-
-    }
-
-    @Override
-    public void removeFilter(StreamFilter filter) {
-
-    }
-
-    @Override
-    public Collection<FilterInfo> getFilters() {
-        return null;
-    }
-
-    @Override
-    public PacketData next() {
-        return null;
-    }
-
-    @Override
-    public void start() {
-
-    }
-
-    @Override
-    public List<PacketData> end() {
-        return null;
+public class PacketSpawnPlayer extends SpawnEntity {
+    /**
+     * @see PacketPlayerListEntry#getId()
+     */
+    public static String getPlayerListEntryId(Packet packet) throws IOException {
+        try (Packet.Reader in = packet.reader()) {
+            in.readVarInt(); // id
+            if (packet.atLeast(ProtocolVersion.v1_8)) {
+                return in.readUUID().toString(); // uuid
+            } else {
+                in.readString(); // uuid
+                return in.readString(); // name
+            }
+        }
     }
 }

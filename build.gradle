@@ -1,20 +1,3 @@
-defaultTasks 'clean', 'build', 'shadowJar', 'install'
-
-apply from: 'versions/preprocessor.gradle'
-
-task setCoreVersion() {
-    doLast {
-        def vars = [MC: project.mcVersion as int, DEV_ENV: 1]
-        if (![11404, 11302, 11202, 11201, 11200, 11102, 11100, 11002, 10904, 10800, 10710].contains(vars.MC)) {
-            throw new IllegalArgumentException("Unsupported MC version $vars.MC")
-        }
-        project.convertTree(vars, 'src/main/java')
-        project.convertTree(vars, 'src/main/resources')
-        project.convertTree(vars, 'src/test/java')
-        project.file('versions/core/mcVersion').write(vars.MC.toString())
-    }
-}
-
 buildscript {
     repositories {
         jcenter()
@@ -28,11 +11,109 @@ buildscript {
     dependencies {
         classpath 'ch.raffael.gradlePlugins.preshadow:gradle-preshadow-plugin:1.0'
         classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
-        classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'
         classpath 'com.github.johni0702:gradle-reproducible-builds-plugin:3dbf20d'
     }
 }
 
-subprojects {
-    apply from: '../common.gradle'
+defaultTasks 'clean', 'build', 'shadowJar', 'install'
+
+apply plugin: 'java'
+apply plugin: 'application'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'maven'
+apply plugin: 'ch.raffael.preshadow'
+apply plugin: 'de.johni0702.reproducible-builds'
+
+def gitCommitHash() {
+    try {
+        def out = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'rev-parse', '--short', 'HEAD'
+            standardOutput = out
+        }
+        return out.toString().trim()
+    } catch (e) {
+        return "unknown"
+    }
 }
+
+group = 'com.replaymod.replaystudio'
+description = 'ReplayStudio'
+version = gitCommitHash()
+mainClassName = 'com.replaymod.replaystudio.launcher.Launcher'
+
+ext.projectName = 'ReplayStudio'
+ext.packaging = 'jar'
+ext.author = 'johni0702'
+ext.authorUrl = 'https://github.com/johni0702'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+compileJava {
+    options.encoding = 'UTF-8'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://jitpack.io'
+    }
+    maven {
+        url 'https://repo.viaversion.com'
+    }
+    maven {
+        url = "https://oss.sonatype.org/content/repositories/snapshots/"
+    }
+    maven {
+        url 'https://jitpack.io'
+    }
+}
+
+dependencies {
+    preshadow 'com.github.replaymod.viaversion:viaversion-common:506171d7'
+
+    // ViaVersion will use the relocated netty of PacketLib
+    // un-shaded from ViaVersion
+    compile 'com.google.guava:guava:17.0'
+    compile 'com.google.code.gson:gson:2.3.1'
+
+    compile 'com.github.steveice10:opennbt:d50274d' // 1.2
+    preshadow 'com.github.steveice10:packetlib:d6ed28c' // 1.3
+
+    compile 'org.apache.commons:commons-lang3:3.3.2'
+    compile 'org.apache.commons:commons-collections4:4.0'
+    compile 'commons-cli:commons-cli:1.2'
+    compileOnly "org.projectlombok:lombok:1.16.6"
+    testCompile 'junit:junit:4.11'
+    testCompile 'com.google.guava:guava-testlib:18.0'
+    testCompile 'pl.pragmatists:JUnitParams:1.0.4'
+}
+
+preshadowJar {
+    relocate 'io.netty', 'com.github.steveice10.netty'
+    relocate 'us.myles.ViaVersion', 'com.replaymod.replaystudio.us.myles.ViaVersion'
+
+    // un-shading from ViaVersion (see dependencies)
+    exclude 'com/google/gson/**' // gson
+    exclude 'com/google/common/**' // guava
+    exclude 'com/google/thirdparty/publicsuffix/**' // also part of guava
+    // don't need this one, ViaVersion uses it to parse configs (which we never need to do)
+    exclude 'org/yaml/snakeyaml/**' // snakeyaml
+}
+
+shadowJar {
+    archiveName = "${baseName}-${version}.full.${extension}"
+    append('META-INF/NOTICE.txt')
+    from(tasks.findByName('preshadowJar').outputs.files.collect {it.isDirectory() ? it : zipTree(it)})
+}
+build.dependsOn shadowJar
+
+jar.manifest.mainAttributes(
+        'Main-Class': mainClassName,
+        'Implementation-Title': description,
+        'Implementation-Version': gitCommitHash()
+)
+

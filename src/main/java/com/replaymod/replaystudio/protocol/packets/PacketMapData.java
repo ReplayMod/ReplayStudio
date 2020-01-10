@@ -1,8 +1,8 @@
 /*
  * This file is part of ReplayStudio, licensed under the MIT License (MIT).
  *
- * Copyright (c) 2016 johni0702 <https://github.com/johni0702>
- * Copyright (c) contributors
+ * Copyright (c) 2020 johni0702 <https://github.com/johni0702>
+ * Copyright (c) ReplayStudio contributors (see git)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,26 +22,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.replaymod.replaystudio.io;
+package com.replaymod.replaystudio.protocol.packets;
 
-import com.github.steveice10.packetlib.io.NetInput;
-import com.github.steveice10.packetlib.packet.Packet;
+import com.replaymod.replaystudio.protocol.Packet;
 
-/**
- * Interface for wrapped packets.
- */
-public interface IWrappedPacket extends Packet {
+import java.io.IOException;
 
-    /**
-     * Returns the bytes which were read in.
-     * @return byte array or {@code null} if {@link #read(NetInput)} hasn't been called yet
-     */
-    byte[] getBytes();
-
-    /**
-     * Returns the class which this wrapper is a replacement for.
-     * @return The original class
-     */
-    Class<? extends Packet> getWrapped();
-
+public class PacketMapData {
+    public static int getMapId(Packet packet) throws IOException {
+        try (Packet.Reader in = packet.reader()) {
+            return in.readVarInt();
+        }
+    }
 }

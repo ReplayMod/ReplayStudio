@@ -24,8 +24,6 @@
  */
 package com.replaymod.replaystudio.util;
 
-import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityVelocityPacket;
-
 /**
  * Motion data for entities.
  */
@@ -39,10 +37,6 @@ public class Motion {
         this.x = x;
         this.y = y;
         this.z = z;
-    }
-
-    public static Motion from(ServerEntityVelocityPacket p) {
-        return new Motion(p.getMotionX(), p.getMotionY(), p.getMotionZ());
     }
 
     public double getX() {

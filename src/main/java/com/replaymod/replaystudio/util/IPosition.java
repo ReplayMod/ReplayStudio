@@ -22,26 +22,53 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-//#if MC>=10800
-package com.replaymod.replaystudio.studio.protocol;
+package com.replaymod.replaystudio.util;
 
-import com.github.steveice10.netty.buffer.ByteBuf;
-import com.github.steveice10.netty.channel.ChannelHandlerContext;
-import com.github.steveice10.packetlib.Session;
-import com.github.steveice10.packetlib.tcp.TcpPacketCompression;
+import java.util.Objects;
 
-import java.util.List;
+/**
+ * Position with integer components.
+ */
+public class IPosition {
 
-public class StudioCompression extends TcpPacketCompression {
+    public static final IPosition NULL = new IPosition(0, 0, 0);
 
-    public StudioCompression(Session session) {
-        super(session);
+    private final int x, y, z;
+
+    public IPosition(int x, int y, int z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    public int getX() {
+        return this.x;
+    }
+
+    public int getY() {
+        return this.y;
+    }
+
+    public int getZ() {
+        return this.z;
     }
 
     @Override
-    public void decode(ChannelHandlerContext ctx, ByteBuf buf, List<Object> out) throws Exception {
-        super.decode(ctx, buf, out);
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        IPosition iPosition = (IPosition) o;
+        return x == iPosition.x &&
+                y == iPosition.y &&
+                z == iPosition.z;
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(x, y, z);
+    }
+
+    public String toString() {
+        return "IPosition(x=" + this.x + ", y=" + this.y + ", z=" + this.z + ")";
+    }
 }
-//#endif

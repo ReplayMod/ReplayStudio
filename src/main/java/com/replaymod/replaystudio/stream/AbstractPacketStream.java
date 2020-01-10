@@ -24,12 +24,13 @@
  */
 package com.replaymod.replaystudio.stream;
 
-import com.github.steveice10.packetlib.packet.Packet;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.filter.StreamFilter;
+import com.replaymod.replaystudio.protocol.Packet;
 
+import java.io.IOException;
 import java.util.*;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -135,7 +136,7 @@ public abstract class AbstractPacketStream implements PacketStream {
             this.filter = checkNotNull(filter);
         }
 
-        public void process(PacketData data) {
+        public void process(PacketData data) throws IOException {
             boolean keep = true;
             if (data != null && filter.applies(data.getTime())) {
                 if (!active) {
@@ -143,6 +144,9 @@ public abstract class AbstractPacketStream implements PacketStream {
                     active = true;
                 }
                 keep = filter.getFilter().onPacket(context, data);
+                if (!keep) {
+                    data.getPacket().getBuf().release();
+                }
             } else if (active) {
                 filter.getFilter().onEnd(context, lastTimestamp);
                 active = false;
@@ -255,7 +259,7 @@ public abstract class AbstractPacketStream implements PacketStream {
     protected abstract PacketData nextInput();
 
     @Override
-    public PacketData next() {
+    public PacketData next() throws IOException {
         while (inserted.isEmpty()) {
             PacketData next = nextInput();
             if (next == null) {
@@ -272,7 +276,7 @@ public abstract class AbstractPacketStream implements PacketStream {
     }
 
     @Override
-    public List<PacketData> end() {
+    public List<PacketData> end() throws IOException {
         firstElement.process(null);
         List<PacketData> result = new LinkedList<>(inserted);
         inserted.clear();

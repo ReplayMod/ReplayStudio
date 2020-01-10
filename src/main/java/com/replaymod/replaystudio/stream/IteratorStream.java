@@ -24,10 +24,11 @@
  */
 package com.replaymod.replaystudio.stream;
 
-import com.github.steveice10.packetlib.packet.Packet;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.filter.StreamFilter;
+import com.replaymod.replaystudio.protocol.Packet;
 
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -97,7 +98,7 @@ public class IteratorStream implements PacketStream {
         return Arrays.asList(filter);
     }
 
-    public void processNext() {
+    public void processNext() throws IOException {
         processing = true;
 
         PacketData next = iterator.next();
@@ -115,6 +116,7 @@ public class IteratorStream implements PacketStream {
         }
         if (!keep) {
             iterator.remove();
+            next.getPacket().getBuf().release();
             if (lastTimestamp == -1) {
                 lastTimestamp = next.getTime();
             }
@@ -131,7 +133,7 @@ public class IteratorStream implements PacketStream {
         processing = false;
     }
 
-    public void processAll() {
+    public void processAll() throws IOException {
         while (hasNext()) {
             processNext();
         }
@@ -145,7 +147,7 @@ public class IteratorStream implements PacketStream {
     }
 
     @Override
-    public List<PacketData> end() {
+    public List<PacketData> end() throws IOException {
         if (filterActive) {
             filterActive = false;
             filter.getFilter().onEnd(this, lastTimestamp);

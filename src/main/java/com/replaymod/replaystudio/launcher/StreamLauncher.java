@@ -30,11 +30,14 @@ import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.filter.StreamFilter;
 import com.replaymod.replaystudio.io.ReplayOutputStream;
+import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.replay.ZipReplayFile;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.studio.ReplayStudio;
+import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolVersion;
+import com.replaymod.replaystudio.us.myles.ViaVersion.packets.State;
 import org.apache.commons.cli.CommandLine;
 
 import java.io.*;
@@ -48,9 +51,6 @@ public class StreamLauncher {
     private final Studio studio = new ReplayStudio();
 
     public void launch(CommandLine cmd) throws IOException {
-        if (cmd.hasOption('n')) {
-            studio.setWrappingEnabled(false);
-        }
         // Removes the first minute, applies sample_filter on the whole stream and applies some_other at 3m for 10s:
         //   remove(-1m),sample_filter,some_other(3m-3m10s)
         List<PacketStream.FilterInfo> filters = new ArrayList<>();
@@ -95,15 +95,16 @@ public class StreamLauncher {
         System.out.println("Generating " + ("x".equals(output) ? 0 : 1) + " replay via 1 stream from 1 input applying " + filters.size() + " filter(s)");
 
         ReplayFile inFile = new ZipReplayFile(studio, new File(input));
+        ReplayMetaData meta = inFile.getMetaData();
+        ProtocolVersion inputVersion = ProtocolVersion.getProtocol(meta.getProtocolVersion());
         ReplayOutputStream out;
         if (!"x".equals(output)) {
             OutputStream buffOut = new BufferedOutputStream(new FileOutputStream(output));
-            out = new ReplayOutputStream(studio, buffOut, null, true);
+            out = new ReplayOutputStream(inputVersion, buffOut, null);
         } else {
             out = null;
         }
-        ReplayMetaData meta = inFile.getMetaData();
-        PacketStream stream = inFile.getPacketData(new ReplayStudio(), true).asPacketStream();
+        PacketStream stream = inFile.getPacketData(PacketTypeRegistry.get(inputVersion, State.LOGIN)).asPacketStream();
 
         // Process stream
         stream.start();

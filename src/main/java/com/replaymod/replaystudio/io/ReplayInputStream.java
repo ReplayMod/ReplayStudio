@@ -24,34 +24,19 @@
  */
 package com.replaymod.replaystudio.io;
 
-import com.github.steveice10.mc.auth.data.GameProfile;
-import com.github.steveice10.mc.protocol.packet.ingame.server.ServerKeepAlivePacket;
-import com.github.steveice10.mc.protocol.packet.login.server.LoginSuccessPacket;
 import com.github.steveice10.netty.buffer.ByteBuf;
 import com.github.steveice10.netty.buffer.ByteBufAllocator;
 import com.github.steveice10.netty.buffer.PooledByteBufAllocator;
-import com.github.steveice10.packetlib.packet.Packet;
+import com.github.steveice10.packetlib.tcp.io.ByteBufNetInput;
 import com.replaymod.replaystudio.PacketData;
-import com.replaymod.replaystudio.Studio;
-import com.replaymod.replaystudio.collection.PacketList;
-import com.replaymod.replaystudio.replay.Replay;
-import com.replaymod.replaystudio.replay.ReplayMetaData;
+import com.replaymod.replaystudio.protocol.Packet;
+import com.replaymod.replaystudio.protocol.PacketType;
+import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
+import com.replaymod.replaystudio.protocol.packets.PacketLoginSuccess;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.studio.StudioPacketStream;
-import com.replaymod.replaystudio.studio.StudioReplay;
-import com.replaymod.replaystudio.studio.protocol.StudioCodec;
-import com.replaymod.replaystudio.studio.protocol.StudioSession;
 import com.replaymod.replaystudio.us.myles.ViaVersion.packets.State;
 import com.replaymod.replaystudio.viaversion.ViaVersionPacketConverter;
-
-//#if MC>=10800
-import com.github.steveice10.mc.protocol.data.SubProtocol;
-import com.github.steveice10.mc.protocol.packet.ingame.server.ServerSetCompressionPacket;
-import com.github.steveice10.mc.protocol.packet.login.server.LoginSetCompressionPacket;
-import com.replaymod.replaystudio.studio.protocol.StudioCompression;
-//#else
-//$$ import com.github.steveice10.mc.protocol.ProtocolMode;
-//#endif
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -64,6 +49,11 @@ import java.util.UUID;
 
 import static com.replaymod.replaystudio.util.Utils.readInt;
 
+//#if MC>=10800
+//#else
+//$$ import com.github.steveice10.mc.protocol.ProtocolMode;
+//#endif
+
 /**
  * Input stream for reading packet data.
  */
@@ -71,29 +61,12 @@ public class ReplayInputStream extends InputStream {
 
     private static final ByteBufAllocator ALLOC = PooledByteBufAllocator.DEFAULT;
 
-    private final Studio studio;
+    private PacketTypeRegistry registry;
 
     /**
      * The actual input stream.
      */
     private final InputStream in;
-
-    /**
-     * The studio session.
-     */
-    private final StudioSession session;
-
-    /**
-     * The studio codec.
-     */
-    private final StudioCodec codec;
-
-    //#if MC>=10800
-    /**
-     * The studio compression. May be null if no compression is applied at the moment.
-     */
-    private StudioCompression compression = null;
-    //#endif
 
     /**
      * The instance of the ViaVersion packet converter in use.
@@ -117,48 +90,27 @@ public class ReplayInputStream extends InputStream {
     private Queue<PacketData> buffer = new ArrayDeque<>();
 
     /**
-     * @deprecated Use {@link #ReplayInputStream(Studio, InputStream, int, int)} instead
-     */
-    @Deprecated
-    public ReplayInputStream(Studio studio, InputStream in) {
-        this(studio, in, studio.getCurrentFileFormatVersion());
-    }
-
-    /**
-     * @deprecated Use {@link #ReplayInputStream(Studio, InputStream, int, int)} instead
-     */
-    @Deprecated
-    public ReplayInputStream(Studio studio, InputStream in, int fileFormatVersion) {
-        this(studio, in, fileFormatVersion, 0);
-    }
-
-    @Deprecated
-    public ReplayInputStream(Studio studio, InputStream in, int fileFormatVersion, int fileProtocol) {
-        this(studio, in, fileFormatVersion, fileProtocol, true);
-    }
-
-    /**
      * Creates a new replay input stream for reading raw packet data.
-     * @param studio The studio
+     * @param registry The registry used for the first packet produced.
+     *                 Further packets may be using a registry for the same version but PLAY state instead.
+     *                 Should generally start in LOGIN state, even if the file doesn't not include the LOGIN phase,
+     *                 the ReplayInputStream will handle it.
      * @param in The actual input stream.
      * @param fileFormatVersion The file format version of the replay packet data
-     * @param fileProtocol The MC protocol version
-     * @param outputLoginPhase Whether to output packets in the login phase.
-     *                         Do not use {@code false} unless you have got a good reason to skip login phase packets.
+     * @param fileProtocol The MC protocol version of the replay packet data
      */
-    public ReplayInputStream(Studio studio, InputStream in, int fileFormatVersion, int fileProtocol, boolean outputLoginPhase) {
-        this.studio = studio;
+    public ReplayInputStream(PacketTypeRegistry registry, InputStream in, int fileFormatVersion, int fileProtocol) throws IOException {
         boolean includeLoginPhase = fileFormatVersion >= 14;
-        this.session = new StudioSession(studio, true, includeLoginPhase);
+        this.registry = registry;
         this.loginPhase = includeLoginPhase;
-        this.outputLoginPhase = outputLoginPhase;
+        this.outputLoginPhase = registry.getState() == State.LOGIN;
         if (!includeLoginPhase && outputLoginPhase) {
             // For Replays older than version 14, immediately end the Login phase to enter Play phase where the replay starts
-            buffer.offer(new PacketData(0, new LoginSuccessPacket(new GameProfile(UUID.nameUUIDFromBytes(new byte[0]), "Player"))));
+            buffer.offer(new PacketData(0, new PacketLoginSuccess(UUID.nameUUIDFromBytes(new byte[0]).toString(), "Player").write(registry)));
+            this.registry = PacketTypeRegistry.get(registry.getVersion(), State.PLAY);
         }
-        this.codec = new StudioCodec(session);
         this.in = in;
-        this.viaVersionConverter = ViaVersionPacketConverter.createForFileVersion(fileFormatVersion, fileProtocol, ReplayMetaData.CURRENT_PROTOCOL_VERSION);
+        this.viaVersionConverter = ViaVersionPacketConverter.createForFileVersion(fileFormatVersion, fileProtocol, registry.getVersion().getId());
     }
 
     @Override
@@ -171,8 +123,8 @@ public class ReplayInputStream extends InputStream {
         in.close();
     }
 
-    public Studio getStudio() {
-        return studio;
+    public PacketTypeRegistry getRegistry() {
+        return registry;
     }
 
     /**
@@ -205,121 +157,32 @@ public class ReplayInputStream extends InputStream {
                 length -= read;
             }
 
-            ByteBuf decompressed;
-            //#if MC>=10800
-            if (compression != null) {
-                List<Object> out = new LinkedList<>();
-                try {
-                    compression.decode(null, buf, out);
-                } catch (Exception e) {
-                    throw e instanceof IOException ? (IOException) e : new IOException("decompressing", e);
-                }
-                buf.release();
-                decompressed = (ByteBuf) out.get(0);
-            } else {
-                decompressed = buf;
-            }
-            //#else
-            //$$ decompressed = buf;
-            //#endif
-
-            List<Object> decoded = new LinkedList<>();
+            List<Packet> decoded = new LinkedList<>();
             try {
-                for (ByteBuf packet : viaVersionConverter.convertPacket(decompressed, loginPhase ? State.LOGIN : State.PLAY)) {
-                    codec.decode(null, packet, decoded);
-                    packet.release();
+                for (ByteBuf packet : viaVersionConverter.convertPacket(buf, loginPhase ? State.LOGIN : State.PLAY)) {
+                    int packetId = new ByteBufNetInput(packet).readVarInt();
+                    decoded.add(new Packet(registry, packetId, registry.getType(packetId), packet));
                 }
             } catch (Exception e) {
                 throw e instanceof IOException ? (IOException) e : new IOException("decoding", e);
             }
-            decompressed.release();
+            buf.release();
 
-            for (Object o : decoded) {
-                if (o instanceof ServerKeepAlivePacket) {
+            for (Packet packet : decoded) {
+                PacketType type = packet.getType();
+                if (type == PacketType.KeepAlive) {
                     continue; // They aren't needed in a replay
                 }
 
-                //#if MC>=10800
-                if (o instanceof LoginSetCompressionPacket) {
-                    int threshold = ((LoginSetCompressionPacket) o).getThreshold();
-                    if (threshold == -1) {
-                        compression = null;
-                    } else {
-                        session.setCompressionThreshold(threshold);
-                        compression = new StudioCompression(session);
-                    }
-                }
-                if (o instanceof ServerSetCompressionPacket) {
-                    int threshold = ((ServerSetCompressionPacket) o).getThreshold();
-                    if (threshold == -1) {
-                        compression = null;
-                    } else {
-                        session.setCompressionThreshold(threshold);
-                        compression = new StudioCompression(session);
-                    }
-                }
-                //#endif
-                if (o instanceof LoginSuccessPacket) {
+                if (type == PacketType.LoginSuccess) {
                     loginPhase = false;
-                    //#if MC>=10800
-                    session.getPacketProtocol().setSubProtocol(SubProtocol.GAME, true, session);
-                    //#else
-                    //$$ session.getPacketProtocol().setMode(ProtocolMode.GAME, true, session);
-                    //#endif
+                    registry = PacketTypeRegistry.get(registry.getVersion(), State.PLAY);
                 }
-                if ((loginPhase || o instanceof LoginSuccessPacket) && !outputLoginPhase) {
+                if ((loginPhase || type == PacketType.LoginSuccess) && !outputLoginPhase) {
                     continue;
                 }
-                buffer.offer(new PacketData(next, (Packet) o));
+                buffer.offer(new PacketData(next, packet));
             }
-        }
-    }
-
-    /**
-     * Reads all packets from the specified input stream into a new packet list.
-     * The input stream is closed if no more packets can be read.
-     * @param studio The studio
-     * @param in The input stream to read from
-     * @return The packet list
-     * @deprecated Use {@link #readAllAndClose()} instead
-     */
-    @Deprecated
-    public static PacketList readPackets(Studio studio, InputStream in) throws IOException {
-        ReplayInputStream replayIn;
-        if (in instanceof ReplayInputStream) {
-            replayIn = (ReplayInputStream) in;
-        } else {
-            replayIn = new ReplayInputStream(studio, in);
-        }
-        return replayIn.readAllAndClose();
-    }
-
-    /**
-     * Reads all remaining packets from this input stream into a new packet list.
-     * @deprecated {@link PacketList} is deprecated.
-     */
-    public PacketList readAll() throws IOException {
-        List<PacketData> packets = new LinkedList<>();
-
-        PacketData data;
-        while ((data = readPacket()) != null) {
-            packets.add(data);
-        }
-
-        return new PacketList(packets);
-    }
-
-    /**
-     * Reads all remaining packets from this input stream into a new packet list.
-     * Finally, close this input stream.
-     * @deprecated {@link PacketList} is deprecated.
-     */
-    @Deprecated
-    public PacketList readAllAndClose() throws IOException {
-        try {
-            return readAll();
-        } finally {
-            close();
         }
     }
 
@@ -329,14 +192,5 @@ public class ReplayInputStream extends InputStream {
      */
     public PacketStream asPacketStream() {
         return new StudioPacketStream(this);
-    }
-
-    /**
-     * Reads all remaining packets into a {@link Replay} and closes this input stream.
-     * @deprecated {@link Replay} is deprecated.
-     */
-    @Deprecated
-    public Replay toReplay() throws IOException {
-        return new StudioReplay(studio, readAllAndClose());
     }
 }

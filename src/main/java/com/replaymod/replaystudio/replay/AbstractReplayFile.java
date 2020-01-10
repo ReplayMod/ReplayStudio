@@ -36,6 +36,7 @@ import com.replaymod.replaystudio.io.ReplayOutputStream;
 import com.replaymod.replaystudio.pathing.PathingRegistry;
 import com.replaymod.replaystudio.pathing.path.Timeline;
 import com.replaymod.replaystudio.pathing.serialize.TimelineSerialization;
+import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -77,10 +78,12 @@ public abstract class AbstractReplayFile implements ReplayFile {
     }
 
     @Override
-    public void writeMetaData(ReplayMetaData metaData) throws IOException {
+    public void writeMetaData(PacketTypeRegistry registry, ReplayMetaData metaData) throws IOException {
         metaData.setFileFormat("MCPR");
-        metaData.setFileFormatVersion(ReplayMetaData.CURRENT_FILE_FORMAT_VERSION);
-        metaData.setProtocolVersion(ReplayMetaData.CURRENT_PROTOCOL_VERSION);
+        if (registry != null) {
+            metaData.setFileFormatVersion(ReplayMetaData.CURRENT_FILE_FORMAT_VERSION);
+            metaData.setProtocolVersion(registry.getVersion().getId());
+        }
         if (metaData.getGenerator() == null) {
             metaData.setGenerator("ReplayStudio v" + studio.getVersion());
         }
@@ -92,40 +95,18 @@ public abstract class AbstractReplayFile implements ReplayFile {
     }
 
     @Override
-    public ReplayInputStream getPacketData() throws IOException {
-        return getPacketData(studio);
-    }
-
-    @Override
-    public ReplayInputStream getPacketData(Studio studio) throws IOException {
-        return getPacketData(studio, false);
-    }
-
-    @Override
-    public ReplayInputStream getPacketData(Studio studio, boolean outputLoginPhase) throws IOException {
+    public ReplayInputStream getPacketData(PacketTypeRegistry registry) throws IOException {
         Optional<InputStream> in = get(ENTRY_RECORDING);
         if (!in.isPresent()) {
             return null;
         }
         ReplayMetaData metaData = getMetaData();
-        return new ReplayInputStream(studio, in.get(), metaData.getFileFormatVersion(), metaData.getProtocolVersion(), outputLoginPhase);
+        return new ReplayInputStream(registry, in.get(), metaData.getFileFormatVersion(), metaData.getProtocolVersion());
     }
 
     @Override
-    @Deprecated
     public ReplayOutputStream writePacketData() throws IOException {
-        return new ReplayOutputStream(studio, write(ENTRY_RECORDING));
-    }
-
-    @Override
-    public ReplayOutputStream writePacketData(boolean includesLoginPhase) throws IOException {
-        return new ReplayOutputStream(studio, write(ENTRY_RECORDING), includesLoginPhase);
-    }
-
-    @Override
-    @Deprecated
-    public Replay toReplay() throws IOException {
-        return studio.createReplay(this);
+        return new ReplayOutputStream(write(ENTRY_RECORDING));
     }
 
     @Override

@@ -31,12 +31,6 @@ import java.util.Objects;
  * Meta data for replay files.
  */
 public class ReplayMetaData {
-    //#if MC>=10800
-    public static final int CURRENT_PROTOCOL_VERSION = com.github.steveice10.mc.protocol.MinecraftConstants.PROTOCOL_VERSION;
-    //#else
-    //$$ public static final int CURRENT_PROTOCOL_VERSION = 5;
-    //#endif
-
     //#if MC>=11300
     public static final int CURRENT_FILE_FORMAT_VERSION = 14;
     //#else

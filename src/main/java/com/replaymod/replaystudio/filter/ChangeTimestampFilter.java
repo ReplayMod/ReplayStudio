@@ -29,7 +29,7 @@ import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.stream.PacketStream;
 
-public class ChangeTimestampFilter extends StreamFilterBase {
+public class ChangeTimestampFilter implements StreamFilter {
 
     private long offset;
 

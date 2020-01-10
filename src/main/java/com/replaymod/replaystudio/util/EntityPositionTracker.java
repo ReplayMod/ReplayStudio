@@ -28,13 +28,15 @@ import com.github.steveice10.packetlib.io.NetInput;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.github.steveice10.packetlib.io.stream.StreamNetInput;
 import com.github.steveice10.packetlib.io.stream.StreamNetOutput;
-import com.github.steveice10.packetlib.packet.Packet;
 import com.google.common.base.Optional;
 import com.replaymod.replaystudio.PacketData;
-import com.replaymod.replaystudio.io.IWrappedPacket;
 import com.replaymod.replaystudio.io.ReplayInputStream;
+import com.replaymod.replaystudio.protocol.Packet;
+import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.replay.ReplayFile;
-import com.replaymod.replaystudio.studio.ReplayStudio;
+import com.replaymod.replaystudio.replay.ReplayMetaData;
+import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolVersion;
+import com.replaymod.replaystudio.us.myles.ViaVersion.packets.State;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -151,15 +153,13 @@ public class EntityPositionTracker {
     }
 
     private void loadFromPacketData(Consumer<Double> progressMonitor) throws IOException {
-        // We use a different studio than the default one as we're only interested in some specific packets.
-        ReplayStudio studio = new ReplayStudio();
-        PacketUtils.registerAllMovementRelated(studio);
         // Get the packet data input stream
         int replayLength;
         ReplayInputStream origIn;
         synchronized (replayFile) {
-            replayLength = Math.max(1, replayFile.getMetaData().getDuration());
-            origIn = replayFile.getPacketData(studio, true);
+            ReplayMetaData metaData = replayFile.getMetaData();
+            replayLength = Math.max(1, metaData.getDuration());
+            origIn = replayFile.getPacketData(PacketTypeRegistry.get(ProtocolVersion.getProtocol(metaData.getProtocolVersion()), State.LOGIN));
         }
 
         Map<Integer, NavigableMap<Long, Location>> entityPositions = new HashMap<>();
@@ -167,9 +167,6 @@ public class EntityPositionTracker {
             PacketData packetData;
             while ((packetData = in.readPacket()) != null) {
                 Packet packet = packetData.getPacket();
-
-                // Filter packets that are not of interest
-                if (packet instanceof IWrappedPacket) continue;
 
                 Integer entityID = PacketUtils.getEntityId(packet);
                 if (entityID == null) continue;

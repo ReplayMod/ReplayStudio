@@ -33,8 +33,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
-class CustomViaManager extends ViaManager {
-    static synchronized void initialize() {
+public class CustomViaManager extends ViaManager {
+    public static synchronized void initialize() {
         if (Via.getPlatform() != null) return;
         Via.init(new CustomViaManager());
     }

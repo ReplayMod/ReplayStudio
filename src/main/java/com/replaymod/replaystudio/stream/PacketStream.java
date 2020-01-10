@@ -24,10 +24,11 @@
  */
 package com.replaymod.replaystudio.stream;
 
-import com.github.steveice10.packetlib.packet.Packet;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.filter.StreamFilter;
+import com.replaymod.replaystudio.protocol.Packet;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -166,7 +167,7 @@ public interface PacketStream {
      * Retrieves the next element in this stream applying all filters.
      * @return The next packet or {@code null} if the end of the stream has been reached
      */
-    PacketData next();
+    PacketData next() throws IOException;
 
     /**
      * Starts this packet stream (e.g. opening input streams, etc.).
@@ -178,6 +179,6 @@ public interface PacketStream {
      * still active and then performing cleanup (e.g. closing input streams, etc).
      * @return Excess packets generated during this call.
      */
-    List<PacketData> end();
+    List<PacketData> end() throws IOException;
 
 }

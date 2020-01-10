@@ -28,16 +28,16 @@ import com.google.common.collect.Ordering;
 import com.google.gson.JsonObject;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
-import com.replaymod.replaystudio.io.WrappedPacket;
+import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.stream.PacketStream;
 import org.apache.commons.lang3.mutable.MutableInt;
 
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Map;
 
-public class PacketCountFilter extends StreamFilterBase {
+public class PacketCountFilter implements StreamFilter {
 
-    private final Map<Class<?>, MutableInt> count = new HashMap<>();
+    private final EnumMap<PacketType, MutableInt> count = new EnumMap<>(PacketType.class);
 
     @Override
     public String getName() {
@@ -56,15 +56,9 @@ public class PacketCountFilter extends StreamFilterBase {
 
     @Override
     public boolean onPacket(PacketStream stream, PacketData data) {
-        Class<?> cls = WrappedPacket.getWrapped(data.getPacket());
+        PacketType type = data.getPacket().getType();
 
-        MutableInt counter = count.get(cls);
-        if (counter == null) {
-            counter = new MutableInt();
-            count.put(cls, counter);
-        }
-
-        counter.increment();
+        count.computeIfAbsent(type, key -> new MutableInt()).increment();
         return true;
     }
 
@@ -73,9 +67,9 @@ public class PacketCountFilter extends StreamFilterBase {
         System.out.println();
         System.out.println();
 
-        Ordering<Map.Entry<Class<?>, MutableInt>> entryOrdering = Ordering.natural().reverse().onResultOf(Map.Entry::getValue);
-        for (Map.Entry<Class<?>, MutableInt> e : entryOrdering.immutableSortedCopy(count.entrySet())) {
-            System.out.println(String.format("[%dx] %s", e.getValue().intValue(), e.getKey().getSimpleName()));
+        Ordering<Map.Entry<PacketType, MutableInt>> entryOrdering = Ordering.natural().reverse().onResultOf(Map.Entry::getValue);
+        for (Map.Entry<PacketType, MutableInt> e : entryOrdering.immutableSortedCopy(count.entrySet())) {
+            System.out.println(String.format("[%dx] %s", e.getValue().intValue(), e.getKey().toString()));
         }
 
         System.out.println();

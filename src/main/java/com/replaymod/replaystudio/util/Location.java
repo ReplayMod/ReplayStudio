@@ -24,15 +24,6 @@
  */
 package com.replaymod.replaystudio.util;
 
-import com.github.steveice10.mc.protocol.packet.ingame.server.entity.ServerEntityTeleportPacket;
-
-//#if MC>=10904
-import com.github.steveice10.mc.protocol.data.game.entity.metadata.Position;
-//#else
-//#if MC>=10800
-//$$ import com.github.steveice10.mc.protocol.data.game.Position;
-//#endif
-//#endif
 
 /**
  * Position and rotation (pitch and yaw, no roll) in three dimensional space.
@@ -47,15 +38,13 @@ public class Location {
     private final double x, y, z;
     private final float yaw, pitch;
 
-    //#if MC>=10800
-    public Location(Position position) {
+    public Location(DPosition position) {
         this(position, 0, 0);
     }
 
-    public Location(Position position, float yaw, float pitch) {
+    public Location(DPosition position, float yaw, float pitch) {
         this(position.getX(), position.getY(), position.getZ(), yaw, pitch);
     }
-    //#endif
 
     public Location(double x, double y, double z) {
         this(x, y, z, 0, 0);
@@ -69,27 +58,9 @@ public class Location {
         this.pitch = pitch;
     }
 
-    public static Location from(ServerEntityTeleportPacket p) {
-        return new Location(p.getX(), p.getY(), p.getZ(), p.getYaw(), p.getPitch());
+    public DPosition getDPosition() {
+        return new DPosition(x, y, z);
     }
-
-    public ServerEntityTeleportPacket toServerEntityTeleportPacket(int entityId
-                                                                   //#if MC>=10800
-                                                                   , boolean onGround
-                                                                   //#endif
-    ) {
-        return new ServerEntityTeleportPacket(entityId, x, y, z, yaw, pitch
-                //#if MC>=10800
-                , onGround
-                //#endif
-        );
-    }
-
-    //#if MC>=10800
-    public Position getPosition() {
-        return new Position((int) x, (int) y, (int) z);
-    }
-    //#endif
 
     public double getX() {
         return this.x;
