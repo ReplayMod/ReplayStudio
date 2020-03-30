@@ -45,7 +45,7 @@ public class PacketEntityHeadLook {
     }
 
     public static Packet write(PacketTypeRegistry registry, int entityId, float yaw) throws IOException {
-        Packet packet = new Packet(registry, PacketType.EntityTeleport);
+        Packet packet = new Packet(registry, PacketType.EntityHeadLook);
         try (Packet.Writer out = packet.overwrite()) {
             if (packet.atLeast(ProtocolVersion.v1_8)) {
                 out.writeVarInt(entityId);
