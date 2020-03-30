@@ -473,10 +473,8 @@ public abstract class RandomAccessReplay<T> {
         currentTimeStamp = replayTime;
     }
 
-    private final com.github.steveice10.netty.buffer.ByteBuf mcplByteBuf = com.github.steveice10.netty.buffer.Unpooled.buffer();
-    private final ByteBufNetOutput byteBufNetOutput = new ByteBufNetOutput(mcplByteBuf);
-
     private final ByteBuf byteBuf = Unpooled.buffer();
+    private final ByteBufNetOutput byteBufNetOutput = new ByteBufNetOutput(byteBuf);
     private final Inflater inflater = new Inflater();
     private final Deflater deflater = new Deflater();
 
