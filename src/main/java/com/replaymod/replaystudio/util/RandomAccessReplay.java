@@ -205,7 +205,7 @@ public abstract class RandomAccessReplay<T> {
                     case SpawnMob:
                     case SpawnObject:
                     case SpawnPainting: {
-                        Entity entity = new Entity(entityId, Collections.singletonList(packet));
+                        Entity entity = new Entity(entityId, Collections.singletonList(packet.retain()));
                         entity.spawnTime = time;
                         Entity prev = activeEntities.put(entityId, entity);
                         if (prev != null) {
@@ -224,7 +224,7 @@ public abstract class RandomAccessReplay<T> {
                                     Collections.singletonList(playerListEntry)
                             ));
                         }
-                        spawnPackets.add(packet);
+                        spawnPackets.add(packet.retain());
                         Entity entity = new Entity(entityId, spawnPackets);
                         entity.spawnTime = time;
                         Entity prev = activeEntities.put(entityId, entity);
@@ -347,7 +347,7 @@ public abstract class RandomAccessReplay<T> {
                         break;
                     }
                     case UpdateTime: {
-                        worldTimes.put(time, packet);
+                        worldTimes.put(time, packet.retain());
                         break;
                     }
                     case NotifyClient: {
@@ -367,11 +367,11 @@ public abstract class RandomAccessReplay<T> {
                                 break;
                             case RAIN_STRENGTH:
                                 if (activeWeather != null) {
-                                    activeWeather.rainStrengths.put(time, packet);
+                                    activeWeather.rainStrengths.put(time, packet.retain());
                                 }
                                 break;
                             case THUNDER_STRENGTH:
-                                thunderStrengths.put(time, packet);
+                                thunderStrengths.put(time, packet.retain());
                                 break;
                             default:
                                 break;
@@ -389,7 +389,7 @@ public abstract class RandomAccessReplay<T> {
                         }
                     }
                 }
-                packet.getBuf().release();
+                packet.release();
             }
 
             for (Entity entity : activeEntities.values()) {
@@ -665,8 +665,8 @@ public abstract class RandomAccessReplay<T> {
             indexOut.writeVarInt(index);
             index += RandomAccessReplay.this.writeToCache(cacheOut, despawnPackets);
 
-            spawnPackets.forEach(p -> p.getBuf().release());
-            despawnPackets.forEach(p -> p.getBuf().release());
+            spawnPackets.forEach(Packet::release);
+            despawnPackets.forEach(Packet::release);
 
             return index;
         }
@@ -712,7 +712,6 @@ public abstract class RandomAccessReplay<T> {
 
         private Entity(int entityId, List<Packet> spawnPackets) throws IOException {
             super(spawnPackets, Collections.singletonList(PacketDestroyEntities.write(registry, entityId)));
-            spawnPackets.forEach(p -> p.getBuf().retain());
             this.id = entityId;
         }
 
@@ -926,6 +925,8 @@ public abstract class RandomAccessReplay<T> {
 
             indexOut.writeVarInt(index);
             index += RandomAccessReplay.this.writeToCache(cacheOut, rainStrengths);
+
+            rainStrengths.values().forEach(Packet::release);
 
             return index;
         }

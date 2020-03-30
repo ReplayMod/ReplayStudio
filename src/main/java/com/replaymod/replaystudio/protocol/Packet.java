@@ -89,6 +89,15 @@ public class Packet {
         return buf;
     }
 
+    public Packet retain() {
+        buf.retain();
+        return this;
+    }
+
+    public boolean release() {
+        return buf.release();
+    }
+
     public Reader reader() {
         return new Reader(this, buf);
     }
