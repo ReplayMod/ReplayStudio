@@ -506,7 +506,7 @@ public abstract class RandomAccessReplay<T> {
             if ((prefix & 1) == 1) {
                 int fullLen = in.readVarInt();
                 byteBuf.writeBytes(in.readBytes(len));
-                byteBuf.capacity(byteBuf.writerIndex() + fullLen);
+                byteBuf.ensureWritable(fullLen);
 
                 inflater.setInput(byteBuf.array(), byteBuf.arrayOffset() + byteBuf.readerIndex(), len);
                 inflater.inflate(byteBuf.array(), byteBuf.arrayOffset() + byteBuf.writerIndex(), fullLen);
