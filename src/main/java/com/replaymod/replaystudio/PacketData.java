@@ -56,6 +56,15 @@ public final class PacketData implements Cloneable {
         return this.packet;
     }
 
+    public PacketData retain() {
+        this.packet.retain();
+        return this;
+    }
+
+    public boolean release() {
+        return this.packet.release();
+    }
+
     public boolean equals(Object o) {
         if (o == this) return true;
         if (!(o instanceof PacketData)) return false;

@@ -79,6 +79,21 @@ public class SquashFilter implements StreamFilter {
         private Team(String name) {
             this.name = name;
         }
+
+        void release() {
+            if (create != null) {
+                create.release();
+                create = null;
+            }
+            if (update != null) {
+                update.release();
+                update = null;
+            }
+            if (remove != null) {
+                remove.release();
+                remove = null;
+            }
+        }
     }
 
     private static class Entity {
@@ -93,6 +108,15 @@ public class SquashFilter implements StreamFilter {
         private Float yaw = null;
         private Float pitch = null;
         private boolean onGround = false; // 1.8+
+
+        void release() {
+            if (teleport != null) {
+                teleport.release();
+                teleport = null;
+            }
+            packets.forEach(PacketData::release);
+            packets.clear();
+        }
     }
 
     private PacketTypeRegistry registry;
@@ -131,14 +155,14 @@ public class SquashFilter implements StreamFilter {
                     Entity entity;
                     if (type == PacketType.DestroyEntities) {
                         entity = entities.computeIfAbsent(id, i -> new Entity());
-                        entity.packets.clear();
+                        entity.release();
                         entity.despawned = true;
                         if (entity.complete) {
                             entities.remove(id);
                         }
                     } else {
                         entity = entities.compute(id, (i, e) -> e == null || e.despawned ? new Entity() : e);
-                        entity.packets.add(data);
+                        entity.packets.add(data.retain());
                     }
                     entity.lastTimestamp = lastTimestamp;
                 }
@@ -162,12 +186,12 @@ public class SquashFilter implements StreamFilter {
                     }
                     entity.onGround = movement.getThird();
                 } else if (type == PacketType.EntityTeleport) {
-                    entity.teleport = packet;
+                    entity.teleport = packet.retain();
                 } else {
                     if (PacketUtils.isSpawnEntityPacket(packet)) {
                         entity.complete = true;
                     }
-                    entity.packets.add(data);
+                    entity.packets.add(data.retain());
                 }
                 entity.lastTimestamp = lastTimestamp;
             }
@@ -185,10 +209,13 @@ public class SquashFilter implements StreamFilter {
             case SpawnParticle:
                 break;
             case Respawn:
+                currentWorld.forEach(PacketData::release);
                 currentWorld.clear();
                 chunks.clear();
                 unloadedChunks.clear();
+                currentWindow.forEach(PacketData::release);
                 currentWindow.clear();
+                entities.values().forEach(Entity::release);
                 entities.clear();
                 // fallthrough
             case JoinGame:
@@ -196,9 +223,13 @@ public class SquashFilter implements StreamFilter {
             case PlayerAbilities:
             case Difficulty:
             case UpdateViewPosition:
-            case UpdateViewDistance:
-                this.latestOnly.put(type, data);
+            case UpdateViewDistance: {
+                PacketData prev = this.latestOnly.put(type, data.retain());
+                if (prev != null) {
+                    prev.release();
+                }
                 break;
+            }
             case UpdateLight:
                 PacketUpdateLight updateLight = PacketUpdateLight.read(packet);
                 chunks.computeIfAbsent(
@@ -241,7 +272,7 @@ public class SquashFilter implements StreamFilter {
             case UpdateTime:
             case WorldBorder:
             case NotifyClient:
-                currentWorld.add(data);
+                currentWorld.add(data.retain());
                 break;
 
             //
@@ -249,28 +280,36 @@ public class SquashFilter implements StreamFilter {
             //
 
             case CloseWindow:
+                currentWindow.forEach(PacketData::release);
                 currentWindow.clear();
-                closeWindows.add(data);
+                closeWindows.add(data.retain());
                 break;
             case ConfirmTransaction:
                 break; // This packet isn't of any use in replays
             case OpenWindow:
             case TradeList:
             case WindowProperty:
-                currentWindow.add(data);
+                currentWindow.forEach(PacketData::release);
+                currentWindow.add(data.retain());
                 break;
             case WindowItems:
                 if (PacketWindowItems.getWindowId(packet) == 0) {
-                    latestOnly.put(type, data);
+                    PacketData prev = latestOnly.put(type, data.retain());
+                    if (prev != null) {
+                        prev.release();
+                    }
                 } else {
-                    currentWindow.add(data);
+                    currentWindow.add(data.retain());
                 }
                 break;
             case SetSlot:
                 if (PacketSetSlot.getWindowId(packet) == 0) {
-                    mainInventoryChanges.put(PacketSetSlot.getSlot(packet), data);
+                    PacketData prev = mainInventoryChanges.put(PacketSetSlot.getSlot(packet), data.retain());
+                    if (prev != null) {
+                        prev.release();
+                    }
                 } else {
-                    currentWindow.add(data);
+                    currentWindow.add(data.retain());
                 }
                 break;
 
@@ -282,14 +321,24 @@ public class SquashFilter implements StreamFilter {
                 Team team = teams.computeIfAbsent(PacketTeam.getName(packet), Team::new);
                 switch (PacketTeam.getAction(packet)) {
                     case CREATE:
-                        team.create = packet;
+                        if (team.create != null) {
+                            team.create.release();
+                        }
+                        team.create = packet.retain();
                         break;
                     case UPDATE:
-                        team.update = packet;
+                        if (team.update != null) {
+                            team.update.release();
+                        }
+                        team.update = packet.retain();
                         break;
                     case REMOVE:
-                        team.remove = packet;
+                        if (team.remove != null) {
+                            team.remove.release();
+                        }
+                        team.remove = packet.retain();
                         if (team.create != null) {
+                            team.release();
                             teams.remove(team.name);
                         }
                         break;
@@ -314,10 +363,10 @@ public class SquashFilter implements StreamFilter {
             // Misc
             //
             case MapData:
-                maps.put(PacketMapData.getMapId(packet), packet);
+                maps.put(PacketMapData.getMapId(packet), packet.retain());
                 break;
             default:
-                unhandled.add(data);
+                unhandled.add(data.retain());
         }
         return false;
     }
@@ -338,6 +387,7 @@ public class SquashFilter implements StreamFilter {
 
             if (entity.despawned) {
                 result.add(new PacketData(entity.lastTimestamp, PacketDestroyEntities.write(registry, e.getKey())));
+                entity.release();
                 continue;
             }
 
@@ -347,6 +397,7 @@ public class SquashFilter implements StreamFilter {
                 for (int i : PacketUtils.getEntityIds(packet)) {
                     Entity other = entities.get(i);
                     if (other == null || other.despawned) { // Other entity doesn't exist
+                        packet.release();
                         continue FOR_PACKETS;
                     }
                 }
