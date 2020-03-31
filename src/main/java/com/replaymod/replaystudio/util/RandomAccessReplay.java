@@ -245,7 +245,7 @@ public abstract class RandomAccessReplay<T> {
                     case ChunkData: {
                         PacketChunkData chunkData = PacketChunkData.read(packet);
                         PacketChunkData.Column column = chunkData.getColumn();
-                        if (column.biomeData != null) {
+                        if (column.isFull()) {
                             Chunk chunk = new Chunk(column);
                             chunk.spawnTime = time;
                             Chunk prev = activeChunks.put(coordToLong(column.x, column.z), chunk);

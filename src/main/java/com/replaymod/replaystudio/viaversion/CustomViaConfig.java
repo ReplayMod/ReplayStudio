@@ -236,7 +236,17 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
+    public boolean isVineClimbFix() {
+        return false;
+    }
+
+    @Override
     public boolean isSnowCollisionFix() {
+        return false;
+    }
+
+    @Override
+    public boolean isInfestedBlocksFix() {
         return false;
     }
 
@@ -263,5 +273,20 @@ public class CustomViaConfig implements ViaVersionConfig {
     @Override
     public boolean is1_14HitboxFix() {
         return true;
+    }
+
+    @Override
+    public boolean isNonFullBlockLightFix() {
+        return false;
+    }
+
+    @Override
+    public boolean is1_14HealthNaNFix() {
+        return true;
+    }
+
+    @Override
+    public boolean is1_15InstantRespawn() {
+        return false;
     }
 }

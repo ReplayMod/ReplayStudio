@@ -382,7 +382,7 @@ public class SquashFilter implements StreamFilter {
         for (ChunkData chunk : chunks.values()) {
             if (!Utils.containsOnlyNull(chunk.changes)) {
                 result.add(new PacketData(chunk.firstAppearance, PacketChunkData.load(new Column(
-                        chunk.x, chunk.z, chunk.changes, chunk.biomeData, chunk.tileEntities, chunk.heightmaps
+                        chunk.x, chunk.z, chunk.changes, chunk.biomeData, chunk.tileEntities, chunk.heightmaps, chunk.biomes
                 )).write(registry)));
             }
             for (Map<Short, MutablePair<Long, PacketBlockChange>> e : chunk.blockChanges) {
@@ -465,7 +465,8 @@ public class SquashFilter implements StreamFilter {
                 column.chunks,
                 column.biomeData,
                 column.tileEntities,
-                column.heightMaps
+                column.heightMaps,
+                column.biomes
         );
     }
 
@@ -474,7 +475,7 @@ public class SquashFilter implements StreamFilter {
         private final int x;
         private final int z;
         private final Chunk[] changes = new Chunk[16];
-        private byte[] biomeData;
+        private byte[] biomeData; // pre 1.15
         @SuppressWarnings("unchecked")
         private Map<Short, MutablePair<Long, PacketBlockChange>>[] blockChanges = new Map[16];
         // 1.9+
@@ -483,6 +484,8 @@ public class SquashFilter implements StreamFilter {
         private CompoundTag heightmaps;
         private byte[][] skyLight = new byte[18][];
         private byte[][] blockLight = new byte[18][];
+        // 1.15+
+        private int[] biomes;
 
          ChunkData(long firstAppearance, int x, int z) {
             this.firstAppearance = firstAppearance;
@@ -492,9 +495,10 @@ public class SquashFilter implements StreamFilter {
 
         void update(
                 Chunk[] newChunks,
-                byte[] newBiomeData,
+                byte[] newBiomeData, // pre 1.15
                 CompoundTag[] newTileEntities, // 1.9+
-                CompoundTag newHeightmaps // 1.14+
+                CompoundTag newHeightmaps, // 1.14+
+                int[] newBiomes // 1.15+
         ) {
             for (int i = 0; i < newChunks.length; i++) {
                 if (newChunks[i] != null) {
@@ -503,7 +507,7 @@ public class SquashFilter implements StreamFilter {
                 }
             }
 
-            if (newBiomeData != null) {
+            if (newBiomeData != null) { // pre 1.15
                 this.biomeData = newBiomeData;
             }
             if (newTileEntities != null) { // 1.9+
@@ -511,6 +515,9 @@ public class SquashFilter implements StreamFilter {
             }
             if (newHeightmaps != null) { // 1.14+
                 this.heightmaps = newHeightmaps;
+            }
+            if (newBiomes != null) { // 1.15+
+                this.biomes = newBiomes;
             }
         }
 

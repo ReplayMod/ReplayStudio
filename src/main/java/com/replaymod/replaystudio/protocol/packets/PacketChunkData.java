@@ -125,7 +125,7 @@ public class PacketChunkData {
         for (int column = 0; column < columns; column++) {
             byte[] buf = new byte[lengths[column]];
             in.readBytes(buf);
-            result.add(readColumn(packet, buf, xs[column], zs[column], true, skylight, masks[column], 0, null, null));
+            result.add(readColumn(packet, buf, xs[column], zs[column], true, skylight, masks[column], 0, null, null, null));
         }
         return result;
     }
@@ -175,7 +175,7 @@ public class PacketChunkData {
             byte[] buf = new byte[length];
             System.arraycopy(inflated, pos, buf, 0, length);
             // Read data into chunks and biome data.
-            result.add(readColumn(packet, buf, x, z, true, skylight, chunkMask, extendedChunkMask, null, null));
+            result.add(readColumn(packet, buf, x, z, true, skylight, chunkMask, extendedChunkMask, null, null, null));
             pos += length;
         }
 
@@ -197,7 +197,7 @@ public class PacketChunkData {
         chunkData.unloadZ = chunkZ;
 
         // Pre 1.9
-        chunkData.column = new Column(chunkX, chunkZ, new Chunk[16], new byte[256], null, null);
+        chunkData.column = new Column(chunkX, chunkZ, new Chunk[16], new byte[256], null, null, null);
 
         return chunkData;
     }
@@ -245,6 +245,10 @@ public class PacketChunkData {
         if (packet.atLeast(ProtocolVersion.v1_14)) {
             heightmaps = in.readNBT();
         }
+        int[] biomes = null;
+        if (packet.atLeast(ProtocolVersion.v1_15) && fullChunk) {
+            biomes = in.readInts(1024);
+        }
         byte[] data;
         if (packet.atLeast(ProtocolVersion.v1_8)) {
             data = in.readBytes(in.readVarInt());
@@ -275,7 +279,7 @@ public class PacketChunkData {
             }
         }
 
-        this.column = readColumn(packet, data, x, z, fullChunk, false, chunkMask, extendedChunkMask, tileEntities, heightmaps);
+        this.column = readColumn(packet, data, x, z, fullChunk, false, chunkMask, extendedChunkMask, tileEntities, heightmaps, biomes);
 
         if (packet.atMost(ProtocolVersion.v1_8) && fullChunk && chunkMask == 0) {
             isUnload = true;
@@ -287,13 +291,13 @@ public class PacketChunkData {
     private void writeLoad(Packet packet, Packet.Writer out) throws IOException {
         ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
         NetOutput netOut = new StreamNetOutput(byteOut);
-        Pair<Integer, Integer> masks = writeColumn(packet, netOut, this.column, this.column.biomeData != null);
+        Pair<Integer, Integer> masks = writeColumn(packet, netOut, this.column, this.column.isFull());
         int mask = masks.getKey();
         int extendedMask = masks.getValue();
 
         out.writeInt(this.column.x);
         out.writeInt(this.column.z);
-        out.writeBoolean(this.column.biomeData != null);
+        out.writeBoolean(this.column.isFull());
         if (packet.atLeast(ProtocolVersion.v1_9)) {
             out.writeVarInt(mask);
         } else {
@@ -304,6 +308,9 @@ public class PacketChunkData {
         }
         if (packet.atLeast(ProtocolVersion.v1_14)) {
             out.writeNBT(this.column.heightMaps);
+        }
+        if (packet.atLeast(ProtocolVersion.v1_15) && this.column.biomes != null) {
+            out.writeInts(this.column.biomes);
         }
         int len;
         byte[] data;
@@ -332,7 +339,7 @@ public class PacketChunkData {
         }
     }
 
-    private static Column readColumn(Packet packet, byte[] data, int x, int z, boolean fullChunk, boolean hasSkylight, int mask, int extendedMask, CompoundTag[] tileEntities, CompoundTag heightmaps) throws IOException {
+    private static Column readColumn(Packet packet, byte[] data, int x, int z, boolean fullChunk, boolean hasSkylight, int mask, int extendedMask, CompoundTag[] tileEntities, CompoundTag heightmaps, int[] biomes) throws IOException {
         NetInput in = new StreamNetInput(new ByteArrayInputStream(data));
         Throwable ex = null;
         Column column = null;
@@ -388,18 +395,18 @@ public class PacketChunkData {
             }
 
             byte[] biomeData = null;
-            if (fullChunk) {
+            if (fullChunk && !packet.atLeast(ProtocolVersion.v1_15)) {
                 biomeData = in.readBytes(packet.atLeast(ProtocolVersion.v1_13) ? 1024 : 256);
             }
 
-            column = new Column(x, z, chunks, biomeData, tileEntities, heightmaps);
+            column = new Column(x, z, chunks, biomeData, tileEntities, heightmaps, biomes);
         } catch(Throwable e) {
             ex = e;
         }
 
         // Unfortunately, this is needed to detect whether the chunks contain skylight or not.
         if((in.available() > 0 || ex != null) && !hasSkylight) {
-            return readColumn(packet, data, x, z, fullChunk, true, mask, extendedMask, tileEntities, heightmaps);
+            return readColumn(packet, data, x, z, fullChunk, true, mask, extendedMask, tileEntities, heightmaps, biomes);
         } else if(ex != null) {
             throw new IOException("Failed to read chunk data.", ex);
         }
@@ -455,7 +462,7 @@ public class PacketChunkData {
             }
         }
 
-        if (fullChunk) {
+        if (fullChunk && !packet.atLeast(ProtocolVersion.v1_15)) {
             out.writeBytes(column.biomeData);
         }
 
@@ -466,17 +473,23 @@ public class PacketChunkData {
         public int x;
         public int z;
         public Chunk[] chunks;
-        public byte[] biomeData;
+        public byte[] biomeData; // pre 1.15
         public CompoundTag[] tileEntities;
         public CompoundTag heightMaps;
+        public int[] biomes; // 1.15+
 
-        public Column(int x, int z, Chunk[] chunks, byte[] biomeData, CompoundTag[] tileEntities, CompoundTag heightmaps) {
+        public Column(int x, int z, Chunk[] chunks, byte[] biomeData, CompoundTag[] tileEntities, CompoundTag heightmaps, int[] biomes) {
             this.x = x;
             this.z = z;
             this.chunks = chunks;
             this.biomeData = biomeData;
             this.tileEntities = tileEntities;
             this.heightMaps = heightmaps;
+            this.biomes = biomes;
+        }
+
+        public boolean isFull() {
+            return this.biomeData != null || this.biomes != null;
         }
     }
 

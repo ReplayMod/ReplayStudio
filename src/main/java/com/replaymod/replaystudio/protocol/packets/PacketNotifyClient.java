@@ -46,6 +46,7 @@ public class PacketNotifyClient {
         THUNDER_STRENGTH,
         AFFECTED_BY_PUFFERFISH,
         AFFECTED_BY_ELDER_GUARDIAN,
+        ENABLE_RESPAWN_SCREEN,
         ;
     }
 
