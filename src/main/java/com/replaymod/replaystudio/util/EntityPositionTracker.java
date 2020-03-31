@@ -169,7 +169,10 @@ public class EntityPositionTracker {
                 Packet packet = packetData.getPacket();
 
                 Integer entityID = PacketUtils.getEntityId(packet);
-                if (entityID == null) continue;
+                if (entityID == null) {
+                    packet.release();
+                    continue;
+                }
 
                 NavigableMap<Long, Location> positions = entityPositions.get(entityID);
                 if (positions == null) {
@@ -185,6 +188,8 @@ public class EntityPositionTracker {
                     double progress = (double) packetData.getTime() / replayLength;
                     progressMonitor.accept(Math.min(1, Math.max(0, progress)));
                 }
+
+                packet.release();
             }
         }
 
