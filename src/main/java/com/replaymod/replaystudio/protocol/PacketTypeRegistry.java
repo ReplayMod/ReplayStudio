@@ -36,6 +36,7 @@ import com.replaymod.replaystudio.viaversion.CustomViaManager;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -140,14 +141,19 @@ public class PacketTypeRegistry {
         this.unknown = unknown;
     }
 
-    // ViaVersion doesn't officially support 1.7.6 but luckily there weren't any (client-bound) packet id changes
     private static List<Pair<Integer, Protocol>> getProtocolPath(int clientVersion, int serverVersion) {
+        // ViaVersion doesn't officially support 1.7.6 but luckily there weren't any (client-bound) packet id changes
         if (serverVersion == ProtocolVersion.v1_7_6.getId()) {
             return getProtocolPath(clientVersion, ProtocolVersion.v1_8.getId());
         }
         if (clientVersion == ProtocolVersion.v1_7_6.getId()) {
             return getProtocolPath(ProtocolVersion.v1_8.getId(), serverVersion);
         }
+        // The trivial case
+        if (clientVersion == serverVersion) {
+            return Collections.emptyList();
+        }
+        // otherwise delegate to ViaVersion
         return ProtocolRegistry.getProtocolPath(clientVersion, serverVersion);
     }
 
