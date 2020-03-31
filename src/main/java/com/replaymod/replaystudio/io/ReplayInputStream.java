@@ -49,11 +49,6 @@ import java.util.UUID;
 
 import static com.replaymod.replaystudio.util.Utils.readInt;
 
-//#if MC>=10800
-//#else
-//$$ import com.github.steveice10.mc.protocol.ProtocolMode;
-//#endif
-
 /**
  * Input stream for reading packet data.
  */

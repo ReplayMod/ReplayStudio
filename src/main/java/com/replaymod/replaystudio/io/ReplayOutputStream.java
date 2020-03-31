@@ -153,15 +153,6 @@ public class ReplayOutputStream extends OutputStream {
     }
 
     private void doWrite(long time, Packet packet) throws IOException {
-        if (loginPhase && ReplayMetaData.CURRENT_FILE_FORMAT_VERSION < 14) {
-            // Generating an old format which does not include login phase packets
-            if (packet.getType() == PacketType.LoginSuccess) {
-                loginPhase = false;
-            }
-            packet.getBuf().release();
-            return;
-        }
-
         if (duration < time) {
             duration = (int) time;
         }

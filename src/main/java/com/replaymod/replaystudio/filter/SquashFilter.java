@@ -92,9 +92,7 @@ public class SquashFilter implements StreamFilter {
         private long dz = 0;
         private Float yaw = null;
         private Float pitch = null;
-        //#if MC>=10800
-        private boolean onGround = false;
-        //#endif
+        private boolean onGround = false; // 1.8+
     }
 
     private PacketTypeRegistry registry;
@@ -394,12 +392,10 @@ public class SquashFilter implements StreamFilter {
                     }
                 }
             }
-            //#if MC>=11400
             if (chunk.hasLight()) {
                 result.add(new PacketData(chunk.firstAppearance, new PacketUpdateLight(
                         chunk.x, chunk.z, Arrays.asList(chunk.skyLight), Arrays.asList(chunk.blockLight)).write(registry)));
             }
-            //#endif
         }
 
         result.sort(Comparator.comparingLong(PacketData::getTime));
@@ -452,7 +448,6 @@ public class SquashFilter implements StreamFilter {
         ).updateBlock(time, record);
     }
 
-    //#if MC>=10904
     private void unloadChunk(long time, int x, int z) {
         long coord = ChunkData.coordToLong(x, z);
         chunks.remove(coord);
@@ -473,22 +468,6 @@ public class SquashFilter implements StreamFilter {
                 column.heightMaps
         );
     }
-    //#else
-    //$$ private void updateChunk(long time, int x, int z, Chunk[] chunkArray, byte[] biomeData) {
-    //$$     long coord = ChunkData.coordToLong(x, z);
-    //$$     if (Utils.containsOnlyNull(chunkArray)) { // UNLOAD
-    //$$         chunks.remove(coord);
-    //$$         unloadedChunks.put(coord, time);
-    //$$     } else { // LOAD
-    //$$         unloadedChunks.remove(coord);
-    //$$         ChunkData chunk = chunks.get(coord);
-    //$$         if (chunk == null) {
-    //$$             chunks.put(coord, chunk = new ChunkData(time, x, z));
-    //$$         }
-    //$$         chunk.update(chunkArray, biomeData);
-    //$$     }
-    //$$ }
-    //#endif
 
     private static class ChunkData {
         private final long firstAppearance;
@@ -527,20 +506,15 @@ public class SquashFilter implements StreamFilter {
             if (newBiomeData != null) {
                 this.biomeData = newBiomeData;
             }
-            //#if MC>=10904
-            if (newTileEntities != null) {
+            if (newTileEntities != null) { // 1.9+
                 this.tileEntities = newTileEntities;
             }
-            //#endif
-            //#if MC>=11400
-            if (newHeightmaps != null) {
+            if (newHeightmaps != null) { // 1.14+
                 this.heightmaps = newHeightmaps;
             }
-            //#endif
         }
 
-        //#if MC>=11400
-        private void updateLight(PacketUpdateLight packet) {
+        private void updateLight(PacketUpdateLight packet) { // 1.14+
             int i = 0;
             for (byte[] light : packet.getSkyLight()) {
                 if (light != null) {
@@ -557,7 +531,7 @@ public class SquashFilter implements StreamFilter {
             }
         }
 
-        private boolean hasLight() {
+        private boolean hasLight() { // 1.14+
             for (byte[] light : skyLight) {
                 if (light != null) {
                     return true;
@@ -570,7 +544,6 @@ public class SquashFilter implements StreamFilter {
             }
             return false;
         }
-        //#endif
 
         private MutablePair<Long, PacketBlockChange> blockChanges(IPosition pos) {
             int x = pos.getX();
