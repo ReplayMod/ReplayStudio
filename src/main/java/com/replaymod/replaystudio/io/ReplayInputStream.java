@@ -108,6 +108,8 @@ public class ReplayInputStream extends InputStream {
             // For Replays older than version 14, immediately end the Login phase to enter Play phase where the replay starts
             buffer.offer(new PacketData(0, new PacketLoginSuccess(UUID.nameUUIDFromBytes(new byte[0]).toString(), "Player").write(registry)));
             this.registry = PacketTypeRegistry.get(registry.getVersion(), State.PLAY);
+        } else if (includeLoginPhase && !outputLoginPhase) {
+            this.registry = PacketTypeRegistry.get(registry.getVersion(), State.LOGIN);
         }
         this.in = in;
         this.viaVersionConverter = ViaVersionPacketConverter.createForFileVersion(fileFormatVersion, fileProtocol, registry.getVersion().getId());
