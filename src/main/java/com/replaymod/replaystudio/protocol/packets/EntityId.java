@@ -96,6 +96,9 @@ public class EntityId {
             case EntityHeadLook:
             case EntityMetadata:
             case EntityMovement:
+            case EntityPosition:
+            case EntityRotation:
+            case EntityPositionRotation:
             case EntityAnimation:
             case EntityNBTUpdate:
             case EntityProperties:
