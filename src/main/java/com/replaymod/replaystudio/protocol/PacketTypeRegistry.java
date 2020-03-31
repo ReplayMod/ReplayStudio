@@ -30,6 +30,8 @@ import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.Protocol;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolRegistry;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolVersion;
 import com.replaymod.replaystudio.us.myles.ViaVersion.packets.State;
+import com.replaymod.replaystudio.us.myles.ViaVersion.protocols.protocol1_14to1_13_2.Protocol1_14To1_13_2;
+import com.replaymod.replaystudio.us.myles.ViaVersion.protocols.protocol1_9to1_8.Protocol1_9To1_8;
 import com.replaymod.replaystudio.viaversion.CustomViaManager;
 
 import java.lang.reflect.Field;
@@ -114,6 +116,19 @@ public class PacketTypeRegistry {
                         wasReplaced = true;
                     }
                 }
+
+                // Special case: ViaVersion remaps the Use Bed packet into a Entity Metadata, though they're logically
+                //               distinct packets for us.
+                if (protocol instanceof Protocol1_14To1_13_2 && packetType == PacketType.PlayerUseBed) {
+                    wasReplaced = true;
+                }
+
+                // Special case: ViaVersion cancels the Update Entity NBT packets unconditionally, instead of setting
+                //               their newId to -1.
+                if (protocol instanceof Protocol1_9To1_8 && packetType == PacketType.EntityNBTUpdate) {
+                    wasReplaced = true;
+                }
+
                 if (wasReplaced) {
                     continue packets; // packet no longer exists in this version
                 }
