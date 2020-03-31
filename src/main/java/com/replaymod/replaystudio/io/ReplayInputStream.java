@@ -171,6 +171,7 @@ public class ReplayInputStream extends InputStream {
             for (Packet packet : decoded) {
                 PacketType type = packet.getType();
                 if (type == PacketType.KeepAlive) {
+                    packet.release();
                     continue; // They aren't needed in a replay
                 }
 
@@ -179,6 +180,7 @@ public class ReplayInputStream extends InputStream {
                     registry = PacketTypeRegistry.get(registry.getVersion(), State.PLAY);
                 }
                 if ((loginPhase || type == PacketType.LoginSuccess) && !outputLoginPhase) {
+                    packet.release();
                     continue;
                 }
                 buffer.offer(new PacketData(next, packet));
