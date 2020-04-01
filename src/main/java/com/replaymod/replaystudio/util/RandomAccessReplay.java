@@ -23,6 +23,7 @@ import com.replaymod.replaystudio.protocol.packets.PacketEntityTeleport;
 import com.replaymod.replaystudio.protocol.packets.PacketNotifyClient;
 import com.replaymod.replaystudio.protocol.packets.PacketPlayerListEntry;
 import com.replaymod.replaystudio.protocol.packets.PacketSpawnPlayer;
+import com.replaymod.replaystudio.protocol.packets.PacketUpdateLight;
 import com.replaymod.replaystudio.replay.ReplayFile;
 
 import java.io.EOFException;
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -180,6 +182,7 @@ public abstract class RandomAccessReplay<T> {
         Map<String, PacketPlayerListEntry> playerListEntries = new HashMap<>();
         Map<Integer, Entity> activeEntities = new HashMap<>();
         Map<Long, Chunk> activeChunks = new HashMap<>();
+        Packet lastLightUpdate = null;
         Weather activeWeather = null;
 
         double sysTimeStart = System.currentTimeMillis();
@@ -246,7 +249,15 @@ public abstract class RandomAccessReplay<T> {
                         PacketChunkData chunkData = PacketChunkData.read(packet);
                         PacketChunkData.Column column = chunkData.getColumn();
                         if (column.isFull()) {
-                            Chunk chunk = new Chunk(column);
+                            Packet initialLight = null;
+                            if (lastLightUpdate != null) {
+                                PacketUpdateLight updateLight = PacketUpdateLight.read(lastLightUpdate);
+                                if (column.x == updateLight.getX() && column.z == updateLight.getZ()) {
+                                    initialLight = lastLightUpdate;
+                                    lastLightUpdate = null;
+                                }
+                            }
+                            Chunk chunk = new Chunk(column, initialLight);
                             chunk.spawnTime = time;
                             Chunk prev = activeChunks.put(coordToLong(column.x, column.z), chunk);
                             if (prev != null) {
@@ -280,6 +291,13 @@ public abstract class RandomAccessReplay<T> {
                                 }
                             }
                         }
+                        break;
+                    }
+                    case UpdateLight: {
+                        if (lastLightUpdate != null) {
+                            lastLightUpdate.release();
+                        }
+                        lastLightUpdate = packet.retain();
                         break;
                     }
                     case UnloadChunk: {
@@ -417,6 +435,10 @@ public abstract class RandomAccessReplay<T> {
 
             worldTimes.values().forEach(Packet::release);
             thunderStrengths.values().forEach(Packet::release);
+
+            if (lastLightUpdate != null) {
+                lastLightUpdate.release();
+            }
 
             indexOut.writeVarInt(index);
         }
@@ -809,8 +831,10 @@ public abstract class RandomAccessReplay<T> {
         private ListMultimap<Integer, BlockChange> blocks = Multimaps.newListMultimap(blocksT, LinkedList::new); // LinkedList to allow .descendingIterator
         private PacketChunkData.BlockStorage[] currentBlockState = new PacketChunkData.BlockStorage[16];
 
-        private Chunk(PacketChunkData.Column column) throws IOException {
-            super(Collections.singletonList(PacketChunkData.load(column).write(registry)),
+        private Chunk(PacketChunkData.Column column, Packet initialLight) throws IOException {
+            super(initialLight == null
+                            ? Collections.singletonList(PacketChunkData.load(column).write(registry))
+                            : Arrays.asList(initialLight, PacketChunkData.load(column).write(registry)),
                     Collections.singletonList(PacketChunkData.unload(column.x, column.z).write(registry)));
             PacketChunkData.Chunk[] chunks = column.chunks;
             for (int i = 0; i < currentBlockState.length; i++) {
