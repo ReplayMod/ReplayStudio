@@ -70,7 +70,7 @@ import java.util.zip.Inflater;
 public abstract class RandomAccessReplay<T> {
     private static final String CACHE_ENTRY = "quickModeCache.bin";
     private static final String CACHE_INDEX_ENTRY = "quickModeCacheIndex.bin";
-    private static final int CACHE_VERSION = 0;
+    private static final int CACHE_VERSION = 1;
     private static Logger LOGGER = Logger.getLogger(RandomAccessReplay.class.getName());
 
     private final ReplayFile replayFile;
