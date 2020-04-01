@@ -425,7 +425,7 @@ public abstract class RandomAccessReplay<T> {
 
     public void reset() {
         activeThings.clear();
-        currentTimeStamp = 0;
+        currentTimeStamp = -1;
     }
 
     public void seek(int replayTime) throws IOException {
