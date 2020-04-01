@@ -240,6 +240,9 @@ public class SquashFilter implements StreamFilter {
                     }
                     entity.onGround = movement.getThird();
                 } else if (type == PacketType.EntityTeleport) {
+                    if (entity.teleport != null) {
+                        entity.teleport.release();
+                    }
                     entity.teleport = packet.retain();
                 } else {
                     if (PacketUtils.isSpawnEntityPacket(packet)) {
