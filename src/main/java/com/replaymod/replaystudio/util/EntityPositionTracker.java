@@ -159,7 +159,7 @@ public class EntityPositionTracker {
         synchronized (replayFile) {
             ReplayMetaData metaData = replayFile.getMetaData();
             replayLength = Math.max(1, metaData.getDuration());
-            origIn = replayFile.getPacketData(PacketTypeRegistry.get(ProtocolVersion.getProtocol(metaData.getProtocolVersion()), State.LOGIN));
+            origIn = replayFile.getPacketData(PacketTypeRegistry.get(metaData.getProtocolVersion(), State.LOGIN));
         }
 
         Map<Integer, NavigableMap<Long, Location>> entityPositions = new HashMap<>();

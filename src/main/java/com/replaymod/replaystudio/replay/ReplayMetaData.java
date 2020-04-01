@@ -24,7 +24,12 @@
  */
 package com.replaymod.replaystudio.replay;
 
+import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolVersion;
+
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -32,6 +37,23 @@ import java.util.Objects;
  */
 public class ReplayMetaData {
     public static final int CURRENT_FILE_FORMAT_VERSION = 14;
+
+    /**
+     * Mapping from replay file version to protocol version for versions prior to 10.
+     * For 10+ see https://github.com/ReplayMod/ReplayStudio/issues/9 (i.e. {@link #protocol}).
+     */
+    public static final Map<Integer, Integer> PROTOCOL_FOR_FILE_FORMAT = Collections.unmodifiableMap(new HashMap<Integer, Integer>() {{
+        put(0, 47);
+        put(1, 47);
+        put(2, 110);
+        put(3, 210);
+        put(4, 315);
+        put(5, 316);
+        put(6, 335);
+        put(7, 338);
+        put(8, 5);
+        put(9, 340);
+    }});
 
     /**
      * Whether this is a singleplayer recording.
@@ -71,7 +93,7 @@ public class ReplayMetaData {
     /**
      * Minecraft protocol version. Mandatory for `fileFormatVersion >= 13`.
      */
-    private int protocol;
+    private Integer protocol;
 
     /**
      * The program which generated the file.
@@ -134,8 +156,25 @@ public class ReplayMetaData {
         return this.fileFormatVersion;
     }
 
-    public int getProtocolVersion() {
+    public Integer getRawProtocolVersion() {
         return protocol;
+    }
+
+    public int getRawProtocolVersionOr0() {
+        return protocol != null ? protocol : 0;
+    }
+
+    public ProtocolVersion getProtocolVersion() {
+        // See https://github.com/ReplayMod/ReplayStudio/issues/9#issuecomment-464451582
+        // and https://github.com/ReplayMod/ReplayStudio/issues/9#issuecomment-464456558
+        Integer protocol = this.protocol;
+        if (protocol == null) {
+            protocol = PROTOCOL_FOR_FILE_FORMAT.get(fileFormatVersion);
+            if (protocol == null) {
+                throw new IllegalStateException("Replay files with version 10+ must provide the `protocol` key.");
+            }
+        }
+        return ProtocolVersion.getProtocol(protocol);
     }
 
     public String getGenerator() {

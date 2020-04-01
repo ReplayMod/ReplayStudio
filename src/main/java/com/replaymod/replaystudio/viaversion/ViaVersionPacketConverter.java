@@ -42,30 +42,16 @@ import com.replaymod.replaystudio.us.myles.ViaVersion.protocols.base.ProtocolInf
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
+
+import static com.replaymod.replaystudio.replay.ReplayMetaData.PROTOCOL_FOR_FILE_FORMAT;
 
 /**
  * Converts a sequence of packets from one version to another using ViaVersion.
  * This class is stateful and packets must be processed in order.
  */
 public class ViaVersionPacketConverter {
-    private static final Map<Integer, Integer> PROTOCOL_FOR_FILE_FORMAT = new HashMap<>();
-    static {
-        PROTOCOL_FOR_FILE_FORMAT.put(0, 47);
-        PROTOCOL_FOR_FILE_FORMAT.put(1, 47);
-        PROTOCOL_FOR_FILE_FORMAT.put(2, 110);
-        PROTOCOL_FOR_FILE_FORMAT.put(3, 210);
-        PROTOCOL_FOR_FILE_FORMAT.put(4, 315);
-        PROTOCOL_FOR_FILE_FORMAT.put(5, 316);
-        PROTOCOL_FOR_FILE_FORMAT.put(6, 335);
-        PROTOCOL_FOR_FILE_FORMAT.put(7, 338);
-        PROTOCOL_FOR_FILE_FORMAT.put(8, 5);
-        PROTOCOL_FOR_FILE_FORMAT.put(9, 340);
-    }
-
     @Deprecated
     public static ViaVersionPacketConverter createForFileVersion(int input, int output) {
         return createForFileVersion(input, 0, PROTOCOL_FOR_FILE_FORMAT.get(output));

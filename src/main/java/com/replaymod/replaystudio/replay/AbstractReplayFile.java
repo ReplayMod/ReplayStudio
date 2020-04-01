@@ -101,7 +101,7 @@ public abstract class AbstractReplayFile implements ReplayFile {
             return null;
         }
         ReplayMetaData metaData = getMetaData();
-        return new ReplayInputStream(registry, in.get(), metaData.getFileFormatVersion(), metaData.getProtocolVersion());
+        return new ReplayInputStream(registry, in.get(), metaData.getFileFormatVersion(), metaData.getRawProtocolVersionOr0());
     }
 
     @Override

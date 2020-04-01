@@ -96,7 +96,7 @@ public class StreamLauncher {
 
         ReplayFile inFile = new ZipReplayFile(studio, new File(input));
         ReplayMetaData meta = inFile.getMetaData();
-        ProtocolVersion inputVersion = ProtocolVersion.getProtocol(meta.getProtocolVersion());
+        ProtocolVersion inputVersion = meta.getProtocolVersion();
         ReplayOutputStream out;
         if (!"x".equals(output)) {
             OutputStream buffOut = new BufferedOutputStream(new FileOutputStream(output));
