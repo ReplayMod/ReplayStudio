@@ -347,7 +347,10 @@ public abstract class RandomAccessReplay<T> {
                         break;
                     }
                     case UpdateTime: {
-                        worldTimes.put(time, packet.retain());
+                        Packet prev = worldTimes.put(time, packet.retain());
+                        if (prev != null) {
+                            prev.release();
+                        }
                         break;
                     }
                     case NotifyClient: {
@@ -367,11 +370,17 @@ public abstract class RandomAccessReplay<T> {
                                 break;
                             case RAIN_STRENGTH:
                                 if (activeWeather != null) {
-                                    activeWeather.rainStrengths.put(time, packet.retain());
+                                    Packet prev = activeWeather.rainStrengths.put(time, packet.retain());
+                                    if (prev != null) {
+                                        prev.release();
+                                    }
                                 }
                                 break;
                             case THUNDER_STRENGTH:
-                                thunderStrengths.put(time, packet.retain());
+                                Packet prev = thunderStrengths.put(time, packet.retain());
+                                if (prev != null) {
+                                    prev.release();
+                                }
                                 break;
                             default:
                                 break;
@@ -405,6 +414,9 @@ public abstract class RandomAccessReplay<T> {
             indexOut.writeByte(0);
             writeToCache(indexOut, worldTimes);
             writeToCache(indexOut, thunderStrengths);
+
+            worldTimes.values().forEach(Packet::release);
+            thunderStrengths.values().forEach(Packet::release);
 
             indexOut.writeVarInt(index);
         }
