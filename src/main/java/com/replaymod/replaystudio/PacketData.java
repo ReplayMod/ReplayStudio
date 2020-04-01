@@ -61,6 +61,10 @@ public final class PacketData implements Cloneable {
         return this;
     }
 
+    public PacketData copy() {
+        return new PacketData(time, packet.copy());
+    }
+
     public boolean release() {
         return this.packet.release();
     }

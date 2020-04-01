@@ -497,6 +497,14 @@ public class PacketChunkData {
         public BlockStorage blocks;
         public byte[] blockLight;
         public byte[] skyLight;
+
+        public Chunk copy() {
+            Chunk copy = new Chunk();
+            copy.blocks = this.blocks != null ? this.blocks.copy() : null;
+            copy.blockLight = this.blockLight != null ? this.blockLight.clone() : null;
+            copy.skyLight = this.skyLight != null ? this.skyLight.clone() : null;
+            return copy;
+        }
     }
 
     public static class BlockStorage {

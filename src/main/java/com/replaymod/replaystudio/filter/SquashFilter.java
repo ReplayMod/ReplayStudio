@@ -80,6 +80,16 @@ public class SquashFilter implements StreamFilter {
             this.name = name;
         }
 
+        public Team copy() {
+            Team copy = new Team(this.name);
+            copy.create = this.create != null ? this.create.copy() : null;
+            copy.update = this.update != null ? this.update.copy() : null;
+            copy.remove = this.remove != null ? this.remove.copy() : null;
+            copy.added.addAll(this.added);
+            copy.removed.addAll(this.removed);
+            return copy;
+        }
+
         void release() {
             if (create != null) {
                 create.release();
@@ -109,6 +119,22 @@ public class SquashFilter implements StreamFilter {
         private Float pitch = null;
         private boolean onGround = false; // 1.8+
 
+        Entity copy() {
+            Entity copy = new Entity();
+            copy.complete = this.complete;
+            copy.despawned = this.despawned;
+            this.packets.forEach(it -> copy.packets.add(it.copy()));
+            copy.lastTimestamp = this.lastTimestamp;
+            copy.teleport = this.teleport != null ? this.teleport.copy() : null;
+            copy.dx = this.dx;
+            copy.dy = this.dy;
+            copy.dz = this.dz;
+            copy.yaw = this.yaw;
+            copy.pitch = this.pitch;
+            copy.onGround = this.onGround;
+            return copy;
+        }
+
         void release() {
             if (teleport != null) {
                 teleport.release();
@@ -134,6 +160,22 @@ public class SquashFilter implements StreamFilter {
 
     private final Map<Long, ChunkData> chunks = new HashMap<>();
     private final Map<Long, Long> unloadedChunks = new HashMap<>();
+
+    public SquashFilter copy() {
+        SquashFilter copy = new SquashFilter();
+        this.teams.forEach((key, value) -> copy.teams.put(key, value.copy()));
+        this.entities.forEach((key, value) -> copy.entities.put(key, value.copy()));
+        this.unhandled.forEach(it -> copy.unhandled.add(it.copy()));
+        this.mainInventoryChanges.forEach((key, value) -> copy.mainInventoryChanges.put(key, value.copy()));
+        this.maps.forEach((key, value) -> copy.maps.put(key, value.copy()));
+        this.currentWorld.forEach(it -> copy.currentWorld.add(it.copy()));
+        this.currentWindow.forEach(it -> copy.currentWindow.add(it.copy()));
+        this.closeWindows.forEach(it -> copy.closeWindows.add(it.copy()));
+        this.latestOnly.forEach((key, value) -> copy.latestOnly.put(key, value.copy()));
+        this.chunks.forEach((key, value) -> copy.chunks.put(key, value.copy()));
+        copy.unloadedChunks.putAll(this.unloadedChunks);
+        return copy;
+    }
 
     @Override
     public void onStart(PacketStream stream) {
@@ -542,6 +584,27 @@ public class SquashFilter implements StreamFilter {
             this.firstAppearance = firstAppearance;
             this.x = x;
             this.z = z;
+        }
+
+        ChunkData copy() {
+            ChunkData copy = new ChunkData(this.firstAppearance, this.x, this.z);
+            for (int i = 0; i < this.changes.length; i++) {
+                copy.changes[i] = this.changes[i] != null ? this.changes[i].copy() : null;
+            }
+            copy.biomeData = this.biomeData;
+            for (int i = 0; i < this.blockChanges.length; i++) {
+                if (this.blockChanges[i] != null) {
+                    Map<Short, MutablePair<Long, PacketBlockChange>> copyMap = new HashMap<>();
+                    copy.blockChanges[i] = copyMap;
+                    this.blockChanges[i].forEach((key, value) -> copyMap.put(key, new MutablePair<>(value.left, value.right)));
+                }
+            }
+            copy.tileEntities = this.tileEntities;
+            copy.heightmaps = this.heightmaps;
+            copy.skyLight = this.skyLight.clone();
+            copy.blockLight = this.blockLight.clone();
+            copy.biomes = this.biomes;
+            return copy;
         }
 
         void update(

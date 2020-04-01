@@ -94,6 +94,10 @@ public class Packet {
         return this;
     }
 
+    public Packet copy() {
+        return new Packet(registry, id, type, buf.retainedSlice());
+    }
+
     public boolean release() {
         return buf.release();
     }
