@@ -177,6 +177,18 @@ public class SquashFilter implements StreamFilter {
         return copy;
     }
 
+    public void release() {
+        teams.values().forEach(Team::release);
+        entities.values().forEach(Entity::release);
+        unhandled.forEach(PacketData::release);
+        mainInventoryChanges.values().forEach(PacketData::release);
+        maps.values().forEach(Packet::release);
+        currentWorld.forEach(PacketData::release);
+        currentWindow.forEach(PacketData::release);
+        closeWindows.forEach(PacketData::release);
+        latestOnly.values().forEach(PacketData::release);
+    }
+
     @Override
     public void onStart(PacketStream stream) {
 
