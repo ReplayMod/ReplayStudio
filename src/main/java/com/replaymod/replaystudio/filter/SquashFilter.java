@@ -430,6 +430,27 @@ public class SquashFilter implements StreamFilter {
 
     @Override
     public void onEnd(PacketStream stream, long timestamp) throws IOException {
+        // Join/respawn packet must be the first packet
+        PacketData join = latestOnly.remove(PacketType.JoinGame);
+        PacketData respawn = latestOnly.remove(PacketType.Respawn);
+        if (join != null) {
+            stream.insert(timestamp, join.getPacket());
+        }
+        if (respawn != null) {
+            stream.insert(timestamp, respawn.getPacket());
+        }
+
+        // These must always come before any chunk packets because otherwise those may get rejected.
+        // Position must come before distance because that one actually unloads chunks.
+        PacketData updateViewPosition = latestOnly.remove(PacketType.UpdateViewPosition);
+        PacketData updateViewDistance = latestOnly.remove(PacketType.UpdateViewDistance);
+        if (updateViewPosition != null) {
+            stream.insert(timestamp, updateViewPosition.getPacket());
+        }
+        if (updateViewDistance != null) {
+            stream.insert(timestamp, updateViewDistance.getPacket());
+        }
+
         List<PacketData> result = new ArrayList<>();
 
         result.addAll(unhandled);
