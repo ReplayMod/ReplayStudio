@@ -137,12 +137,15 @@ public abstract class RandomAccessReplay<T> {
         return success;
     }
 
-    private boolean loadFromCache(InputStream cacheIn, InputStream rawIndexIn, Consumer<Double> progress) throws IOException {
+    private boolean loadFromCache(InputStream rawCacheIn, InputStream rawIndexIn, Consumer<Double> progress) throws IOException {
         long sysTimeStart = System.currentTimeMillis();
 
+        NetInput cacheIn = new StreamNetInput(rawCacheIn);
         NetInput in = new StreamNetInput(rawIndexIn);
         if (in.readVarInt() != CACHE_VERSION) return false; // Incompatible cache version
-        if (new StreamNetInput(cacheIn).readVarInt() != CACHE_VERSION) return false; // Incompatible cache version
+        if (cacheIn.readVarInt() != CACHE_VERSION) return false; // Incompatible cache version
+        if (in.readVarInt() != registry.getVersion().getId()) return false; // Cache of incompatible protocol version
+        if (cacheIn.readVarInt() != registry.getVersion().getId()) return false; // Cache of incompatible protocol version
 
         things: while (true) {
             BakedTrackedThing trackedThing;
@@ -165,7 +168,7 @@ public abstract class RandomAccessReplay<T> {
         buf = Unpooled.buffer(size);
         int read = 0;
         while (true) {
-            int len = buf.writeBytes(cacheIn, Math.min(size - read, 4096));
+            int len = buf.writeBytes(rawCacheIn, Math.min(size - read, 4096));
             if (len <= 0) break;
             read += len;
             progress.accept((double) read / size);
@@ -192,8 +195,10 @@ public abstract class RandomAccessReplay<T> {
              OutputStream cacheIndexOut = replayFile.writeCache(CACHE_INDEX_ENTRY)) {
             NetOutput out = new StreamNetOutput(cacheOut);
             out.writeVarInt(CACHE_VERSION);
+            out.writeVarInt(registry.getVersion().getId());
             NetOutput indexOut = new StreamNetOutput(cacheIndexOut);
             indexOut.writeVarInt(CACHE_VERSION);
+            indexOut.writeVarInt(registry.getVersion().getId());
 
             int index = 0;
             int time = 0;
