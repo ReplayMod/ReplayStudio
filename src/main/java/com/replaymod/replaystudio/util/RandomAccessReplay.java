@@ -898,7 +898,7 @@ public abstract class RandomAccessReplay<T> {
         @Override
         public void rewind(int currentTimeStamp, int replayTime) throws IOException {
             if (currentTimeStamp >= despawnTime) {
-                play(spawnTime, replayTime);
+                play(spawnTime - 1, replayTime);
                 return;
             }
             for (Collection<BlockChange> updates : blocksT.subMap(replayTime, false, currentTimeStamp, true).descendingMap().values()) {
