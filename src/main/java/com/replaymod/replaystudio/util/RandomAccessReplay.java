@@ -70,7 +70,7 @@ import java.util.zip.Inflater;
 public abstract class RandomAccessReplay<T> {
     private static final String CACHE_ENTRY = "quickModeCache.bin";
     private static final String CACHE_INDEX_ENTRY = "quickModeCacheIndex.bin";
-    private static final int CACHE_VERSION = 1;
+    private static final int CACHE_VERSION = 2;
     private static Logger LOGGER = Logger.getLogger(RandomAccessReplay.class.getName());
 
     private final ReplayFile replayFile;
@@ -299,10 +299,26 @@ public abstract class RandomAccessReplay<T> {
                         break;
                     }
                     case UpdateLight: {
-                        if (lastLightUpdate != null) {
-                            lastLightUpdate.release();
+                        // A light update packet may be sent either before or after the corresponding chunk packet.
+                        // The vanilla server appears to always send it immediately before the chunk packet.
+                        // Third-party servers (e.g. Hypixel) may sent it after the corresponding chunk packet, hence
+                        // why we must support both options here.
+                        PacketUpdateLight updateLight = PacketUpdateLight.read(packet);
+                        Chunk chunk = activeChunks.get(coordToLong(updateLight.getX(), updateLight.getZ()));
+                        if (chunk != null && chunk.spawnPackets.size() == 1) {
+                            // We we already know about the chunk and this is the first light update we receive for it,
+                            // then add the packet to the chunks spawn packets.
+                            List<Packet> spawnPackets = new ArrayList<>();
+                            spawnPackets.add(packet.retain());
+                            spawnPackets.addAll(chunk.spawnPackets);
+                            chunk.spawnPackets = spawnPackets;
+                        } else {
+                            // If we don't yet know about the chunk, then store the packet for when the chunk arrives.
+                            if (lastLightUpdate != null) {
+                                lastLightUpdate.release();
+                            }
+                            lastLightUpdate = packet.retain();
                         }
-                        lastLightUpdate = packet.retain();
                         break;
                     }
                     case UnloadChunk: {
