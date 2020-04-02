@@ -243,6 +243,8 @@ public class SquashFilter implements StreamFilter {
                     if (entity.teleport != null) {
                         entity.teleport.release();
                     }
+                    entity.dx = entity.dy = entity.dz = 0;
+                    entity.yaw = entity.pitch = null;
                     entity.teleport = packet.retain();
                 } else {
                     if (PacketUtils.isSpawnEntityPacket(packet)) {
