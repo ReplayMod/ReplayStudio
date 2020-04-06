@@ -348,7 +348,6 @@ public class SquashFilter implements StreamFilter {
             case OpenWindow:
             case TradeList:
             case WindowProperty:
-                currentWindow.forEach(PacketData::release);
                 currentWindow.add(data.retain());
                 break;
             case WindowItems:
