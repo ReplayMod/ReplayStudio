@@ -421,7 +421,10 @@ public class SquashFilter implements StreamFilter {
             // Misc
             //
             case MapData:
-                maps.put(PacketMapData.getMapId(packet), packet.retain());
+                Packet prev = maps.put(PacketMapData.getMapId(packet), packet.retain());
+                if (prev != null) {
+                    prev.release();
+                }
                 break;
             default:
                 unhandled.add(data.retain());
