@@ -157,17 +157,18 @@ public class ReplayOutputStream extends OutputStream {
             duration = (int) time;
         }
 
-        ByteBuf encoded = ALLOC.buffer();
+        ByteBuf packetIdBuf = ALLOC.buffer();
         try {
-            new ByteBufNetOutput(encoded).writeVarInt(packet.getId());
-            encoded.writeBytes(packet.getBuf());
+            new ByteBufNetOutput(packetIdBuf).writeVarInt(packet.getId());
 
-            int length = encoded.readableBytes();
+            int packetIdLen = packetIdBuf.readableBytes();
+            int packetBufLen = packet.getBuf().readableBytes();
             writeInt(out, (int) time);
-            writeInt(out, length);
-            encoded.readBytes(out, length);
+            writeInt(out, packetIdLen + packetBufLen);
+            packetIdBuf.readBytes(out, packetIdLen);
+            packet.getBuf().getBytes(packet.getBuf().readerIndex(), out, packetBufLen);
         } finally {
-            encoded.release();
+            packetIdBuf.release();
             packet.getBuf().release();
         }
 
