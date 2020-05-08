@@ -513,10 +513,11 @@ public class SquashFilter implements StreamFilter {
         }
 
         for (ChunkData chunk : chunks.values()) {
-            if (!Utils.containsOnlyNull(chunk.changes)) {
-                result.add(new PacketData(chunk.firstAppearance, PacketChunkData.load(new Column(
-                        chunk.x, chunk.z, chunk.changes, chunk.biomeData, chunk.tileEntities, chunk.heightmaps, chunk.biomes
-                )).write(registry)));
+            Column column = new Column(
+                    chunk.x, chunk.z, chunk.changes, chunk.biomeData, chunk.tileEntities, chunk.heightmaps, chunk.biomes
+            );
+            if (column.isFull() || !Utils.containsOnlyNull(chunk.changes)) {
+                result.add(new PacketData(chunk.firstAppearance, PacketChunkData.load(column).write(registry)));
             }
             for (Map<Short, MutablePair<Long, PacketBlockChange>> e : chunk.blockChanges) {
                 if (e != null) {
