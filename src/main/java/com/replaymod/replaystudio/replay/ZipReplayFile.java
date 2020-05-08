@@ -136,7 +136,7 @@ public class ZipReplayFile extends AbstractReplayFile {
             } catch (IOException ignored) {}
         }
 
-        Optional<InputStream> mcprIn = getCache(ENTRY_RECORDING_HASH);
+        Optional<InputStream> mcprIn = get(ENTRY_RECORDING_HASH);
         if (mcprIn.isPresent()) {
             try (InputStream in = mcprIn.get();
                  Reader rin = new InputStreamReader(in);
