@@ -163,6 +163,7 @@ public class SquashFilter implements StreamFilter {
 
     public SquashFilter copy() {
         SquashFilter copy = new SquashFilter();
+        copy.registry = this.registry;
         this.teams.forEach((key, value) -> copy.teams.put(key, value.copy()));
         this.entities.forEach((key, value) -> copy.entities.put(key, value.copy()));
         this.unhandled.forEach(it -> copy.unhandled.add(it.copy()));
