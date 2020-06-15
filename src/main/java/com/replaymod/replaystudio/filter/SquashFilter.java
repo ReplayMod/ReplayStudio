@@ -45,6 +45,7 @@ import com.replaymod.replaystudio.protocol.packets.PacketWindowItems;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.Pair;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.Triple;
+import com.replaymod.replaystudio.us.myles.ViaVersion.packets.State;
 import com.replaymod.replaystudio.util.DPosition;
 import com.replaymod.replaystudio.util.IPosition;
 import com.replaymod.replaystudio.util.PacketUtils;
@@ -147,6 +148,7 @@ public class SquashFilter implements StreamFilter {
 
     private PacketTypeRegistry registry;
 
+    private final List<PacketData> loginPhase = new ArrayList<>();
     private final List<PacketData> unhandled = new ArrayList<>();
     private final Map<Integer, Entity> entities = new HashMap<>();
     private final Map<String, Team> teams = new HashMap<>();
@@ -166,6 +168,7 @@ public class SquashFilter implements StreamFilter {
         copy.registry = this.registry;
         this.teams.forEach((key, value) -> copy.teams.put(key, value.copy()));
         this.entities.forEach((key, value) -> copy.entities.put(key, value.copy()));
+        this.loginPhase.forEach(it -> copy.loginPhase.add(it.copy()));
         this.unhandled.forEach(it -> copy.unhandled.add(it.copy()));
         this.mainInventoryChanges.forEach((key, value) -> copy.mainInventoryChanges.put(key, value.copy()));
         this.maps.forEach((key, value) -> copy.maps.put(key, value.copy()));
@@ -181,6 +184,7 @@ public class SquashFilter implements StreamFilter {
     public void release() {
         teams.values().forEach(Team::release);
         entities.values().forEach(Entity::release);
+        loginPhase.forEach(PacketData::release);
         unhandled.forEach(PacketData::release);
         mainInventoryChanges.values().forEach(PacketData::release);
         maps.values().forEach(Packet::release);
@@ -428,13 +432,22 @@ public class SquashFilter implements StreamFilter {
                 }
                 break;
             default:
-                unhandled.add(data.retain());
+                if (type.getState() == State.LOGIN) {
+                    loginPhase.add(data.retain());
+                } else {
+                    unhandled.add(data.retain());
+                }
         }
         return false;
     }
 
     @Override
     public void onEnd(PacketStream stream, long timestamp) throws IOException {
+        // If we have any login-phase packets, those need to be sent before regular play-phase ones
+        for (PacketData data : loginPhase) {
+            stream.insert(timestamp, data.getPacket());
+        }
+
         // Join/respawn packet must be the first packet
         PacketData join = latestOnly.remove(PacketType.JoinGame);
         PacketData respawn = latestOnly.remove(PacketType.Respawn);
