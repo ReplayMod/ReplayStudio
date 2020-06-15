@@ -31,6 +31,7 @@ import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolRegis
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolVersion;
 import com.replaymod.replaystudio.us.myles.ViaVersion.packets.State;
 import com.replaymod.replaystudio.us.myles.ViaVersion.protocols.protocol1_14to1_13_2.Protocol1_14To1_13_2;
+import com.replaymod.replaystudio.us.myles.ViaVersion.protocols.protocol1_16to1_15_2.Protocol1_16To1_15_2;
 import com.replaymod.replaystudio.us.myles.ViaVersion.protocols.protocol1_9to1_8.Protocol1_9To1_8;
 import com.replaymod.replaystudio.viaversion.CustomViaManager;
 
@@ -45,8 +46,6 @@ import java.util.Map;
 public class PacketTypeRegistry {
     private static Map<ProtocolVersion, EnumMap<State, PacketTypeRegistry>> forVersionAndState = new HashMap<>();
     private static Field outgoing;
-    private static Field oldId;
-    private static Field newId;
 
     static {
         CustomViaManager.initialize();
@@ -116,6 +115,12 @@ public class PacketTypeRegistry {
                     if (newId == id) {
                         wasReplaced = true;
                     }
+                }
+
+                // Special case: ViaVersion remaps the Spawn Global Entity packet into a Spawn Entity, though they're
+                //               logically distinct packets for us.
+                if (protocol instanceof Protocol1_16To1_15_2 && packetType == PacketType.SpawnGlobalEntity) {
+                    wasReplaced = true;
                 }
 
                 // Special case: ViaVersion remaps the Use Bed packet into a Entity Metadata, though they're logically
@@ -189,19 +194,12 @@ public class PacketTypeRegistry {
                 outgoing = Protocol.class.getDeclaredField("outgoing");
                 outgoing.setAccessible(true);
             }
-            for (Map.Entry<Pair<State, Integer>, Object> entry : ((Map<Pair<State, Integer>, Object>) outgoing.get(protocol)).entrySet()) {
-                if (entry.getKey().getKey() != state) {
+            for (Map.Entry<Protocol.Packet, Protocol.ProtocolPacket> entry : ((Map<Protocol.Packet, Protocol.ProtocolPacket>) outgoing.get(protocol)).entrySet()) {
+                if (entry.getKey().getState() != state) {
                     continue;
                 }
-                Object mapping = entry.getValue();
-                if (oldId == null || newId == null) {
-                    Class<?> mappingClass = mapping.getClass();
-                    oldId = mappingClass.getDeclaredField("oldID");
-                    newId = mappingClass.getDeclaredField("newID");
-                    oldId.setAccessible(true);
-                    newId.setAccessible(true);
-                }
-                result.add(new Pair<>((Integer) oldId.get(mapping), (Integer) newId.get(mapping)));
+                Protocol.ProtocolPacket mapping = entry.getValue();
+                result.add(new Pair<>(mapping.getOldID(), mapping.getNewID()));
             }
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);

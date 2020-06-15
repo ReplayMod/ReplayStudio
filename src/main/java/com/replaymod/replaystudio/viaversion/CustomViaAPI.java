@@ -66,7 +66,7 @@ class CustomViaAPI implements ViaAPI<Void> {
     }
 
     @Override
-    public boolean isPorted(UUID uuid) {
+    public boolean isInjected(UUID uuid) {
         return sourceVersion >= 107;
     }
 

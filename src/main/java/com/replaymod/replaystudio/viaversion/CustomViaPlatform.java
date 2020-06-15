@@ -30,8 +30,10 @@ import com.replaymod.replaystudio.us.myles.ViaVersion.api.ViaVersionConfig;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.command.ViaCommandSender;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.configuration.ConfigurationProvider;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.platform.TaskId;
+import com.replaymod.replaystudio.us.myles.ViaVersion.api.platform.ViaConnectionManager;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.platform.ViaPlatform;
 
+import java.io.File;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -119,6 +121,11 @@ public class CustomViaPlatform implements ViaPlatform {
     }
 
     @Override
+    public File getDataFolder() {
+        return null;
+    }
+
+    @Override
     public void onReload() {}
 
     @Override
@@ -129,5 +136,10 @@ public class CustomViaPlatform implements ViaPlatform {
     @Override
     public boolean isOldClientsAllowed() {
         return false;
+    }
+
+    @Override
+    public ViaConnectionManager getConnectionManager() {
+        return null;
     }
 }

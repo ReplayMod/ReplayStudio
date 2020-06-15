@@ -31,31 +31,39 @@ import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolVersion;
-import com.replaymod.replaystudio.util.IPosition;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import java.util.UUID;
 
 public class PacketLoginSuccess {
-    private final String id;
+    private final UUID id;
     private final String name;
 
-    public PacketLoginSuccess(String id, String name) {
+    public PacketLoginSuccess(UUID id, String name) {
         this.id = id;
         this.name = name;
     }
 
     public static PacketLoginSuccess read(Packet packet) throws IOException {
         try (Packet.Reader in = packet.reader()) {
-            return new PacketLoginSuccess(in.readString(), in.readString());
+            UUID id;
+            if (packet.atLeast(ProtocolVersion.v1_16)) {
+                id = in.readUUID();
+            } else {
+                id = UUID.fromString(in.readString());
+            }
+            return new PacketLoginSuccess(id, in.readString());
         }
     }
 
     public Packet write(PacketTypeRegistry registry) throws IOException {
         Packet packet = new Packet(registry, PacketType.LoginSuccess);
         try (Packet.Writer out = packet.overwrite()) {
-            out.writeString(id);
+            if (packet.atLeast(ProtocolVersion.v1_16)) {
+                out.writeUUID(id);
+            } else {
+                out.writeString(id.toString());
+            }
             out.writeString(name);
         }
         return packet;

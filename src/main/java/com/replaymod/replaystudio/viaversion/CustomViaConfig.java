@@ -26,7 +26,7 @@ package com.replaymod.replaystudio.viaversion;
 
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.ViaVersionConfig;
 
-import java.util.List;
+import java.util.Set;
 
 // Configured as per recommendations at https://docs.viaversion.com/display/VIAVERSION/Configuration
 public class CustomViaConfig implements ViaVersionConfig {
@@ -81,22 +81,12 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
-    public boolean isUnknownEntitiesSuppressed() {
-        return true;
-    }
-
-    @Override
     public double getHologramYOffset() {
         return -0.96;
     }
 
     @Override
     public boolean isAutoTeam() {
-        return false;
-    }
-
-    @Override
-    public boolean isBlockBreakPatch() {
         return false;
     }
 
@@ -141,7 +131,7 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
-    public boolean isStimulatePlayerTick() {
+    public boolean isSimulatePlayerTick() {
         return false;
     }
 
@@ -186,7 +176,7 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
-    public List<Integer> getBlockedProtocols() {
+    public Set<Integer> getBlockedProtocols() {
         return null;
     }
 
@@ -201,7 +191,7 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
-    public boolean isSuppress1_13ConversionErrors() {
+    public boolean isSuppressConversionWarnings() {
         return false;
     }
 

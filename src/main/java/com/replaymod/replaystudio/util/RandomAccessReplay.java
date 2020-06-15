@@ -859,7 +859,7 @@ public abstract class RandomAccessReplay<T> {
                     Collections.singletonList(PacketChunkData.unload(column.x, column.z).write(registry)));
             PacketChunkData.Chunk[] chunks = column.chunks;
             for (int i = 0; i < currentBlockState.length; i++) {
-                currentBlockState[i] = chunks[i] == null ? new PacketChunkData.BlockStorage() : chunks[i].blocks.copy();
+                currentBlockState[i] = chunks[i] == null ? new PacketChunkData.BlockStorage(registry) : chunks[i].blocks.copy();
             }
         }
 

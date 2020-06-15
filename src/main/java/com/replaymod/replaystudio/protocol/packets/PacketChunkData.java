@@ -364,11 +364,11 @@ public class PacketChunkData {
             if (!packet.atLeast(ProtocolVersion.v1_9)) {
                 if (packet.atLeast(ProtocolVersion.v1_8)) {
                     for (Chunk chunk : chunks) {
-                        if (chunk != null) chunk.blocks.storage = new FlexibleStorage(0, in.readLongs(1024));
+                        if (chunk != null) chunk.blocks.storage = FlexibleStorage.from(packet.getRegistry(), 0, 4096, in.readLongs(1024));
                     }
                 } else {
                     for (Chunk chunk : chunks) {
-                        if (chunk != null) chunk.blocks.storage = new FlexibleStorage(0, in.readLongs(512));
+                        if (chunk != null) chunk.blocks.storage = FlexibleStorage.from(packet.getRegistry(), 0, 4096, in.readLongs(512));
                     }
                     for (Chunk chunk : chunks) {
                         if (chunk != null) chunk.blocks.metadata = in.readLongs(256);
@@ -508,6 +508,7 @@ public class PacketChunkData {
     }
 
     public static class BlockStorage {
+        private final PacketTypeRegistry registry;
         private int blockCount;
         private int bitsPerEntry;
         private List<Integer> states;
@@ -516,13 +517,14 @@ public class PacketChunkData {
         private long[] extended; // 1.7 only
 
         private BlockStorage(BlockStorage from) {
+            this.registry = from.registry;
             this.blockCount = from.blockCount;
             this.bitsPerEntry = from.bitsPerEntry;
             if (from.states != null) {
                 this.states = new ArrayList<>(from.states);
             }
             if (from.storage != null) {
-                this.storage = new FlexibleStorage(bitsPerEntry, from.storage.data.clone());
+                this.storage = FlexibleStorage.from(registry, bitsPerEntry, from.storage.entries, from.storage.data.clone());
             }
             if (from.metadata != null) {
                 this.metadata = from.metadata.clone();
@@ -535,22 +537,25 @@ public class PacketChunkData {
         /**
          * 1.9+
          */
-        public BlockStorage() {
+        public BlockStorage(PacketTypeRegistry registry) {
+            this.registry = registry;
             this.blockCount = 0;
             this.bitsPerEntry = 4;
 
             this.states = new ArrayList<>();
             this.states.add(0);
 
-            this.storage = new FlexibleStorage(bitsPerEntry, 4096);
+            this.storage = FlexibleStorage.empty(registry, bitsPerEntry, 4096);
         }
 
         // 1.7-1.8
         BlockStorage(Packet packet) {
+            this.registry = packet.getRegistry();
         }
 
         // 1.9+
         BlockStorage(Packet packet, NetInput in) throws IOException {
+            this.registry = packet.getRegistry();
             if (packet.atLeast(ProtocolVersion.v1_14)) {
                 this.blockCount = in.readShort();
             }
@@ -561,7 +566,7 @@ public class PacketChunkData {
                 this.states.add(in.readVarInt());
             }
 
-            this.storage = new FlexibleStorage(bitsPerEntry, in.readLongs(in.readVarInt()));
+            this.storage = FlexibleStorage.from(registry, bitsPerEntry, 4096, in.readLongs(in.readVarInt()));
         }
 
         // 1.9+
@@ -611,8 +616,8 @@ public class PacketChunkData {
                     }
 
                     FlexibleStorage oldStorage = this.storage;
-                    this.storage = new FlexibleStorage(this.bitsPerEntry, this.storage.getSize());
-                    for(int index = 0; index < this.storage.getSize(); index++) {
+                    this.storage = FlexibleStorage.empty(this.registry, this.bitsPerEntry, this.storage.entries);
+                    for(int index = 0; index < this.storage.entries; index++) {
                         this.storage.set(index, this.bitsPerEntry <= 8 ? oldStorage.get(index) : oldStates.get(index));
                     }
                 }
@@ -636,26 +641,92 @@ public class PacketChunkData {
         }
     }
 
-    private static class FlexibleStorage {
-        private final long[] data;
-        private final int bitsPerEntry;
-        private final int size;
-        private final long maxEntryValue;
+    private static abstract class FlexibleStorage {
+        protected final long[] data;
+        protected final int bitsPerEntry;
+        protected final int entries;
+        protected final long maxEntryValue;
 
-        public FlexibleStorage(int bitsPerEntry, int size) {
-            this(bitsPerEntry, new long[roundToNearest(size * bitsPerEntry, 64) / 64]);
+        protected FlexibleStorage(long[] data, int bitsPerEntry, int entries) {
+            this.data = data;
+            this.bitsPerEntry = Math.max(bitsPerEntry, 4);
+            this.entries = entries;
+            this.maxEntryValue = (1L << this.bitsPerEntry) - 1;
         }
 
-        public FlexibleStorage(int bitsPerEntry, long[] data) {
-            if(bitsPerEntry < 4) {
-                bitsPerEntry = 4;
+        public abstract int get(int index);
+        public abstract void set(int index, int value);
+
+        static FlexibleStorage empty(PacketTypeRegistry registry, int bitsPerEntry, int entries) {
+            if (registry.atLeast(ProtocolVersion.v1_16)) {
+                return new PaddedFlexibleStorage(bitsPerEntry, entries);
+            } else {
+                return new CompactFlexibleStorage(bitsPerEntry, entries);
+            }
+        }
+
+        static FlexibleStorage from(PacketTypeRegistry registry, int bitsPerEntry, int entries, long[] data) {
+            if (registry.atLeast(ProtocolVersion.v1_16)) {
+                return new PaddedFlexibleStorage(bitsPerEntry, entries, data);
+            } else {
+                return new CompactFlexibleStorage(bitsPerEntry, entries, data);
+            }
+        }
+    }
+
+    private static class PaddedFlexibleStorage extends FlexibleStorage {
+        private final int entriesPerLong;
+
+        public PaddedFlexibleStorage(int bitsPerEntry, int entries) {
+            this(bitsPerEntry, entries, new long[longsForEntries(bitsPerEntry, entries)]);
+        }
+
+        public PaddedFlexibleStorage(int bitsPerEntry, int entries, long[] data) {
+            super(data, bitsPerEntry, entries);
+            this.entriesPerLong = 64 / this.bitsPerEntry;
+        }
+
+        private static int longsForEntries(int bitsPerEntry, int entries) {
+            int entriesPerLong = 64 / Math.max(bitsPerEntry, 4);
+            return (entries + entriesPerLong - 1) / entriesPerLong;
+        }
+
+        @Override
+        public int get(int index) {
+            if (index < 0 || index > this.entries - 1) {
+                throw new IndexOutOfBoundsException();
             }
 
-            this.bitsPerEntry = bitsPerEntry;
-            this.data = data;
+            int blockIndex = index / this.entriesPerLong;
+            int subIndex = index % this.entriesPerLong;
+            int subIndexBits = subIndex * this.bitsPerEntry;
+            return (int) (this.data[blockIndex] >>> subIndexBits & this.maxEntryValue);
+        }
 
-            this.size = this.data.length * 64 / this.bitsPerEntry;
-            this.maxEntryValue = (1L << this.bitsPerEntry) - 1;
+        @Override
+        public void set(int index, int value) {
+            if (index < 0 || index > this.entries - 1) {
+                throw new IndexOutOfBoundsException();
+            }
+
+            if (value < 0 || value > this.maxEntryValue) {
+                throw new IllegalArgumentException("Value cannot be outside of accepted range.");
+            }
+
+            int blockIndex = index / this.entriesPerLong;
+            int subIndex = index % this.entriesPerLong;
+            int subIndexBits = subIndex * this.bitsPerEntry;
+            this.data[blockIndex] = this.data[blockIndex] & ~(this.maxEntryValue << subIndexBits) | ((long) value & this.maxEntryValue) << subIndexBits;
+        }
+    }
+
+    private static class CompactFlexibleStorage extends FlexibleStorage {
+        public CompactFlexibleStorage(int bitsPerEntry, int entries) {
+            this(bitsPerEntry, entries, new long[roundToNearest(entries * bitsPerEntry, 64) / 64]);
+        }
+
+        public CompactFlexibleStorage(int bitsPerEntry, int entries, long[] data) {
+            super(data, bitsPerEntry, entries);
         }
 
         private static int roundToNearest(int value, int roundTo) {
@@ -673,20 +744,9 @@ public class PacketChunkData {
             }
         }
 
-        public long[] getData() {
-            return this.data;
-        }
-
-        public int getBitsPerEntry() {
-            return this.bitsPerEntry;
-        }
-
-        public int getSize() {
-            return this.size;
-        }
-
+        @Override
         public int get(int index) {
-            if(index < 0 || index > this.size - 1) {
+            if(index < 0 || index > this.entries - 1) {
                 throw new IndexOutOfBoundsException();
             }
 
@@ -702,8 +762,9 @@ public class PacketChunkData {
             }
         }
 
+        @Override
         public void set(int index, int value) {
-            if(index < 0 || index > this.size - 1) {
+            if(index < 0 || index > this.entries - 1) {
                 throw new IndexOutOfBoundsException();
             }
 
