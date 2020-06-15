@@ -34,6 +34,7 @@ import com.github.steveice10.packetlib.io.NetOutput;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
+import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolVersion;
 
 public class PacketUpdateLight {
     @SuppressWarnings("MismatchedReadAndWriteOfArray") // it's supposed to be empty. duh.
@@ -49,7 +50,7 @@ public class PacketUpdateLight {
         }
         PacketUpdateLight updateLight = new PacketUpdateLight();
         try (Packet.Reader reader = packet.reader()) {
-            updateLight.read(reader);
+            updateLight.read(packet, reader);
         }
         return updateLight;
     }
@@ -57,7 +58,7 @@ public class PacketUpdateLight {
     public Packet write(PacketTypeRegistry registry) throws IOException {
         Packet packet = new Packet(registry, PacketType.UpdateLight);
         try (Packet.Writer writer = packet.overwrite()) {
-            write(writer);
+            write(packet, writer);
         }
         return packet;
     }
@@ -94,9 +95,12 @@ public class PacketUpdateLight {
         return this.blockLight;
     }
 
-    private void read(NetInput in) throws IOException {
+    private void read(Packet packet, NetInput in) throws IOException {
         this.x = in.readVarInt();
         this.z = in.readVarInt();
+        if (packet.atLeast(ProtocolVersion.v1_16)) {
+            in.readBoolean(); // unknown
+        }
 
         int skyLightMask = in.readVarInt();
         int blockLightMask = in.readVarInt();
@@ -132,9 +136,12 @@ public class PacketUpdateLight {
         }
     }
 
-    private void write(NetOutput out) throws IOException {
+    private void write(Packet packet, NetOutput out) throws IOException {
         out.writeVarInt(this.x);
         out.writeVarInt(this.z);
+        if (packet.atLeast(ProtocolVersion.v1_16)) {
+            out.writeBoolean(true); // unknown, ViaVersion always writes true, so we'll do so as well
+        }
 
         int skyLightMask = 0;
         int blockLightMask = 0;
