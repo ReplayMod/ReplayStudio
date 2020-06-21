@@ -402,7 +402,7 @@ public class PacketChunkData {
             }
 
             byte[] biomeData = null;
-            if (fullChunk && !packet.atLeast(ProtocolVersion.v1_15)) {
+            if (fullChunk && in.available() > 0 && !packet.atLeast(ProtocolVersion.v1_15)) {
                 biomeData = in.readBytes(packet.atLeast(ProtocolVersion.v1_13) ? 1024 : 256);
             }
 
@@ -469,7 +469,7 @@ public class PacketChunkData {
             }
         }
 
-        if (fullChunk && !packet.atLeast(ProtocolVersion.v1_15)) {
+        if (fullChunk && column.biomeData != null && !packet.atLeast(ProtocolVersion.v1_15)) {
             out.writeBytes(column.biomeData);
         }
 
