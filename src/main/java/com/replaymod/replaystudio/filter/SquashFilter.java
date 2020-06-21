@@ -528,7 +528,7 @@ public class SquashFilter implements StreamFilter {
 
         for (ChunkData chunk : chunks.values()) {
             Column column = new Column(
-                    chunk.x, chunk.z, chunk.changes, chunk.biomeData, chunk.tileEntities, chunk.heightmaps, chunk.biomes
+                    chunk.x, chunk.z, chunk.changes, chunk.biomeData, chunk.tileEntities, chunk.heightmaps, chunk.biomes, chunk.useExistingLightData
             );
             if (column.isFull() || !Utils.containsOnlyNull(chunk.changes)) {
                 result.add(new PacketData(chunk.firstAppearance, PacketChunkData.load(column).write(registry)));
@@ -614,7 +614,8 @@ public class SquashFilter implements StreamFilter {
                 column.biomeData,
                 column.tileEntities,
                 column.heightMaps,
-                column.biomes
+                column.biomes,
+                column.useExistingLightData
         );
     }
 
@@ -634,6 +635,8 @@ public class SquashFilter implements StreamFilter {
         private byte[][] blockLight = new byte[18][];
         // 1.15+
         private int[] biomes;
+        // 1.16+
+        private boolean useExistingLightData = true;
 
          ChunkData(long firstAppearance, int x, int z) {
             this.firstAppearance = firstAppearance;
@@ -659,6 +662,7 @@ public class SquashFilter implements StreamFilter {
             copy.skyLight = this.skyLight.clone();
             copy.blockLight = this.blockLight.clone();
             copy.biomes = this.biomes;
+            copy.useExistingLightData = this.useExistingLightData;
             return copy;
         }
 
@@ -667,7 +671,8 @@ public class SquashFilter implements StreamFilter {
                 byte[] newBiomeData, // pre 1.15
                 CompoundTag[] newTileEntities, // 1.9+
                 CompoundTag newHeightmaps, // 1.14+
-                int[] newBiomes // 1.15+
+                int[] newBiomes, // 1.15+
+                boolean useExistingLightData // 1.16+
         ) {
             for (int i = 0; i < newChunks.length; i++) {
                 if (newChunks[i] != null) {
@@ -687,6 +692,9 @@ public class SquashFilter implements StreamFilter {
             }
             if (newBiomes != null) { // 1.15+
                 this.biomes = newBiomes;
+            }
+            if (!useExistingLightData) { // 1.16+
+                this.useExistingLightData = false;
             }
         }
 
