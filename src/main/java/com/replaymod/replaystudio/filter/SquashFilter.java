@@ -336,6 +336,7 @@ public class SquashFilter implements StreamFilter {
             case UpdateTime:
             case WorldBorder:
             case NotifyClient:
+            case MapData:
                 currentWorld.add(data.retain());
                 break;
 
@@ -425,12 +426,6 @@ public class SquashFilter implements StreamFilter {
             //
             // Misc
             //
-            case MapData:
-                Packet prev = maps.put(PacketMapData.getMapId(packet), packet.retain());
-                if (prev != null) {
-                    prev.release();
-                }
-                break;
             default:
                 if (type.getState() == State.LOGIN) {
                     loginPhase.add(data.retain());
