@@ -20,11 +20,15 @@ import com.replaymod.replaystudio.protocol.packets.PacketChunkData;
 import com.replaymod.replaystudio.protocol.packets.PacketDestroyEntities;
 import com.replaymod.replaystudio.protocol.packets.PacketEntityHeadLook;
 import com.replaymod.replaystudio.protocol.packets.PacketEntityTeleport;
+import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
 import com.replaymod.replaystudio.protocol.packets.PacketNotifyClient;
 import com.replaymod.replaystudio.protocol.packets.PacketPlayerListEntry;
 import com.replaymod.replaystudio.protocol.packets.PacketSpawnPlayer;
 import com.replaymod.replaystudio.protocol.packets.PacketUpdateLight;
+import com.replaymod.replaystudio.protocol.packets.PacketUpdateViewDistance;
+import com.replaymod.replaystudio.protocol.packets.PacketUpdateViewPosition;
 import com.replaymod.replaystudio.replay.ReplayFile;
+import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolVersion;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -70,7 +74,7 @@ import java.util.zip.Inflater;
 public abstract class RandomAccessReplay<T> {
     private static final String CACHE_ENTRY = "quickModeCache.bin";
     private static final String CACHE_INDEX_ENTRY = "quickModeCacheIndex.bin";
-    private static final int CACHE_VERSION = 2;
+    private static final int CACHE_VERSION = 3;
     private static Logger LOGGER = Logger.getLogger(RandomAccessReplay.class.getName());
 
     private final ReplayFile replayFile;
@@ -85,6 +89,8 @@ public abstract class RandomAccessReplay<T> {
     private TreeMap<Integer, Collection<BakedTrackedThing>> thingDespawnsT = new TreeMap<>();
     private ListMultimap<Integer, BakedTrackedThing> thingDespawns = Multimaps.newListMultimap(thingDespawnsT, ArrayList::new);
     private List<BakedTrackedThing> activeThings = new LinkedList<>();
+    private TreeMap<Integer, T> viewDistance = new TreeMap<>(); // 1.14+
+    private TreeMap<Integer, T> viewPosition = new TreeMap<>(); // 1.14+
     private TreeMap<Integer, T> worldTimes = new TreeMap<>();
     private TreeMap<Integer, T> thunderStrengths = new TreeMap<>(); // For some reason, this isn't tied to Weather
 
@@ -129,6 +135,8 @@ public abstract class RandomAccessReplay<T> {
                 bufInput = null;
                 thingSpawnsT.clear();
                 thingDespawnsT.clear();
+                viewPosition.clear();
+                viewDistance.clear();
                 worldTimes.clear();
                 thunderStrengths.clear();
             }
@@ -160,6 +168,8 @@ public abstract class RandomAccessReplay<T> {
             thingDespawns.put(trackedThing.despawnTime, trackedThing);
         }
 
+        readFromCache(in, viewPosition);
+        readFromCache(in, viewDistance);
         readFromCache(in, worldTimes);
         readFromCache(in, thunderStrengths);
         int size = in.readVarInt();
@@ -180,6 +190,11 @@ public abstract class RandomAccessReplay<T> {
     }
 
     private void analyseReplay(Consumer<Double> progress) throws IOException {
+        int currentViewChunkX = 0;
+        int currentViewChunkZ = 0;
+        int currentViewDistance = 0;
+        TreeMap<Integer, Packet> viewPosition = new TreeMap<>();
+        TreeMap<Integer, Packet> viewDistance = new TreeMap<>();
         TreeMap<Integer, Packet> worldTimes = new TreeMap<>();
         TreeMap<Integer, Packet> thunderStrengths = new TreeMap<>();
         Map<String, PacketPlayerListEntry> playerListEntries = new HashMap<>();
@@ -385,6 +400,45 @@ public abstract class RandomAccessReplay<T> {
                         activeWeather = null;
                         break;
                     }
+                    case JoinGame: {
+                        if (registry.atLeast(ProtocolVersion.v1_14)) {
+                            Packet prev;
+
+                            currentViewChunkX = currentViewChunkZ = 0;
+                            prev = viewPosition.put(time, PacketUpdateViewPosition.write(registry, 0, 0));
+                            if (prev != null) {
+                                prev.release();
+                            }
+
+                            currentViewDistance = PacketJoinGame.getViewDistance(packet);
+                            prev = viewDistance.put(time, PacketUpdateViewDistance.write(registry, currentViewDistance));
+                            if (prev != null) {
+                                prev.release();
+                            }
+                        }
+                        break;
+                    }
+                    case UpdateViewPosition: {
+                        currentViewChunkX = PacketUpdateViewPosition.getChunkX(packet);
+                        currentViewChunkZ = PacketUpdateViewPosition.getChunkZ(packet);
+                        index = invalidateOutOfBoundsChunks(indexOut, index, out, time, activeChunks, currentViewChunkX, currentViewChunkZ, currentViewDistance);
+
+                        Packet prev = viewPosition.put(time, packet.retain());
+                        if (prev != null) {
+                            prev.release();
+                        }
+                        break;
+                    }
+                    case UpdateViewDistance: {
+                        currentViewDistance = PacketUpdateViewDistance.getDistance(packet);
+                        index = invalidateOutOfBoundsChunks(indexOut, index, out, time, activeChunks, currentViewChunkX, currentViewChunkZ, currentViewDistance);
+
+                        Packet prev = viewDistance.put(time, packet.retain());
+                        if (prev != null) {
+                            prev.release();
+                        }
+                        break;
+                    }
                     case UpdateTime: {
                         Packet prev = worldTimes.put(time, packet.retain());
                         if (prev != null) {
@@ -451,9 +505,13 @@ public abstract class RandomAccessReplay<T> {
             }
 
             indexOut.writeByte(0);
+            writeToCache(indexOut, viewPosition);
+            writeToCache(indexOut, viewDistance);
             writeToCache(indexOut, worldTimes);
             writeToCache(indexOut, thunderStrengths);
 
+            viewPosition.values().forEach(Packet::release);
+            viewDistance.values().forEach(Packet::release);
             worldTimes.values().forEach(Packet::release);
             thunderStrengths.values().forEach(Packet::release);
 
@@ -464,6 +522,21 @@ public abstract class RandomAccessReplay<T> {
             indexOut.writeVarInt(index);
         }
         LOGGER.info("Analysed replay in " + (System.currentTimeMillis() - sysTimeStart) + "ms");
+    }
+
+    private int invalidateOutOfBoundsChunks(NetOutput indexOut, int index, NetOutput out, int time, Map<Long, Chunk> activeChunks, int centerX, int centerZ, int distance) throws IOException {
+        Iterator<Map.Entry<Long, Chunk>> iterator = activeChunks.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Long, Chunk> entry = iterator.next();
+            int x = longToX(entry.getKey());
+            int z = longToZ(entry.getKey());
+            if (Math.abs(x - centerX) <= distance && Math.abs(z - centerZ) <= distance) {
+                continue;
+            }
+            index = entry.getValue().writeToCache(indexOut, out, time, index);
+            iterator.remove();
+        }
+        return index;
     }
 
     public void reset() {
@@ -485,6 +558,8 @@ public abstract class RandomAccessReplay<T> {
                     return false;
                 }
             });
+            playMap(viewPosition, currentTimeStamp, replayTime, this::dispatch);
+            playMap(viewDistance, currentTimeStamp, replayTime, this::dispatch);
             for (Collection<BakedTrackedThing> things : thingSpawnsT.subMap(currentTimeStamp, false, replayTime, true).values()) {
                 for (BakedTrackedThing thing : things) {
                     if (thing.despawnTime > replayTime) {
@@ -511,6 +586,8 @@ public abstract class RandomAccessReplay<T> {
                     return false;
                 }
             });
+            rewindMap(viewPosition, currentTimeStamp, replayTime, this::dispatch);
+            rewindMap(viewDistance, currentTimeStamp, replayTime, this::dispatch);
             for (Collection<BakedTrackedThing> things : thingDespawnsT.subMap(replayTime, false, currentTimeStamp, true).values()) {
                 for (BakedTrackedThing thing : things) {
                     if (thing.spawnTime <= replayTime) {
@@ -685,6 +762,14 @@ public abstract class RandomAccessReplay<T> {
 
     private static long coordToLong(int x, int z) {
         return (long)x << 32 | (long)z & 0xFFFFFFFFL;
+    }
+
+    private static int longToX(long v) {
+        return (int) (v >> 32);
+    }
+
+    private static int longToZ(long v) {
+        return (int) (v & 0xFFFFFFFFL);
     }
 
     private static <V> void playMap(NavigableMap<Integer, V> updates, int currentTimeStamp, int replayTime, IOConsumer<V> update) throws IOException {
