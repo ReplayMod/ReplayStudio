@@ -171,6 +171,7 @@ public class SquashFilter implements StreamFilter {
     public SquashFilter copy() {
         SquashFilter copy = new SquashFilter();
         copy.registry = this.registry;
+        copy.forgeHandshake = this.forgeHandshake;
         this.teams.forEach((key, value) -> copy.teams.put(key, value.copy()));
         this.entities.forEach((key, value) -> copy.entities.put(key, value.copy()));
         this.loginPhase.forEach(it -> copy.loginPhase.add(it.copy()));
