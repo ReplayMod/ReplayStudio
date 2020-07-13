@@ -148,6 +148,11 @@ public class SquashFilter implements StreamFilter {
 
     private PacketTypeRegistry registry;
 
+    /**
+     * Forge handshake takes place after login phase (i.e. after LoginSuccess) but before JoinGame.
+     * So we still want to include those in the loginPhase list even though they're not technically login phase.
+     */
+    private boolean forgeHandshake;
     private final List<PacketData> loginPhase = new ArrayList<>();
     private final List<PacketData> unhandled = new ArrayList<>();
     private final Map<Integer, Entity> entities = new HashMap<>();
@@ -283,6 +288,7 @@ public class SquashFilter implements StreamFilter {
                 entities.clear();
                 // fallthrough
             case JoinGame:
+                forgeHandshake = false;
             case SetExperience:
             case PlayerAbilities:
             case Difficulty:
@@ -427,8 +433,9 @@ public class SquashFilter implements StreamFilter {
             // Misc
             //
             default:
-                if (type.getState() == State.LOGIN) {
+                if (type.getState() == State.LOGIN || forgeHandshake) {
                     loginPhase.add(data.retain());
+                    forgeHandshake = true;
                 } else {
                     unhandled.add(data.retain());
                 }
