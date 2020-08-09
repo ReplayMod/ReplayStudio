@@ -279,4 +279,9 @@ public class CustomViaConfig implements ViaVersionConfig {
     public boolean is1_15InstantRespawn() {
         return false;
     }
+
+    @Override
+    public boolean isIgnoreLong1_16ChannelNames() {
+        return false;
+    }
 }

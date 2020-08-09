@@ -34,7 +34,10 @@ public class PacketJoinGame {
     public static int getViewDistance(Packet packet) throws IOException {
         try (Packet.Reader in = packet.reader()) {
             in.readInt(); // entity id
-            in.readByte(); // flags
+            if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+                in.readBoolean(); // hardcore
+            }
+            in.readByte(); // gamemode (and hardcore flag for pre-1.16.2)
             if (packet.atLeast(ProtocolVersion.v1_16)) {
                 in.readByte(); // prev gamemode
                 int count = in.readVarInt(); // dimension registry
@@ -42,7 +45,11 @@ public class PacketJoinGame {
                     in.readString(); // dimension
                 }
                 in.readNBT(); // dimension tracker
-                in.readString(); // unknown
+                if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+                    in.readNBT(); // unknown
+                } else {
+                    in.readString(); // unknown
+                }
                 in.readString(); // dimension
             } else {
                 in.readInt(); // dimension
@@ -50,7 +57,11 @@ public class PacketJoinGame {
             if (packet.atLeast(ProtocolVersion.v1_15)) {
                 in.readLong(); // seed
             }
-            in.readByte(); // max players
+            if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+                in.readVarInt(); // max players
+            } else {
+                in.readByte(); // max players
+            }
             if (!packet.atLeast(ProtocolVersion.v1_16)) {
                 in.readString(); // geneator type
             }

@@ -88,8 +88,20 @@ public class PacketBlockChange {
 
     public static List<PacketBlockChange> readBulk(Packet packet) throws IOException {
         try (Packet.Reader in = packet.reader()) {
-            int chunkX = in.readInt();
-            int chunkZ = in.readInt();
+            int chunkX;
+            int chunkY;
+            int chunkZ;
+            if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+                long coord = in.readLong();
+                chunkX = (int)(coord >> 42);
+                chunkY = (int)(coord << 44 >> 44);
+                chunkZ = (int)(coord << 22 >> 42);
+                in.readBoolean(); // we don't care about "skip light updates"
+            } else {
+                chunkX = in.readInt();
+                chunkY = 0;
+                chunkZ = in.readInt();
+            }
             PacketBlockChange[] result;
             if (packet.atLeast(ProtocolVersion.v1_8)) {
                 result = new PacketBlockChange[in.readVarInt()];
@@ -100,17 +112,27 @@ public class PacketBlockChange {
             for(int index = 0; index < result.length; index++) {
                 PacketBlockChange p = new PacketBlockChange();
 
-                short coords = in.readShort();
-                int x = (chunkX << 4) + (coords >> 12 & 15);
-                int y = coords & 255;
-                int z = (chunkZ << 4) + (coords >> 8 & 15);
-                p.pos = new IPosition(x, y, z);
-
-                if (packet.atLeast(ProtocolVersion.v1_8)) {
-                    p.id = in.readVarInt();
+                if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+                    long change = in.readVarLong();
+                    int x = (chunkX << 4) + (int) (change >> 8 & 15);
+                    int y = (chunkY << 4) + (int) (change & 15);
+                    int z = (chunkZ << 4) + (int) (change >> 4 & 15);
+                    p.pos = new IPosition(x, y, z);
+                    p.id = (int) (change >>> 12);
                 } else {
-                    p.id = in.readShort();
+                    short coords = in.readShort();
+                    int x = (chunkX << 4) + (coords >> 12 & 15);
+                    int y = coords & 255;
+                    int z = (chunkZ << 4) + (coords >> 8 & 15);
+                    p.pos = new IPosition(x, y, z);
+
+                    if (packet.atLeast(ProtocolVersion.v1_8)) {
+                        p.id = in.readVarInt();
+                    } else {
+                        p.id = in.readShort();
+                    }
                 }
+
                 result[index] = p;
             }
             return Arrays.asList(result);

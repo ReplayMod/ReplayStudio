@@ -237,7 +237,7 @@ public class PacketChunkData {
         int z = in.readInt();
         boolean fullChunk = in.readBoolean();
         boolean useExistingLightData = fullChunk;
-        if (packet.atLeast(ProtocolVersion.v1_16)) {
+        if (packet.atLeast(ProtocolVersion.v1_16) && !packet.atLeast(ProtocolVersion.v1_16_2)) {
             useExistingLightData = in.readBoolean();
         }
         int chunkMask = packet.atLeast(ProtocolVersion.v1_9) ? in.readVarInt() : in.readUnsignedShort();
@@ -251,7 +251,14 @@ public class PacketChunkData {
         }
         int[] biomes = null;
         if (packet.atLeast(ProtocolVersion.v1_15) && fullChunk) {
-            biomes = in.readInts(1024);
+            if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+                biomes = new int[in.readVarInt()];
+                for (int i = 0; i < biomes.length; i++) {
+                    biomes[i] = in.readVarInt();
+                }
+            } else {
+                biomes = in.readInts(1024);
+            }
         }
         byte[] data;
         if (packet.atLeast(ProtocolVersion.v1_8)) {
@@ -302,7 +309,7 @@ public class PacketChunkData {
         out.writeInt(this.column.x);
         out.writeInt(this.column.z);
         out.writeBoolean(this.column.isFull());
-        if (packet.atLeast(ProtocolVersion.v1_16)) {
+        if (packet.atLeast(ProtocolVersion.v1_16) && !packet.atLeast(ProtocolVersion.v1_16_2)) {
             out.writeBoolean(this.column.useExistingLightData);
         }
         if (packet.atLeast(ProtocolVersion.v1_9)) {
@@ -316,8 +323,16 @@ public class PacketChunkData {
         if (packet.atLeast(ProtocolVersion.v1_14)) {
             out.writeNBT(this.column.heightMaps);
         }
-        if (packet.atLeast(ProtocolVersion.v1_15) && this.column.biomes != null) {
-            out.writeInts(this.column.biomes);
+        int[] biomes = this.column.biomes;
+        if (packet.atLeast(ProtocolVersion.v1_15) && biomes != null) {
+            if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+                out.writeVarInt(biomes.length);
+                for (int biome : biomes) {
+                    out.writeVarInt(biome);
+                }
+            } else {
+                out.writeInts(biomes);
+            }
         }
         int len;
         byte[] data;
