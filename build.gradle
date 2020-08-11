@@ -73,7 +73,7 @@ repositories {
 }
 
 dependencies {
-    preshadow 'com.github.replaymod.viaversion:viaversion-common:d005e177'
+    preshadow 'com.github.replaymod.viaversion:viaversion-common:9afb0980'
 
     // ViaVersion will use the relocated netty of PacketLib
     // un-shaded from ViaVersion
