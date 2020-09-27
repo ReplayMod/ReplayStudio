@@ -157,10 +157,17 @@ public class Packet {
 
         public static IPosition readPosition(PacketTypeRegistry registry, NetInput in) throws IOException {
             long val = in.readLong();
-            int x = (int)(val >> 38);
-            int y = (int)(val & 0xfff);
-            int z = (int)(val << 26 >> 38);
-            return new IPosition(x, y, z);
+            long x, y, z;
+            if (registry.atLeast(ProtocolVersion.v1_14)) {
+                x = val >> 38;
+                y = val;
+                z = val >> 12;
+            } else {
+                x = val >> 38;
+                y = val >> 26;
+                z = val;
+            }
+            return new IPosition((int) (x << 38 >> 38), (int) (y & 0xfff), (int) (z << 38 >> 38));
         }
 
         public CompoundTag readNBT() throws IOException {
@@ -211,14 +218,18 @@ public class Packet {
         }
 
         public void writePosition(IPosition pos) throws IOException {
-            writePosition(this, pos);
+            writePosition(packet.registry, this, pos);
         }
 
-        public static void writePosition(NetOutput out, IPosition pos) throws IOException {
+        public static void writePosition(PacketTypeRegistry registry, NetOutput out, IPosition pos) throws IOException {
             long x = pos.getX() & 0x3ffffff;
             long y = pos.getY() & 0xfff;
             long z = pos.getZ() & 0x3ffffff;
-            out.writeLong(x << 38 | z << 12 | y);
+            if (registry.atLeast(ProtocolVersion.v1_14)) {
+                out.writeLong(x << 38 | z << 12 | y);
+            } else {
+                out.writeLong(x << 38 | y << 26 | z);
+            }
         }
 
         public void writeNBT(CompoundTag tag) throws IOException {

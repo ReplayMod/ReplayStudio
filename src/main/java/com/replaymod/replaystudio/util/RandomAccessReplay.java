@@ -964,7 +964,7 @@ public abstract class RandomAccessReplay<T> {
                 Collection<BlockChange> blockChanges = entry.getValue();
                 index += writeVarInt(cacheOut, blockChanges.size());
                 for (BlockChange blockChange : blockChanges) {
-                    Packet.Writer.writePosition(cacheOut, blockChange.pos);
+                    Packet.Writer.writePosition(registry, cacheOut, blockChange.pos);
                     index += 8;
                     index += writeVarInt(cacheOut, blockChange.from);
                     index += writeVarInt(cacheOut, blockChange.to);
