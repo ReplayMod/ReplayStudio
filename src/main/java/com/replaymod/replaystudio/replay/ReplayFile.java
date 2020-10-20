@@ -34,7 +34,10 @@ import com.replaymod.replaystudio.pathing.PathingRegistry;
 import com.replaymod.replaystudio.pathing.path.Timeline;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -140,8 +143,21 @@ public interface ReplayFile extends Closeable {
     Map<String, Timeline> getTimelines(PathingRegistry pathingRegistry) throws IOException;
     void writeTimelines(PathingRegistry pathingRegistry, Map<String, Timeline> timelines) throws IOException;
 
-    Optional<BufferedImage> getThumb() throws IOException;
-    void writeThumb(BufferedImage image) throws IOException;
+    default Optional<BufferedImage> getThumb() throws IOException {
+        Optional<InputStream> maybeThumb = getThumbBytes();
+        if (maybeThumb.isPresent()) {
+            return Optional.of(ImageIO.read(maybeThumb.get()));
+        }
+        return Optional.absent();
+    }
+    default void writeThumb(BufferedImage image) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ImageIO.write(image, "jpg", out);
+        writeThumbBytes(out.toByteArray());
+    }
+
+    Optional<InputStream> getThumbBytes() throws IOException;
+    void writeThumbBytes(byte[] image) throws IOException;
 
     Optional<Set<UUID>> getInvisiblePlayers() throws IOException;
     void writeInvisiblePlayers(Set<UUID> uuids) throws IOException;

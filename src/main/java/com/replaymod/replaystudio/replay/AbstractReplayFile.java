@@ -50,7 +50,8 @@ public abstract class AbstractReplayFile implements ReplayFile {
     protected static final String ENTRY_RECORDING = "recording.tmcpr";
     private static final String ENTRY_RESOURCE_PACK = "resourcepack/%s.zip";
     private static final String ENTRY_RESOURCE_PACK_INDEX = "resourcepack/index.json";
-    private static final String ENTRY_THUMB = "thumb";
+    private static final String ENTRY_THUMB_OLD = "thumb";
+    private static final String ENTRY_THUMB = "thumb.jpg";
     private static final String ENTRY_VISIBILITY_OLD = "visibility";
     private static final String ENTRY_VISIBILITY = "visibility.json";
     private static final String ENTRY_MARKERS = "markers.json";
@@ -157,23 +158,30 @@ public abstract class AbstractReplayFile implements ReplayFile {
     }
 
     @Override
-    public Optional<BufferedImage> getThumb() throws IOException {
-        Optional<InputStream> in = get(ENTRY_THUMB);
-        if (in.isPresent()) {
-            int i = 7;
-            while (i > 0) {
-                i -= in.get().skip(i);
-            }
-            return Optional.of(ImageIO.read(in.get()));
+    public Optional<InputStream> getThumbBytes() throws IOException {
+        Optional<InputStream> maybeThumb = get(ENTRY_THUMB);
+        if (maybeThumb.isPresent()) {
+            return Optional.of(maybeThumb.get());
         }
+
+        maybeThumb = get(ENTRY_THUMB_OLD);
+        if (maybeThumb.isPresent()) {
+            PushbackInputStream in = new PushbackInputStream(maybeThumb.get(), THUMB_MAGIC_NUMBERS.length);
+            byte[] buf = new byte[THUMB_MAGIC_NUMBERS.length];
+            new DataInputStream(in).readFully(buf);
+            if (!Arrays.equals(buf, THUMB_MAGIC_NUMBERS)) {
+                in.unread(buf);
+            }
+            return Optional.of(in);
+        }
+
         return Optional.absent();
     }
 
     @Override
-    public void writeThumb(BufferedImage image) throws IOException {
+    public void writeThumbBytes(byte[] image) throws IOException {
         try (OutputStream out = write(ENTRY_THUMB)) {
-            out.write(THUMB_MAGIC_NUMBERS);
-            ImageIO.write(image, "jpg", out);
+            out.write(image);
         }
     }
 
