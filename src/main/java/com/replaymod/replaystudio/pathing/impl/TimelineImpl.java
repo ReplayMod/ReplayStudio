@@ -120,6 +120,6 @@ public class TimelineImpl implements Timeline {
 
     @Override
     public Change peekRedoStack() {
-        return undoStack.peek();
+        return redoStack.peek();
     }
 }
