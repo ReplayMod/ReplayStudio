@@ -66,6 +66,12 @@ public class ReplayMetaData {
     private String serverName;
 
     /**
+     * The server name (as configured by the user in the "Add Server" menu) or the singleplayer world name.
+     * May be absent for older replays or when "Direct Connection" was used.
+     */
+    private String customServerName;
+
+    /**
      * Duration of the replay in milliseconds.
      */
     private int duration;
@@ -118,6 +124,7 @@ public class ReplayMetaData {
     public ReplayMetaData(ReplayMetaData other) {
         singleplayer = other.singleplayer;
         serverName = other.serverName;
+        customServerName = other.customServerName;
         duration = other.duration;
         date = other.date;
         mcversion = other.mcversion;
@@ -134,6 +141,10 @@ public class ReplayMetaData {
 
     public String getServerName() {
         return this.serverName;
+    }
+
+    public String getCustomServerName() {
+        return customServerName;
     }
 
     public int getDuration() {
@@ -197,6 +208,10 @@ public class ReplayMetaData {
         this.serverName = serverName;
     }
 
+    public void setCustomServerName(String customServerName) {
+        this.customServerName = customServerName;
+    }
+
     public void setDuration(int duration) {
         this.duration = duration;
     }
@@ -240,6 +255,7 @@ public class ReplayMetaData {
         if (!other.canEqual(this)) return false;
         if (this.singleplayer != other.singleplayer) return false;
         if (!Objects.equals(this.serverName, other.serverName)) return false;
+        if (!Objects.equals(this.customServerName, other.customServerName)) return false;
         if (this.duration != other.duration) return false;
         if (this.date != other.date) return false;
         if (!Objects.equals(this.mcversion, other.mcversion)) return false;
@@ -255,6 +271,7 @@ public class ReplayMetaData {
         int result = 1;
         result = result * 59 + (this.singleplayer ? 79 : 97);
         result = result * 59 + (serverName == null ? 0 : serverName.hashCode());
+        result = result * 59 + (customServerName == null ? 0 : customServerName.hashCode());
         result = result * 59 + this.duration;
         result = result * 59 + (int) (date >>> 32 ^ date);
         result = result * 59 + (mcversion == null ? 0 : mcversion.hashCode());
@@ -276,6 +293,7 @@ public class ReplayMetaData {
         return "ReplayMetaData{" +
                 "singleplayer=" + singleplayer +
                 ", serverName='" + serverName + '\'' +
+                ", customServerName='" + customServerName + '\'' +
                 ", duration=" + duration +
                 ", date=" + date +
                 ", mcversion='" + mcversion + '\'' +
