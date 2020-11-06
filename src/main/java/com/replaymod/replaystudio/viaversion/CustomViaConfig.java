@@ -25,14 +25,17 @@
 package com.replaymod.replaystudio.viaversion;
 
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.ViaVersionConfig;
-
-import java.util.Set;
+import it.unimi.dsi.fastutil.ints.IntSet;
 
 // Configured as per recommendations at https://docs.viaversion.com/display/VIAVERSION/Configuration
 public class CustomViaConfig implements ViaVersionConfig {
     @Override
     public boolean isCheckForUpdates() {
         return false;
+    }
+
+    @Override
+    public void setCheckForUpdates(boolean b) {
     }
 
     @Override
@@ -176,7 +179,7 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
-    public Set<Integer> getBlockedProtocols() {
+    public IntSet getBlockedProtocols() {
         return null;
     }
 
