@@ -26,6 +26,7 @@ package com.replaymod.replaystudio.pathing.impl;
 
 import com.replaymod.replaystudio.pathing.interpolation.Interpolator;
 import com.replaymod.replaystudio.pathing.path.Keyframe;
+import com.replaymod.replaystudio.pathing.path.Path;
 import com.replaymod.replaystudio.pathing.path.PathSegment;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -33,11 +34,13 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public class PathSegmentImpl implements PathSegment {
+    private final Path path;
     private final Keyframe startKeyframe;
     private final Keyframe endKeyframe;
     private Interpolator interpolator;
 
-    public PathSegmentImpl(Keyframe startKeyframe, Keyframe endKeyframe, Interpolator interpolator) {
+    public PathSegmentImpl(Path path, Keyframe startKeyframe, Keyframe endKeyframe, Interpolator interpolator) {
+        this.path = path;
         this.startKeyframe = startKeyframe;
         this.endKeyframe = endKeyframe;
         setInterpolator(interpolator);

@@ -119,7 +119,7 @@ public class PathImpl implements Path {
         if (segments.isEmpty()) {
             if (keyframes.size() >= 2) {
                 Iterator<Keyframe> iter = keyframes.values().iterator();
-                segments.add(new PathSegmentImpl(iter.next(), iter.next()));
+                segments.add(new PathSegmentImpl(this, iter.next(), iter.next()));
             }
             return;
         }
@@ -128,7 +128,7 @@ public class PathImpl implements Path {
         PathSegment next = iter.next();
         if (keyframe.getTime() < next.getStartKeyframe().getTime()) {
             iter.previous();
-            iter.add(new PathSegmentImpl(keyframe, next.getStartKeyframe(), next.getInterpolator()));
+            iter.add(new PathSegmentImpl(this, keyframe, next.getStartKeyframe(), next.getInterpolator()));
             return;
         }
 
@@ -136,15 +136,15 @@ public class PathImpl implements Path {
             if (next.getStartKeyframe().getTime() <= keyframe.getTime()
                     && next.getEndKeyframe().getTime() >= keyframe.getTime()) {
                 iter.remove();
-                iter.add(new PathSegmentImpl(next.getStartKeyframe(), keyframe, next.getInterpolator()));
-                iter.add(new PathSegmentImpl(keyframe, next.getEndKeyframe(), next.getInterpolator()));
+                iter.add(new PathSegmentImpl(this, next.getStartKeyframe(), keyframe, next.getInterpolator()));
+                iter.add(new PathSegmentImpl(this, keyframe, next.getEndKeyframe(), next.getInterpolator()));
                 next.setInterpolator(null);
                 return;
             }
             if (iter.hasNext()) {
                 next = iter.next();
             } else {
-                iter.add(new PathSegmentImpl(next.getEndKeyframe(), keyframe, next.getInterpolator()));
+                iter.add(new PathSegmentImpl(this, next.getEndKeyframe(), keyframe, next.getInterpolator()));
                 return;
             }
         }
@@ -173,7 +173,7 @@ public class PathImpl implements Path {
                 if (iter.hasNext()) {
                     PathSegment next2 = iter.next();
                     iter.remove();
-                    iter.add(new PathSegmentImpl(next.getStartKeyframe(), next2.getEndKeyframe(),
+                    iter.add(new PathSegmentImpl(this, next.getStartKeyframe(), next2.getEndKeyframe(),
                             (useFirstInterpolator ? next : next2).getInterpolator()));
                     next2.setInterpolator(null);
                 }

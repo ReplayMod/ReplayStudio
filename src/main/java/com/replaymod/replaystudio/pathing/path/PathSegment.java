@@ -33,6 +33,9 @@ import lombok.NonNull;
  * be interpolated together (they may or may not influence each other indirectly).
  */
 public interface PathSegment {
+    @NonNull
+    Path getPath();
+
     /**
      * Return the start property of this segment.
      *

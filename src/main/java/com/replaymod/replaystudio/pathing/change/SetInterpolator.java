@@ -25,7 +25,9 @@
 package com.replaymod.replaystudio.pathing.change;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.replaymod.replaystudio.pathing.interpolation.Interpolator;
+import com.replaymod.replaystudio.pathing.path.Path;
 import com.replaymod.replaystudio.pathing.path.PathSegment;
 import com.replaymod.replaystudio.pathing.path.Timeline;
 import lombok.NonNull;
@@ -37,15 +39,20 @@ public final class SetInterpolator implements Change {
 
     @NonNull
     public static SetInterpolator create(PathSegment segment, Interpolator interpolator) {
-        return new SetInterpolator(segment, interpolator);
+        Path path = segment.getPath();
+        return new SetInterpolator(path.getTimeline().getPaths().indexOf(path),
+                Iterables.indexOf(path.getSegments(), segment::equals),
+                interpolator);
     }
 
-    SetInterpolator(PathSegment segment, Interpolator interpolator) {
-        this.segment = segment;
+    SetInterpolator(int path, int index, Interpolator interpolator) {
+        this.path = path;
+        this.index = index;
         this.interpolator = interpolator;
     }
 
-    private final PathSegment segment;
+    private final int path;
+    private final int index;
 
     private final Interpolator interpolator;
 
@@ -57,6 +64,9 @@ public final class SetInterpolator implements Change {
     public void apply(Timeline timeline) {
         Preconditions.checkState(!applied, "Already applied!");
 
+        Path path = timeline.getPaths().get(this.path);
+        PathSegment segment = Iterables.get(path.getSegments(), index);
+
         oldInterpolator = segment.getInterpolator();
         segment.setInterpolator(interpolator);
 
@@ -66,6 +76,9 @@ public final class SetInterpolator implements Change {
     @Override
     public void undo(Timeline timeline) {
         Preconditions.checkState(applied, "Not yet applied!");
+
+        Path path = timeline.getPaths().get(this.path);
+        PathSegment segment = Iterables.get(path.getSegments(), index);
 
         segment.setInterpolator(oldInterpolator);
 
