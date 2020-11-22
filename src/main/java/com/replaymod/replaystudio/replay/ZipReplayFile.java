@@ -341,6 +341,8 @@ public class ZipReplayFile extends AbstractReplayFile {
             if (zipFile != null) {
                 for (ZipEntry entry : Collections.list(zipFile.entries())) {
                     if (!changedEntries.containsKey(entry.getName()) && !removedEntries.contains(entry.getName())) {
+                        entry = new ZipEntry(entry);
+                        entry.setCompressedSize(-1);
                         out.putNextEntry(entry);
                         Utils.copy(zipFile.getInputStream(entry), out);
                     }
