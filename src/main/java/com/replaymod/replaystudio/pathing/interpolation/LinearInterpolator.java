@@ -105,7 +105,7 @@ public class LinearInterpolator extends AbstractInterpolator {
                 if (!Double.isNaN(bound)) {
                     before = mod(before, bound);
                     after = mod(after, bound);
-                    if (before < bound / 2 ^ after < bound / 2) {
+                    if (Math.abs(after - before) > bound / 2) {
                         // Wrapping around is quicker
                         if (before < bound / 2) {
                             after -= bound;
