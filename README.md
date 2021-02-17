@@ -37,4 +37,6 @@ Javadocs can be generated using the `./gradlew javadoc` command and can then be 
 When using ReplayStudio as a standalone application as well as a library have a look at the [GitHub wiki](https://github.com/ReplayMod/ReplayStudio/wiki) for information on how to properly use it.
 
 ## License
-ReplayStudio is free software licensed under the MIT license. See `LICENSE` for more information.
+ReplayStudio is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+See `COPYING` and `COPYING.LESSER` for more information.
+Note that parts of this library were originally provided under the (LGPL-compatible) license in `LICENSE.legacy`, this license only applies to the original portions (see git history) and not to any newly added or modified code.
