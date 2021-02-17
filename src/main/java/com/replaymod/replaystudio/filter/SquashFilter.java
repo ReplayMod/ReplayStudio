@@ -743,7 +743,7 @@ public class SquashFilter implements StreamFilter {
 
         void updateBlock(long time, PacketBlockChange change) {
             MutablePair<Long, PacketBlockChange> pair = blockChanges(change.getPosition());
-            if (pair != null && pair.getLeft() < time) {
+            if (pair != null && pair.getLeft() <= time) {
                 pair.setLeft(time);
                 pair.setRight(change);
             }
