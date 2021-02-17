@@ -24,6 +24,34 @@ import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolVersi
 import java.io.IOException;
 
 public class PacketJoinGame {
+    public static String getDimension(Packet packet) throws IOException {
+        try (Packet.Reader in = packet.reader()) {
+            in.readInt(); // entity id
+            if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+                in.readBoolean(); // hardcore
+            }
+            in.readByte(); // gamemode (and hardcore flag for pre-1.16.2)
+            if (packet.atLeast(ProtocolVersion.v1_16)) {
+                in.readByte(); // prev gamemode
+                int count = in.readVarInt(); // dimension registry
+                for (int i = 0; i < count; i++) {
+                    in.readString(); // dimension
+                }
+                in.readNBT(); // dimension tracker
+                if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+                    in.readNBT(); // unknown
+                } else {
+                    in.readString(); // unknown
+                }
+                return in.readString();
+            } else if (packet.atLeast(ProtocolVersion.v1_9_1)) {
+                return String.valueOf(in.readInt());
+            } else {
+                return String.valueOf(in.readByte());
+            }
+        }
+    }
+
     // 1.14+
     public static int getViewDistance(Packet packet) throws IOException {
         try (Packet.Reader in = packet.reader()) {

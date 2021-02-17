@@ -31,11 +31,13 @@ import com.replaymod.replaystudio.protocol.packets.PacketChunkData.Chunk;
 import com.replaymod.replaystudio.protocol.packets.PacketChunkData.Column;
 import com.replaymod.replaystudio.protocol.packets.PacketDestroyEntities;
 import com.replaymod.replaystudio.protocol.packets.PacketEntityMovement;
-import com.replaymod.replaystudio.protocol.packets.PacketMapData;
+import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
+import com.replaymod.replaystudio.protocol.packets.PacketRespawn;
 import com.replaymod.replaystudio.protocol.packets.PacketSetSlot;
 import com.replaymod.replaystudio.protocol.packets.PacketTeam;
 import com.replaymod.replaystudio.protocol.packets.PacketUpdateLight;
 import com.replaymod.replaystudio.protocol.packets.PacketWindowItems;
+import com.replaymod.replaystudio.stream.IteratorStream;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.Pair;
 import com.replaymod.replaystudio.us.myles.ViaVersion.api.Triple;
@@ -162,6 +164,12 @@ public class SquashFilter implements StreamFilter {
     private final Map<Long, ChunkData> chunks = new HashMap<>();
     private final Map<Long, Long> unloadedChunks = new HashMap<>();
 
+    /**
+     * The behavior of the Respawn packet depends on the current world. While vanilla seems to never
+     * make any use of that fact, custom server and proxies do, so we need to take it into consideration.
+     */
+    private String dimension;
+
     public SquashFilter copy() {
         SquashFilter copy = new SquashFilter();
         copy.registry = this.registry;
@@ -178,7 +186,38 @@ public class SquashFilter implements StreamFilter {
         this.latestOnly.forEach((key, value) -> copy.latestOnly.put(key, value.copy()));
         this.chunks.forEach((key, value) -> copy.chunks.put(key, value.copy()));
         copy.unloadedChunks.putAll(this.unloadedChunks);
+        copy.dimension = this.dimension;
         return copy;
+    }
+
+    /**
+     * Flushes all state via {@link #onEnd(PacketStream, long)} and returns the filter to a mostly empty
+     * state such that one can continue to use it for subsequent packets.
+     */
+    private void flush() throws IOException {
+        // Emit all packets
+        List<PacketData> flushedPackets = new ArrayList<>();
+        onEnd(new IteratorStream(flushedPackets.listIterator(), (PacketStream.FilterInfo) null), 0);
+
+        // Release buffer references
+        release();
+
+        // Reset emitted state
+        teams.clear();
+        entities.clear();
+        loginPhase.clear();
+        unhandled.clear();
+        mainInventoryChanges.clear();
+        maps.clear();
+        currentWorld.clear();
+        currentWindow.clear();
+        closeWindows.clear();
+        latestOnly.clear();
+        chunks.clear();
+
+        // Store the flushed packets in the login phase list
+        // They aren't technically login phase but like the login phase, they must be emitted first.
+        loginPhase.addAll(flushedPackets);
     }
 
     public void release() {
@@ -272,17 +311,33 @@ public class SquashFilter implements StreamFilter {
             case PlayerActionAck:
             case SpawnParticle:
                 break;
-            case Respawn:
-                currentWorld.forEach(PacketData::release);
-                currentWorld.clear();
-                chunks.clear();
-                unloadedChunks.clear();
-                currentWindow.forEach(PacketData::release);
-                currentWindow.clear();
-                entities.values().forEach(Entity::release);
-                entities.clear();
-                // fallthrough
+            case Respawn: {
+                String newDimension = PacketRespawn.getDimension(packet);
+                if (dimension == null) {
+                    // We do not know which dimension we are current in, so we cannot know how to handle this packet.
+                    // Instead we flush all state accumulated so far, and then start fresh with the newly
+                    // gained knowledge (so this will only happen once).
+                    flush();
+                } else if (!dimension.equals(newDimension)) {
+                    currentWorld.forEach(PacketData::release);
+                    currentWorld.clear();
+                    chunks.clear();
+                    unloadedChunks.clear();
+                    currentWindow.forEach(PacketData::release);
+                    currentWindow.clear();
+                    entities.values().forEach(Entity::release);
+                    entities.clear();
+                }
+                dimension = newDimension;
+
+                PacketData prev = this.latestOnly.put(type, data.retain());
+                if (prev != null) {
+                    prev.release();
+                }
+                break;
+            }
             case JoinGame:
+                dimension = PacketJoinGame.getDimension(packet);
                 forgeHandshake = false;
             case SetExperience:
             case PlayerAbilities:

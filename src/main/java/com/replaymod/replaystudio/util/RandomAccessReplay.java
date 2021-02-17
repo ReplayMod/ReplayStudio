@@ -42,6 +42,7 @@ import com.replaymod.replaystudio.protocol.packets.PacketEntityTeleport;
 import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
 import com.replaymod.replaystudio.protocol.packets.PacketNotifyClient;
 import com.replaymod.replaystudio.protocol.packets.PacketPlayerListEntry;
+import com.replaymod.replaystudio.protocol.packets.PacketRespawn;
 import com.replaymod.replaystudio.protocol.packets.PacketSpawnPlayer;
 import com.replaymod.replaystudio.protocol.packets.PacketUpdateLight;
 import com.replaymod.replaystudio.protocol.packets.PacketUpdateViewDistance;
@@ -93,7 +94,7 @@ import java.util.zip.Inflater;
 public abstract class RandomAccessReplay<T> {
     private static final String CACHE_ENTRY = "quickModeCache.bin";
     private static final String CACHE_INDEX_ENTRY = "quickModeCacheIndex.bin";
-    private static final int CACHE_VERSION = 3;
+    private static final int CACHE_VERSION = 4;
     private static Logger LOGGER = Logger.getLogger(RandomAccessReplay.class.getName());
 
     private final ReplayFile replayFile;
@@ -219,6 +220,7 @@ public abstract class RandomAccessReplay<T> {
         Map<String, PacketPlayerListEntry> playerListEntries = new HashMap<>();
         Map<Integer, Entity> activeEntities = new HashMap<>();
         Map<Long, Chunk> activeChunks = new HashMap<>();
+        String activeDimension = null;
         Packet lastLightUpdate = null;
         Weather activeWeather = null;
 
@@ -405,21 +407,26 @@ public abstract class RandomAccessReplay<T> {
                         break;
                     }
                     case Respawn: {
-                        for (Entity entity : activeEntities.values()) {
-                            index = entity.writeToCache(indexOut, out, time, index);
+                        String newDimension = PacketRespawn.getDimension(packet);
+                        if (!newDimension.equals(activeDimension)) {
+                            for (Entity entity : activeEntities.values()) {
+                                index = entity.writeToCache(indexOut, out, time, index);
+                            }
+                            activeEntities.clear();
+                            for (Chunk chunk : activeChunks.values()) {
+                                index = chunk.writeToCache(indexOut, out, time, index);
+                            }
+                            activeChunks.clear();
+                            if (activeWeather != null) {
+                                index = activeWeather.writeToCache(indexOut, out, time, index);
+                            }
+                            activeWeather = null;
                         }
-                        activeEntities.clear();
-                        for (Chunk chunk : activeChunks.values()) {
-                            index = chunk.writeToCache(indexOut, out, time, index);
-                        }
-                        activeChunks.clear();
-                        if (activeWeather != null) {
-                            index = activeWeather.writeToCache(indexOut, out, time, index);
-                        }
-                        activeWeather = null;
+                        activeDimension = newDimension;
                         break;
                     }
                     case JoinGame: {
+                        activeDimension = PacketJoinGame.getDimension(packet);
                         if (registry.atLeast(ProtocolVersion.v1_14)) {
                             Packet prev;
 
