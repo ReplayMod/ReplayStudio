@@ -90,7 +90,9 @@ import java.util.zip.Inflater;
  *
  * @param <T> Type of resulting packets, these should be somewhat immutable in the sense that they can be safely
  *           {@link #dispatch(Object) dispatched} multiple times even if only {@link #decode(ByteBuf) decoded} once.
+ * @deprecated use {@link com.replaymod.replaystudio.rar.RandomAccessReplay} instead
  */
+@Deprecated
 public abstract class RandomAccessReplay<T> {
     private static final String CACHE_ENTRY = "quickModeCache.bin";
     private static final String CACHE_INDEX_ENTRY = "quickModeCacheIndex.bin";

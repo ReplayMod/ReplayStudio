@@ -506,6 +506,22 @@ public class PacketChunkData {
         public boolean isFull() {
             return this.biomeData != null || this.biomes != null;
         }
+
+        public static long coordToLong(int x, int z) {
+            return (long)x << 32 | (long)z & 0xFFFFFFFFL;
+        }
+
+        public static int longToX(long v) {
+            return (int) (v >> 32);
+        }
+
+        public static int longToZ(long v) {
+            return (int) (v & 0xFFFFFFFFL);
+        }
+
+        public long coordToLong() {
+            return coordToLong(x, z);
+        }
     }
 
     public static class Chunk {

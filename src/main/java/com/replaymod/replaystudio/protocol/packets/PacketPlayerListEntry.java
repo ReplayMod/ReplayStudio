@@ -134,6 +134,10 @@ public class PacketPlayerListEntry {
         }
     }
 
+    public static Packet write(PacketTypeRegistry registry, Action action, PacketPlayerListEntry entry) throws IOException {
+        return write(registry, action, Collections.singletonList(entry)).get(0);
+    }
+
     public static List<Packet> write(PacketTypeRegistry registry, Action action, List<PacketPlayerListEntry> entries) throws IOException {
         if (registry.atLeast(ProtocolVersion.v1_8)) {
             return Collections.singletonList(write_1_8(registry, action, entries));

@@ -18,9 +18,21 @@
  */
 package com.replaymod.replaystudio.util;
 
+import com.github.steveice10.netty.buffer.ByteBuf;
+import com.github.steveice10.netty.buffer.Unpooled;
+import com.github.steveice10.netty.util.ReferenceCountUtil;
+import com.github.steveice10.packetlib.io.NetInput;
+import com.github.steveice10.packetlib.io.NetOutput;
+import com.github.steveice10.packetlib.tcp.io.ByteBufNetInput;
+import com.github.steveice10.packetlib.tcp.io.ByteBufNetOutput;
+import com.replaymod.replaystudio.protocol.Packet;
+import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
 
 /**
  * Various utilities.
@@ -170,4 +182,93 @@ public class Utils {
         in.close();
     }
 
+    public static ByteBuf readRetainedSlice(NetInput in, int len) throws IOException {
+        if (in instanceof ByteBufExtNetInput) {
+            ByteBuf inBuf = ((ByteBufExtNetInput) in).getBuf();
+            return inBuf.readRetainedSlice(len);
+        }
+        return Unpooled.wrappedBuffer(in.readBytes(len));
+    }
+
+    public static void writeBytes(NetOutput out, ByteBuf buf) throws IOException {
+        if (out instanceof ByteBufExtNetOutput) {
+            ByteBuf outBuf = ((ByteBufExtNetOutput) out).getBuf();
+            outBuf.writeBytes(buf);
+            return;
+        }
+
+        byte[] bytes = new byte[buf.readableBytes()];
+        buf.getBytes(buf.readerIndex(), bytes);
+        out.writeBytes(bytes);
+    }
+
+    public static Packet readCompressedPacket(PacketTypeRegistry registry, NetInput in) throws IOException {
+        ByteBuf byteBuf = null;
+        try {
+            int prefix = in.readVarInt();
+            int len = prefix >> 1;
+            if ((prefix & 1) == 1) {
+                int fullLen = in.readVarInt();
+                byteBuf = Unpooled.buffer(fullLen);
+
+                Inflater inflater = new Inflater();
+                inflater.setInput(in.readBytes(len));
+                inflater.inflate(byteBuf.array(), byteBuf.arrayOffset(), fullLen);
+                byteBuf.writerIndex(fullLen);
+            } else {
+                byteBuf = readRetainedSlice(in, len);
+            }
+
+            int packetId = new ByteBufNetInput(byteBuf).readVarInt();
+            return new Packet(registry, packetId, registry.getType(packetId), byteBuf.retain());
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            ReferenceCountUtil.release(byteBuf);
+        }
+    }
+
+    public static void writeCompressedPacket(NetOutput out, Packet packet) throws IOException {
+        ByteBuf byteBuf = Unpooled.buffer();
+        try {
+            new ByteBufNetOutput(byteBuf).writeVarInt(packet.getId());
+            byteBuf.writeBytes(packet.getBuf());
+
+            int rawIndex = byteBuf.readerIndex();
+            int size = byteBuf.readableBytes();
+
+            byteBuf.ensureWritable(size);
+            Deflater deflater = new Deflater();
+            deflater.setInput(byteBuf.array(), byteBuf.arrayOffset() + byteBuf.readerIndex(), size);
+            deflater.finish();
+            int compressedSize = 0;
+            while (!deflater.finished() && compressedSize < size) {
+                compressedSize += deflater.deflate(
+                        byteBuf.array(),
+                        byteBuf.arrayOffset() + byteBuf.writerIndex() + compressedSize,
+                        size - compressedSize
+                );
+            }
+
+            if (compressedSize < size) {
+                byteBuf.readerIndex(rawIndex + size);
+                byteBuf.writerIndex(rawIndex + size + compressedSize);
+                out.writeVarInt(compressedSize << 1 | 1);
+                out.writeVarInt(size);
+            } else {
+                byteBuf.readerIndex(rawIndex);
+                byteBuf.writerIndex(rawIndex + size);
+                out.writeVarInt(size << 1);
+            }
+            writeBytes(out, byteBuf);
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            ReferenceCountUtil.release(byteBuf);
+        }
+    }
 }
