@@ -429,6 +429,20 @@ public abstract class RandomAccessReplay<T> {
                     }
                     case JoinGame: {
                         activeDimension = PacketJoinGame.getDimension(packet);
+
+                        for (Entity entity : activeEntities.values()) {
+                            index = entity.writeToCache(indexOut, out, time, index);
+                        }
+                        activeEntities.clear();
+                        for (Chunk chunk : activeChunks.values()) {
+                            index = chunk.writeToCache(indexOut, out, time, index);
+                        }
+                        activeChunks.clear();
+                        if (activeWeather != null) {
+                            index = activeWeather.writeToCache(indexOut, out, time, index);
+                        }
+                        activeWeather = null;
+
                         if (registry.atLeast(ProtocolVersion.v1_14)) {
                             Packet prev;
 

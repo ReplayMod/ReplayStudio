@@ -200,6 +200,7 @@ public class ReplayAnalyzer {
                     break;
                 }
                 case JoinGame: {
+                    replay.world.transientThings.flush(time);
                     activeDimension = PacketJoinGame.getDimension(packet);
                     if (registry.atLeast(ProtocolVersion.v1_14)) {
                         currentViewChunkX = currentViewChunkZ = 0;

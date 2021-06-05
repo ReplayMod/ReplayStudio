@@ -337,6 +337,14 @@ public class SquashFilter implements StreamFilter {
                 break;
             }
             case JoinGame:
+                currentWorld.forEach(PacketData::release);
+                currentWorld.clear();
+                chunks.clear();
+                unloadedChunks.clear();
+                currentWindow.forEach(PacketData::release);
+                currentWindow.clear();
+                entities.values().forEach(Entity::release);
+                entities.clear();
                 dimension = PacketJoinGame.getDimension(packet);
                 forgeHandshake = false;
             case SetExperience:
