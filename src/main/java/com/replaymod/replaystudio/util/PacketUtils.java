@@ -23,8 +23,8 @@ import com.replaymod.replaystudio.protocol.packets.EntityId;
 import com.replaymod.replaystudio.protocol.packets.PacketEntityMovement;
 import com.replaymod.replaystudio.protocol.packets.PacketEntityTeleport;
 import com.replaymod.replaystudio.protocol.packets.SpawnEntity;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.Pair;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.Triple;
+import com.replaymod.replaystudio.lib.viaversion.api.Pair;
+import com.replaymod.replaystudio.lib.viaversion.api.Triple;
 
 import java.io.IOException;
 import java.util.List;

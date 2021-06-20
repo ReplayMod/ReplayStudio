@@ -19,14 +19,14 @@
 package com.replaymod.replaystudio.protocol;
 
 import com.google.common.collect.Lists;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.Pair;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.Protocol;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolRegistry;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolVersion;
-import com.replaymod.replaystudio.us.myles.ViaVersion.packets.State;
-import com.replaymod.replaystudio.us.myles.ViaVersion.protocols.protocol1_14to1_13_2.Protocol1_14To1_13_2;
-import com.replaymod.replaystudio.us.myles.ViaVersion.protocols.protocol1_16to1_15_2.Protocol1_16To1_15_2;
-import com.replaymod.replaystudio.us.myles.ViaVersion.protocols.protocol1_9to1_8.Protocol1_9To1_8;
+import com.replaymod.replaystudio.lib.viaversion.api.Pair;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.Protocol;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolRegistry;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolVersion;
+import com.replaymod.replaystudio.lib.viaversion.packets.State;
+import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_14to1_13_2.Protocol1_14To1_13_2;
+import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_16to1_15_2.Protocol1_16To1_15_2;
+import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_9to1_8.Protocol1_9To1_8;
 import com.replaymod.replaystudio.viaversion.CustomViaManager;
 
 import java.lang.reflect.Field;

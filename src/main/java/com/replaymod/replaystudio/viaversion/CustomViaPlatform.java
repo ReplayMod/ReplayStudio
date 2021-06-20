@@ -19,13 +19,13 @@
 package com.replaymod.replaystudio.viaversion;
 
 import com.google.gson.JsonObject;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.ViaAPI;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.ViaVersionConfig;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.command.ViaCommandSender;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.configuration.ConfigurationProvider;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.platform.TaskId;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.platform.ViaConnectionManager;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.platform.ViaPlatform;
+import com.replaymod.replaystudio.lib.viaversion.api.ViaAPI;
+import com.replaymod.replaystudio.lib.viaversion.api.ViaVersionConfig;
+import com.replaymod.replaystudio.lib.viaversion.api.command.ViaCommandSender;
+import com.replaymod.replaystudio.lib.viaversion.api.configuration.ConfigurationProvider;
+import com.replaymod.replaystudio.lib.viaversion.api.platform.TaskId;
+import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaConnectionManager;
+import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaPlatform;
 
 import java.io.File;
 import java.util.UUID;

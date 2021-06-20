@@ -26,8 +26,8 @@ import com.github.steveice10.packetlib.io.stream.StreamNetOutput;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.Pair;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolVersion;
+import com.replaymod.replaystudio.lib.viaversion.api.Pair;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolVersion;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

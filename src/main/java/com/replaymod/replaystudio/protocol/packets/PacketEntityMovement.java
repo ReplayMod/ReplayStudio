@@ -21,9 +21,9 @@ package com.replaymod.replaystudio.protocol.packets;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.Pair;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.Triple;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolVersion;
+import com.replaymod.replaystudio.lib.viaversion.api.Pair;
+import com.replaymod.replaystudio.lib.viaversion.api.Triple;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolVersion;
 import com.replaymod.replaystudio.util.DPosition;
 
 import java.io.IOException;

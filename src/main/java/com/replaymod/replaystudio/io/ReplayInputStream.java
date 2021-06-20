@@ -29,7 +29,7 @@ import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.packets.PacketLoginSuccess;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.studio.StudioPacketStream;
-import com.replaymod.replaystudio.us.myles.ViaVersion.packets.State;
+import com.replaymod.replaystudio.lib.viaversion.packets.State;
 import com.replaymod.replaystudio.viaversion.ViaVersionPacketConverter;
 
 import java.io.EOFException;

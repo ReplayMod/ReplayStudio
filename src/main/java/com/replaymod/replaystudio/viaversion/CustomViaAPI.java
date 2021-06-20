@@ -19,14 +19,14 @@
 package com.replaymod.replaystudio.viaversion;
 
 import com.github.steveice10.netty.buffer.ByteBuf;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.Via;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.ViaAPI;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.boss.BossBar;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.boss.BossColor;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.boss.BossStyle;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.data.UserConnection;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolRegistry;
-import com.replaymod.replaystudio.us.myles.ViaVersion.protocols.base.ProtocolInfo;
+import com.replaymod.replaystudio.lib.viaversion.api.Via;
+import com.replaymod.replaystudio.lib.viaversion.api.ViaAPI;
+import com.replaymod.replaystudio.lib.viaversion.api.boss.BossBar;
+import com.replaymod.replaystudio.lib.viaversion.api.boss.BossColor;
+import com.replaymod.replaystudio.lib.viaversion.api.boss.BossStyle;
+import com.replaymod.replaystudio.lib.viaversion.api.data.UserConnection;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolRegistry;
+import com.replaymod.replaystudio.lib.viaversion.protocols.base.ProtocolInfo;
 
 import java.util.SortedSet;
 import java.util.UUID;

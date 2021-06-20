@@ -29,8 +29,8 @@ import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.replay.ReplayFile;
 import com.replaymod.replaystudio.replay.ReplayMetaData;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolVersion;
-import com.replaymod.replaystudio.us.myles.ViaVersion.packets.State;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolVersion;
+import com.replaymod.replaystudio.lib.viaversion.packets.State;
 
 import java.io.EOFException;
 import java.io.IOException;

@@ -94,7 +94,7 @@ dependencies {
 
 preshadowJar {
     relocate 'io.netty', 'com.github.steveice10.netty'
-    relocate 'us.myles.ViaVersion', 'com.replaymod.replaystudio.us.myles.ViaVersion'
+    relocate 'us.myles.ViaVersion', 'com.replaymod.replaystudio.lib.viaversion'
 
     // un-shading from ViaVersion (see dependencies)
     exclude 'com/google/gson/**' // gson

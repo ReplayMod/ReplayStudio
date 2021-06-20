@@ -20,7 +20,7 @@ package com.replaymod.replaystudio.viaversion;
 
 import com.google.gson.JsonObject;
 import com.replaymod.replaystudio.studio.ReplayStudio;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.platform.ViaInjector;
+import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaInjector;
 
 public class CustomViaInjector implements ViaInjector {
     private final int serverProtocolVersion = new ReplayStudio().getCurrentFileFormatVersion();

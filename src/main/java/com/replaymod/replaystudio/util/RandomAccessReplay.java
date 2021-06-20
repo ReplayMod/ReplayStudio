@@ -48,7 +48,7 @@ import com.replaymod.replaystudio.protocol.packets.PacketUpdateLight;
 import com.replaymod.replaystudio.protocol.packets.PacketUpdateViewDistance;
 import com.replaymod.replaystudio.protocol.packets.PacketUpdateViewPosition;
 import com.replaymod.replaystudio.replay.ReplayFile;
-import com.replaymod.replaystudio.us.myles.ViaVersion.api.protocol.ProtocolVersion;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolVersion;
 
 import java.io.EOFException;
 import java.io.IOException;
