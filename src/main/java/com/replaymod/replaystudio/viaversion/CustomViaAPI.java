@@ -19,19 +19,14 @@
 package com.replaymod.replaystudio.viaversion;
 
 import com.github.steveice10.netty.buffer.ByteBuf;
+import com.replaymod.replaystudio.lib.viaversion.ViaAPIBase;
 import com.replaymod.replaystudio.lib.viaversion.api.Via;
-import com.replaymod.replaystudio.lib.viaversion.api.ViaAPI;
-import com.replaymod.replaystudio.lib.viaversion.api.boss.BossBar;
-import com.replaymod.replaystudio.lib.viaversion.api.boss.BossColor;
-import com.replaymod.replaystudio.lib.viaversion.api.boss.BossStyle;
-import com.replaymod.replaystudio.lib.viaversion.api.data.UserConnection;
-import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolRegistry;
-import com.replaymod.replaystudio.lib.viaversion.protocols.base.ProtocolInfo;
+import com.replaymod.replaystudio.lib.viaversion.api.connection.UserConnection;
 
 import java.util.SortedSet;
 import java.util.UUID;
 
-class CustomViaAPI implements ViaAPI<Void> {
+class CustomViaAPI extends ViaAPIBase<Void> {
     static final ThreadLocal<CustomViaAPI> INSTANCE = new ThreadLocal<>();
 
     private final int sourceVersion;
@@ -53,7 +48,7 @@ class CustomViaAPI implements ViaAPI<Void> {
 
     @Override
     public int getPlayerVersion(UUID uuid) {
-        if (uuid.equals(userConnection.get(ProtocolInfo.class).getUuid())) {
+        if (uuid.equals(userConnection.getProtocolInfo().getUuid())) {
             return sourceVersion;
         }
         throw new UnsupportedOperationException();
@@ -76,7 +71,7 @@ class CustomViaAPI implements ViaAPI<Void> {
 
     @Override
     public void sendRawPacket(UUID uuid, ByteBuf byteBuf) throws IllegalArgumentException {
-        if (uuid.equals(userConnection.get(ProtocolInfo.class).getUuid())) {
+        if (uuid.equals(userConnection.getProtocolInfo().getUuid())) {
             userConnection.sendRawPacket(byteBuf);
             return;
         }
@@ -84,17 +79,7 @@ class CustomViaAPI implements ViaAPI<Void> {
     }
 
     @Override
-    public BossBar createBossBar(String title, BossColor color, BossStyle style) {
-        return createBossBar(title, 1, color, style);
-    }
-
-    @Override
-    public BossBar createBossBar(String title, float health, BossColor color, BossStyle style) {
-        return new CustomBossBar(title, health, color, style);
-    }
-
-    @Override
     public SortedSet<Integer> getSupportedVersions() {
-        return ProtocolRegistry.getSupportedVersions();
+        return Via.getManager().getProtocolManager().getSupportedVersions();
     }
 }

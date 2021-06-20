@@ -18,7 +18,7 @@
  */
 package com.replaymod.replaystudio.viaversion;
 
-import com.google.gson.JsonObject;
+import com.replaymod.replaystudio.lib.viaversion.libs.gson.JsonObject;
 import com.replaymod.replaystudio.studio.ReplayStudio;
 import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaInjector;
 

@@ -18,7 +18,7 @@
  */
 package com.replaymod.replaystudio.replay;
 
-import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolVersion;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 
 import java.util.Arrays;
 import java.util.Collections;

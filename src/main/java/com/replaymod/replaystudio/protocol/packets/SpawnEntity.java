@@ -20,7 +20,7 @@ package com.replaymod.replaystudio.protocol.packets;
 
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
-import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolVersion;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.util.IPosition;
 import com.replaymod.replaystudio.util.Location;
 

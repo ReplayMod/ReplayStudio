@@ -21,10 +21,10 @@ package com.replaymod.replaystudio.protocol.packets;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
-import com.replaymod.replaystudio.lib.viaversion.api.Pair;
-import com.replaymod.replaystudio.lib.viaversion.api.Triple;
-import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolVersion;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.util.DPosition;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 
 import java.io.IOException;
 
@@ -57,7 +57,7 @@ public class PacketEntityMovement {
             }
             Pair<Float, Float> yawPitch = null;
             if (hasRot) {
-                yawPitch = new Pair<>(
+                yawPitch = Pair.of(
                         in.readByte() / 256f * 360,
                         in.readByte() / 256f * 360
                 );
@@ -66,7 +66,7 @@ public class PacketEntityMovement {
             if (packet.atLeast(ProtocolVersion.v1_8) && (hasPos || hasRot)) {
                 onGround = in.readBoolean();
             }
-            return new Triple<>(pos, yawPitch, onGround);
+            return Triple.of(pos, yawPitch, onGround);
         }
     }
 

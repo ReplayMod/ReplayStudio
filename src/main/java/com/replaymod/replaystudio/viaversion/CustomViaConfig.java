@@ -18,8 +18,8 @@
  */
 package com.replaymod.replaystudio.viaversion;
 
-import com.replaymod.replaystudio.lib.viaversion.api.ViaVersionConfig;
-import it.unimi.dsi.fastutil.ints.IntSet;
+import com.replaymod.replaystudio.lib.viaversion.api.configuration.ViaVersionConfig;
+import com.replaymod.replaystudio.lib.viaversion.libs.fastutil.ints.IntSet;
 
 // Configured as per recommendations at https://docs.viaversion.com/display/VIAVERSION/Configuration
 public class CustomViaConfig implements ViaVersionConfig {
@@ -54,6 +54,16 @@ public class CustomViaConfig implements ViaVersionConfig {
 
     @Override
     public boolean isShieldBlocking() {
+        return false;
+    }
+
+    @Override
+    public boolean isNoDelayShieldBlocking() {
+        return false;
+    }
+
+    @Override
+    public boolean isShowShieldWhenSwordInHand() {
         return false;
     }
 
@@ -279,6 +289,11 @@ public class CustomViaConfig implements ViaVersionConfig {
 
     @Override
     public boolean isIgnoreLong1_16ChannelNames() {
+        return false;
+    }
+
+    @Override
+    public boolean isForcedUse1_17ResourcePack() {
         return false;
     }
 }

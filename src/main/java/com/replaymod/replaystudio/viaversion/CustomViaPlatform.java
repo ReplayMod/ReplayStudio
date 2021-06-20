@@ -18,20 +18,19 @@
  */
 package com.replaymod.replaystudio.viaversion;
 
-import com.google.gson.JsonObject;
 import com.replaymod.replaystudio.lib.viaversion.api.ViaAPI;
-import com.replaymod.replaystudio.lib.viaversion.api.ViaVersionConfig;
 import com.replaymod.replaystudio.lib.viaversion.api.command.ViaCommandSender;
 import com.replaymod.replaystudio.lib.viaversion.api.configuration.ConfigurationProvider;
-import com.replaymod.replaystudio.lib.viaversion.api.platform.TaskId;
-import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaConnectionManager;
+import com.replaymod.replaystudio.lib.viaversion.api.configuration.ViaVersionConfig;
+import com.replaymod.replaystudio.lib.viaversion.api.platform.PlatformTask;
 import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaPlatform;
+import com.replaymod.replaystudio.lib.viaversion.libs.gson.JsonObject;
 
 import java.io.File;
 import java.util.UUID;
 import java.util.logging.Logger;
 
-public class CustomViaPlatform implements ViaPlatform {
+public class CustomViaPlatform implements ViaPlatform<Void> {
     private CustomViaConfig config = new CustomViaConfig();
 
     @Override
@@ -55,27 +54,22 @@ public class CustomViaPlatform implements ViaPlatform {
     }
 
     @Override
-    public TaskId runAsync(Runnable runnable) {
+    public PlatformTask<?> runAsync(Runnable runnable) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public TaskId runSync(Runnable runnable) {
+    public PlatformTask<?> runSync(Runnable runnable) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public TaskId runSync(Runnable runnable, Long aLong) {
+    public PlatformTask<?> runSync(Runnable runnable, long aLong) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public TaskId runRepeatingSync(Runnable runnable, Long aLong) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void cancelTask(TaskId taskId) {
+    public PlatformTask<?> runRepeatingSync(Runnable runnable, long aLong) {
         throw new UnsupportedOperationException();
     }
 
@@ -100,7 +94,7 @@ public class CustomViaPlatform implements ViaPlatform {
     }
 
     @Override
-    public ViaAPI getApi() {
+    public ViaAPI<Void> getApi() {
         return CustomViaAPI.INSTANCE.get();
     }
 
@@ -130,10 +124,5 @@ public class CustomViaPlatform implements ViaPlatform {
     @Override
     public boolean isOldClientsAllowed() {
         return false;
-    }
-
-    @Override
-    public ViaConnectionManager getConnectionManager() {
-        return null;
     }
 }

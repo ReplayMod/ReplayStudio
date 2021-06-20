@@ -22,16 +22,17 @@ import com.github.steveice10.netty.buffer.ByteBuf;
 import com.github.steveice10.netty.channel.ChannelFuture;
 import com.github.steveice10.netty.channel.embedded.EmbeddedChannel;
 import com.github.steveice10.packetlib.tcp.io.ByteBufNetInput;
-import com.replaymod.replaystudio.lib.viaversion.api.PacketWrapper;
-import com.replaymod.replaystudio.lib.viaversion.api.Pair;
-import com.replaymod.replaystudio.lib.viaversion.api.data.UserConnection;
-import com.replaymod.replaystudio.lib.viaversion.api.protocol.Protocol;
+import com.replaymod.replaystudio.lib.viaversion.api.Via;
+import com.replaymod.replaystudio.lib.viaversion.api.connection.ProtocolInfo;
+import com.replaymod.replaystudio.lib.viaversion.api.connection.UserConnection;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolPathEntry;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.Direction;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.PacketWrapper;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State;
+import com.replaymod.replaystudio.lib.viaversion.connection.UserConnectionImpl;
+import com.replaymod.replaystudio.lib.viaversion.protocol.ProtocolPipelineImpl;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolPipeline;
-import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolRegistry;
 import com.replaymod.replaystudio.lib.viaversion.exception.CancelException;
-import com.replaymod.replaystudio.lib.viaversion.packets.Direction;
-import com.replaymod.replaystudio.lib.viaversion.packets.State;
-import com.replaymod.replaystudio.lib.viaversion.protocols.base.ProtocolInfo;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -78,7 +79,7 @@ public class ViaVersionPacketConverter {
     public static boolean isProtocolVersionSupported(int input, int output) {
         if (input == output) return true;
         CustomViaManager.initialize();
-        return ProtocolRegistry.getProtocolPath(output, input) != null;
+        return Via.getManager().getProtocolManager().getProtocolPath(output, input) != null;
     }
 
     private final UserConnection user;
@@ -89,16 +90,16 @@ public class ViaVersionPacketConverter {
     private ViaVersionPacketConverter(int inputProtocol, int outputProtocol) {
         CustomViaManager.initialize();
 
-        List<Pair<Integer, Protocol>> path = ProtocolRegistry.getProtocolPath(outputProtocol, inputProtocol);
+        List<ProtocolPathEntry> path = Via.getManager().getProtocolManager().getProtocolPath(outputProtocol, inputProtocol);
         if (path != null) {
             user = new DummyUserConnection();
             viaAPI = new CustomViaAPI(inputProtocol, user);
-            pipeline = new ProtocolPipeline(user);
-            ProtocolInfo protocolInfo = user.get(ProtocolInfo.class);
+            pipeline = new ProtocolPipelineImpl(user);
+            ProtocolInfo protocolInfo = user.getProtocolInfo();
             protocolInfo.setState(State.PLAY);
             protocolInfo.setUsername("$Camera$");
             protocolInfo.setUuid(UUID.randomUUID());
-            path.stream().map(Pair::getValue).forEachOrdered(pipeline::add);
+            path.stream().map(ProtocolPathEntry::getProtocol).forEachOrdered(pipeline::add);
         } else {
             user = null;
             viaAPI = null;
@@ -127,10 +128,10 @@ public class ViaVersionPacketConverter {
         CustomViaAPI.INSTANCE.set(viaAPI);
         try {
             int packetId = new ByteBufNetInput(buf).readVarInt();
-            PacketWrapper packetWrapper = new PacketWrapper(packetId, buf, user);
+            PacketWrapper packetWrapper = PacketWrapper.create(packetId, buf, user);
 
             try {
-                pipeline.transform(Direction.OUTGOING, state, packetWrapper);
+                pipeline.transform(Direction.CLIENTBOUND, state, packetWrapper);
             } catch (CancelException e) {
                 if (!out.isEmpty()) {
                     return popOut();
@@ -171,13 +172,18 @@ public class ViaVersionPacketConverter {
     /**
      * User connection that pushes all sent packets into the {@link #out} list.
      */
-    private final class DummyUserConnection extends UserConnection {
+    private final class DummyUserConnection extends UserConnectionImpl {
         DummyUserConnection() {
             super(new EmbeddedChannel());
         }
 
         @Override
-        public void sendRawPacket(ByteBuf packet, boolean currentThread) {
+        public void sendRawPacket(ByteBuf packet) {
+            out.add(packet);
+        }
+
+        @Override
+        public void scheduleSendRawPacket(ByteBuf packet) {
             out.add(packet);
         }
 

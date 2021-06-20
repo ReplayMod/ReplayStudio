@@ -48,7 +48,7 @@ import com.replaymod.replaystudio.protocol.packets.PacketUpdateLight;
 import com.replaymod.replaystudio.protocol.packets.PacketUpdateViewDistance;
 import com.replaymod.replaystudio.protocol.packets.PacketUpdateViewPosition;
 import com.replaymod.replaystudio.replay.ReplayFile;
-import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolVersion;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -174,8 +174,8 @@ public abstract class RandomAccessReplay<T> {
         NetInput in = new StreamNetInput(rawIndexIn);
         if (in.readVarInt() != CACHE_VERSION) return false; // Incompatible cache version
         if (cacheIn.readVarInt() != CACHE_VERSION) return false; // Incompatible cache version
-        if (in.readVarInt() != registry.getVersion().getId()) return false; // Cache of incompatible protocol version
-        if (cacheIn.readVarInt() != registry.getVersion().getId()) return false; // Cache of incompatible protocol version
+        if (in.readVarInt() != registry.getVersion().getVersion()) return false; // Cache of incompatible protocol version
+        if (cacheIn.readVarInt() != registry.getVersion().getVersion()) return false; // Cache of incompatible protocol version
 
         things: while (true) {
             BakedTrackedThing trackedThing;
@@ -233,10 +233,10 @@ public abstract class RandomAccessReplay<T> {
              OutputStream cacheIndexOut = replayFile.writeCache(CACHE_INDEX_ENTRY)) {
             NetOutput out = new StreamNetOutput(cacheOut);
             out.writeVarInt(CACHE_VERSION);
-            out.writeVarInt(registry.getVersion().getId());
+            out.writeVarInt(registry.getVersion().getVersion());
             NetOutput indexOut = new StreamNetOutput(cacheIndexOut);
             indexOut.writeVarInt(CACHE_VERSION);
-            indexOut.writeVarInt(registry.getVersion().getId());
+            indexOut.writeVarInt(registry.getVersion().getVersion());
 
             int index = 0;
             int time = 0;

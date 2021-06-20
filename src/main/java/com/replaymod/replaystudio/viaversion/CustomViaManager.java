@@ -18,38 +18,94 @@
  */
 package com.replaymod.replaystudio.viaversion;
 
-import com.replaymod.replaystudio.lib.viaversion.ViaManager;
 import com.replaymod.replaystudio.lib.viaversion.api.Via;
-import com.replaymod.replaystudio.lib.viaversion.api.data.UserConnection;
-import com.replaymod.replaystudio.lib.viaversion.protocols.base.ProtocolInfo;
+import com.replaymod.replaystudio.lib.viaversion.api.ViaManager;
+import com.replaymod.replaystudio.lib.viaversion.api.command.ViaVersionCommand;
+import com.replaymod.replaystudio.lib.viaversion.api.connection.ConnectionManager;
+import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaInjector;
+import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaPlatform;
+import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaPlatformLoader;
+import com.replaymod.replaystudio.lib.viaversion.api.platform.providers.ViaProviders;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolManager;
+import com.replaymod.replaystudio.lib.viaversion.protocol.ProtocolManagerImpl;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.UUID;
+import java.util.HashSet;
+import java.util.Set;
 
-public class CustomViaManager extends ViaManager {
+public class CustomViaManager implements ViaManager {
     public static synchronized void initialize() {
-        if (Via.getPlatform() != null) return;
-        Via.init(new CustomViaManager());
+        // Exists only to trigger the static initializer
     }
+
+    static {
+        CustomViaManager manager = new CustomViaManager();
+        Via.init(manager);
+        manager.protocolManager.registerProtocols();
+    }
+
+    private final ProtocolManagerImpl protocolManager = new ProtocolManagerImpl();
+    private final ConnectionManager connectionManager = new CustomConnectionManager();
+    private final ViaProviders providers = new ViaProviders();
+    private final ViaPlatform<?> platform = new CustomViaPlatform();
+    private final ViaInjector injector = new CustomViaInjector();
+    private final Set<String> subPlatforms = new HashSet<>();
+    private boolean debug;
 
     private CustomViaManager() {
-        super(new CustomViaPlatform(), new CustomViaInjector(), null, null);
     }
 
     @Override
-    public Map<UUID, UserConnection> getPortedPlayers() {
-        UserConnection user = CustomViaAPI.INSTANCE.get().user();
-        UUID uuid = user.get(ProtocolInfo.class).getUuid();
-        return Collections.singletonMap(uuid, user);
+    public ProtocolManager getProtocolManager() {
+        return protocolManager;
     }
 
     @Override
-    public UserConnection getConnection(UUID playerUUID) {
-        UserConnection user = CustomViaAPI.INSTANCE.get().user();
-        if (playerUUID.equals(user.get(ProtocolInfo.class).getUuid())) {
-            return user;
-        }
+    public ViaPlatform<?> getPlatform() {
+        return platform;
+    }
+
+    @Override
+    public ConnectionManager getConnectionManager() {
+        return connectionManager;
+    }
+
+    @Override
+    public ViaProviders getProviders() {
+        return providers;
+    }
+
+    @Override
+    public ViaInjector getInjector() {
+        return injector;
+    }
+
+    @Override
+    public ViaVersionCommand getCommandHandler() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ViaPlatformLoader getLoader() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isDebug() {
+        return debug;
+    }
+
+    @Override
+    public void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+
+    @Override
+    public Set<String> getSubPlatforms() {
+        return subPlatforms;
+    }
+
+    @Override
+    public void addEnableListener(Runnable runnable) {
         throw new UnsupportedOperationException();
     }
 }

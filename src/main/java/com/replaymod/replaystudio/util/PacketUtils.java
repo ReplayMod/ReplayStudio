@@ -23,8 +23,8 @@ import com.replaymod.replaystudio.protocol.packets.EntityId;
 import com.replaymod.replaystudio.protocol.packets.PacketEntityMovement;
 import com.replaymod.replaystudio.protocol.packets.PacketEntityTeleport;
 import com.replaymod.replaystudio.protocol.packets.SpawnEntity;
-import com.replaymod.replaystudio.lib.viaversion.api.Pair;
-import com.replaymod.replaystudio.lib.viaversion.api.Triple;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 
 import java.io.IOException;
 import java.util.List;
@@ -88,8 +88,8 @@ public class PacketUtils {
                     loc = Location.NULL;
                 }
                 Triple<DPosition, Pair<Float, Float>, Boolean> movement = PacketEntityMovement.getMovement(packet);
-                DPosition deltaPos = movement.getFirst();
-                Pair<Float, Float> yawPitch = movement.getSecond();
+                DPosition deltaPos = movement.getLeft();
+                Pair<Float, Float> yawPitch = movement.getMiddle();
                 double x = loc.getX();
                 double y = loc.getY();
                 double z = loc.getZ();

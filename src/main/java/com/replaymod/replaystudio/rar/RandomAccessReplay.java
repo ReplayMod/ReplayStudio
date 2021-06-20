@@ -120,8 +120,8 @@ public abstract class RandomAccessReplay {
         NetInput in = new StreamNetInput(rawIndexIn);
         if (in.readVarInt() != CACHE_VERSION) return null; // Incompatible cache version
         if (cacheIn.readVarInt() != CACHE_VERSION) return null; // Incompatible cache version
-        if (in.readVarInt() != registry.getVersion().getId()) return null; // Cache of incompatible protocol version
-        if (cacheIn.readVarInt() != registry.getVersion().getId()) return null; // Cache of incompatible protocol version
+        if (in.readVarInt() != registry.getVersion().getVersion()) return null; // Cache of incompatible protocol version
+        if (cacheIn.readVarInt() != registry.getVersion().getVersion()) return null; // Cache of incompatible protocol version
 
         Replay replay = new Replay(registry, in);
 
@@ -148,10 +148,10 @@ public abstract class RandomAccessReplay {
              OutputStream cacheIndexOut = replayFile.writeCache(CACHE_INDEX_ENTRY)) {
             NetOutput out = new StreamNetOutput(cacheOut);
             out.writeVarInt(CACHE_VERSION);
-            out.writeVarInt(registry.getVersion().getId());
+            out.writeVarInt(registry.getVersion().getVersion());
             NetOutput indexOut = new StreamNetOutput(cacheIndexOut);
             indexOut.writeVarInt(CACHE_VERSION);
-            indexOut.writeVarInt(registry.getVersion().getId());
+            indexOut.writeVarInt(registry.getVersion().getVersion());
 
             WriteableCache cache = new WriteableCache(cacheOut);
 

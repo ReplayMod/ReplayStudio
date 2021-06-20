@@ -77,7 +77,7 @@ public abstract class AbstractReplayFile implements ReplayFile {
         metaData.setFileFormat("MCPR");
         if (registry != null) {
             metaData.setFileFormatVersion(ReplayMetaData.CURRENT_FILE_FORMAT_VERSION);
-            metaData.setProtocolVersion(registry.getVersion().getId());
+            metaData.setProtocolVersion(registry.getVersion().getVersion());
         }
         if (metaData.getGenerator() == null) {
             metaData.setGenerator("ReplayStudio v" + studio.getVersion());

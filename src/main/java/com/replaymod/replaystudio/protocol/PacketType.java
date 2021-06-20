@@ -18,8 +18,8 @@
  */
 package com.replaymod.replaystudio.protocol;
 
-import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolVersion;
-import com.replaymod.replaystudio.lib.viaversion.packets.State;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 
 // Note: Intentionally non-exhaustive (except 1.7.6 PLAY). Only contains what our filters need.
 public enum PacketType {

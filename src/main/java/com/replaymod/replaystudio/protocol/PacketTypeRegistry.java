@@ -19,15 +19,17 @@
 package com.replaymod.replaystudio.protocol;
 
 import com.google.common.collect.Lists;
-import com.replaymod.replaystudio.lib.viaversion.api.Pair;
+import com.replaymod.replaystudio.lib.viaversion.api.Via;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.AbstractProtocol;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolPathEntry;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.Protocol;
-import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolRegistry;
-import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolVersion;
-import com.replaymod.replaystudio.lib.viaversion.packets.State;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_14to1_13_2.Protocol1_14To1_13_2;
 import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_16to1_15_2.Protocol1_16To1_15_2;
 import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_9to1_8.Protocol1_9To1_8;
 import com.replaymod.replaystudio.viaversion.CustomViaManager;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -39,7 +41,7 @@ import java.util.Map;
 
 public class PacketTypeRegistry {
     private static Map<ProtocolVersion, EnumMap<State, PacketTypeRegistry>> forVersionAndState = new HashMap<>();
-    private static Field outgoing;
+    private static Field clientbound;
 
     static {
         CustomViaManager.initialize();
@@ -86,14 +88,14 @@ public class PacketTypeRegistry {
                 continue; // packet didn't yet exist in this version
             }
 
-            List<Pair<Integer, Protocol>> protocolPath = getProtocolPath(version.getId(), packetType.getInitialVersion().getId());
+            List<ProtocolPathEntry> protocolPath = getProtocolPath(version.getVersion(), packetType.getInitialVersion().getVersion());
             if (protocolPath == null) {
                 continue; // no path from packet version to current version (current version is not supported)
             }
 
             int id = packetType.getInitialId();
-            for (Pair<Integer, Protocol> pair : Lists.reverse(protocolPath)) {
-                Protocol protocol = pair.getValue();
+            for (ProtocolPathEntry entry : Lists.reverse(protocolPath)) {
+                Protocol<?, ?, ?, ?> protocol = entry.getProtocol();
                 boolean wasReplaced = false;
                 for (Pair<Integer, Integer> idMapping : getIdMappings(protocol, state)) {
                     int oldId = idMapping.getKey();
@@ -140,20 +142,20 @@ public class PacketTypeRegistry {
         this.unknown = unknown;
     }
 
-    private static List<Pair<Integer, Protocol>> getProtocolPath(int clientVersion, int serverVersion) {
+    private static List<ProtocolPathEntry> getProtocolPath(int clientVersion, int serverVersion) {
         // ViaVersion doesn't officially support 1.7.6 but luckily there weren't any (client-bound) packet id changes
-        if (serverVersion == ProtocolVersion.v1_7_6.getId()) {
-            return getProtocolPath(clientVersion, ProtocolVersion.v1_8.getId());
+        if (serverVersion == ProtocolVersion.v1_7_6.getVersion()) {
+            return getProtocolPath(clientVersion, ProtocolVersion.v1_8.getVersion());
         }
-        if (clientVersion == ProtocolVersion.v1_7_6.getId()) {
-            return getProtocolPath(ProtocolVersion.v1_8.getId(), serverVersion);
+        if (clientVersion == ProtocolVersion.v1_7_6.getVersion()) {
+            return getProtocolPath(ProtocolVersion.v1_8.getVersion(), serverVersion);
         }
         // The trivial case
         if (clientVersion == serverVersion) {
             return Collections.emptyList();
         }
         // otherwise delegate to ViaVersion
-        return ProtocolRegistry.getProtocolPath(clientVersion, serverVersion);
+        return Via.getManager().getProtocolManager().getProtocolPath(clientVersion, serverVersion);
     }
 
     public ProtocolVersion getVersion() {
@@ -173,27 +175,27 @@ public class PacketTypeRegistry {
     }
 
     public boolean atLeast(ProtocolVersion protocolVersion) {
-        return version.getId() >= protocolVersion.getId();
+        return version.getVersion() >= protocolVersion.getVersion();
     }
 
     public boolean atMost(ProtocolVersion protocolVersion) {
-        return version.getId() <= protocolVersion.getId();
+        return version.getVersion() <= protocolVersion.getVersion();
     }
 
     @SuppressWarnings("unchecked")
-    private static List<Pair<Integer, Integer>> getIdMappings(Protocol protocol, State state) {
+    private static List<Pair<Integer, Integer>> getIdMappings(Protocol<?, ?, ?, ?> protocol, State state) {
         List<Pair<Integer, Integer>> result = new ArrayList<>();
         try {
-            if (outgoing == null) {
-                outgoing = Protocol.class.getDeclaredField("outgoing");
-                outgoing.setAccessible(true);
+            if (clientbound == null) {
+                clientbound = AbstractProtocol.class.getDeclaredField("clientbound");
+                clientbound.setAccessible(true);
             }
-            for (Map.Entry<Protocol.Packet, Protocol.ProtocolPacket> entry : ((Map<Protocol.Packet, Protocol.ProtocolPacket>) outgoing.get(protocol)).entrySet()) {
+            for (Map.Entry<AbstractProtocol.Packet, AbstractProtocol.ProtocolPacket> entry : ((Map<AbstractProtocol.Packet, AbstractProtocol.ProtocolPacket>) clientbound.get(protocol)).entrySet()) {
                 if (entry.getKey().getState() != state) {
                     continue;
                 }
-                Protocol.ProtocolPacket mapping = entry.getValue();
-                result.add(new Pair<>(mapping.getOldID(), mapping.getNewID()));
+                AbstractProtocol.ProtocolPacket mapping = entry.getValue();
+                result.add(Pair.of(mapping.getOldID(), mapping.getNewID()));
             }
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);

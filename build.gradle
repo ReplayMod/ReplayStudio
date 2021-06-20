@@ -73,14 +73,14 @@ repositories {
 }
 
 dependencies {
-    preshadow 'com.github.replaymod.viaversion:viaversion-common:6de0b8d1'
+    preshadow 'com.github.replaymod.viaversion:viaversion-common:800ed3b'
 
-    // ViaVersion will use the relocated netty of PacketLib
-    // un-shaded from ViaVersion
     compile 'com.google.guava:guava:17.0'
     compile 'com.google.code.gson:gson:2.3.1'
 
-    compile 'com.github.steveice10:opennbt:d50274d' // 1.2
+    compile 'it.unimi.dsi:fastutil:8.3.1' // this is the version MC ships with 1.14.4, upgrade with care
+
+    compile 'com.github.viaversion:opennbt:0a02214' // 2.0-SNAPSHOT (ViaVersion Edition)
     preshadow 'com.github.steveice10:packetlib:614d56cdc0' // 1.3
 
     compile 'org.apache.commons:commons-lang3:3.3.2'
@@ -94,14 +94,8 @@ dependencies {
 
 preshadowJar {
     relocate 'io.netty', 'com.github.steveice10.netty'
-    relocate 'us.myles.ViaVersion', 'com.replaymod.replaystudio.lib.viaversion'
-
-    // un-shading from ViaVersion (see dependencies)
-    exclude 'com/google/gson/**' // gson
-    exclude 'com/google/common/**' // guava
-    exclude 'com/google/thirdparty/publicsuffix/**' // also part of guava
-    // don't need this one, ViaVersion uses it to parse configs (which we never need to do)
-    exclude 'org/yaml/snakeyaml/**' // snakeyaml
+    relocate 'us.myles.ViaVersion.api', 'com.replaymod.replaystudio.lib.viaversion.legacyapi'
+    relocate 'com.viaversion.viaversion', 'com.replaymod.replaystudio.lib.viaversion'
 }
 
 shadowJar {

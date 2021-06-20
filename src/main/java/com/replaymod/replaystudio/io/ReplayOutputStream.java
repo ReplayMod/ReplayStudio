@@ -25,14 +25,14 @@ import com.github.steveice10.packetlib.tcp.io.ByteBufNetOutput;
 import com.google.gson.Gson;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.packets.PacketLoginSuccess;
 import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.studio.ReplayStudio;
-import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolVersion;
-import com.replaymod.replaystudio.lib.viaversion.packets.State;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -104,7 +104,7 @@ public class ReplayOutputStream extends OutputStream {
         }
         metaData.setFileFormat("MCPR");
         metaData.setFileFormatVersion(ReplayMetaData.CURRENT_FILE_FORMAT_VERSION);
-        metaData.setProtocolVersion(version.getId());
+        metaData.setProtocolVersion(version.getVersion());
         metaData.setGenerator("ReplayStudio v" + studio.getVersion());
         this.metaData = metaData;
 

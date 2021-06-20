@@ -21,8 +21,8 @@ package com.replaymod.replaystudio.protocol.packets;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
-import com.replaymod.replaystudio.lib.viaversion.api.Triple;
-import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolVersion;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
+import org.apache.commons.lang3.tuple.Triple;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -101,7 +101,7 @@ public class PacketPlayerListEntry {
                                 if (in.readBoolean()) {
                                     signature = in.readString();
                                 }
-                                entry.properties.add(new Triple<>(property, value, signature));
+                                entry.properties.add(Triple.of(property, value, signature));
                             }
                             entry.gamemode = in.readVarInt();
                             entry.latency = in.readVarInt();
@@ -162,11 +162,11 @@ public class PacketPlayerListEntry {
                         out.writeString(entry.name);
                         out.writeVarInt(entry.properties.size());
                         for (Triple<String, String, String> property : entry.properties) {
-                            out.writeString(property.getFirst());
-                            out.writeString(property.getSecond());
-                            if (property.getThird() != null) {
+                            out.writeString(property.getLeft());
+                            out.writeString(property.getMiddle());
+                            if (property.getRight() != null) {
                                 out.writeBoolean(true);
-                                out.writeString(property.getThird());
+                                out.writeString(property.getRight());
                             } else {
                                 out.writeBoolean(false);
                             }

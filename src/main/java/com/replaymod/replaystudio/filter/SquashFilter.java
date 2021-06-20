@@ -22,6 +22,7 @@ import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.google.gson.JsonObject;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
@@ -39,14 +40,13 @@ import com.replaymod.replaystudio.protocol.packets.PacketUpdateLight;
 import com.replaymod.replaystudio.protocol.packets.PacketWindowItems;
 import com.replaymod.replaystudio.stream.IteratorStream;
 import com.replaymod.replaystudio.stream.PacketStream;
-import com.replaymod.replaystudio.lib.viaversion.api.Pair;
-import com.replaymod.replaystudio.lib.viaversion.api.Triple;
-import com.replaymod.replaystudio.lib.viaversion.packets.State;
 import com.replaymod.replaystudio.util.DPosition;
 import com.replaymod.replaystudio.util.IPosition;
 import com.replaymod.replaystudio.util.PacketUtils;
 import com.replaymod.replaystudio.util.Utils;
 import org.apache.commons.lang3.tuple.MutablePair;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -271,8 +271,8 @@ public class SquashFilter implements StreamFilter {
                         || type == PacketType.EntityRotation
                         || type == PacketType.EntityPositionRotation) {
                     Triple<DPosition, Pair<Float, Float>, Boolean> movement = PacketEntityMovement.getMovement(packet);
-                    DPosition deltaPos = movement.getFirst();
-                    Pair<Float, Float> yawPitch = movement.getSecond();
+                    DPosition deltaPos = movement.getLeft();
+                    Pair<Float, Float> yawPitch = movement.getMiddle();
                     if (deltaPos != null) {
                         entity.dx += deltaPos.getX() * 32;
                         entity.dy += deltaPos.getY() * 32;
@@ -282,7 +282,7 @@ public class SquashFilter implements StreamFilter {
                         entity.yaw = yawPitch.getKey();
                         entity.pitch = yawPitch.getValue();
                     }
-                    entity.onGround = movement.getThird();
+                    entity.onGround = movement.getRight();
                 } else if (type == PacketType.EntityTeleport) {
                     if (entity.teleport != null) {
                         entity.teleport.release();
@@ -576,7 +576,7 @@ public class SquashFilter implements StreamFilter {
             }
             if (entity.yaw != null && entity.pitch != null) {
                 result.add(new PacketData(entity.lastTimestamp, PacketEntityMovement.write(
-                        registry, e.getKey(), null, new Pair<>(entity.yaw, entity.pitch), entity.onGround)));
+                        registry, e.getKey(), null, Pair.of(entity.yaw, entity.pitch), entity.onGround)));
             }
         }
 
