@@ -22,6 +22,7 @@ package com.replaymod.replaystudio.rar.state;
 import com.github.steveice10.packetlib.io.NetInput;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
+import com.replaymod.replaystudio.protocol.registry.DimensionType;
 import com.replaymod.replaystudio.rar.PacketSink;
 import com.replaymod.replaystudio.rar.RandomAccessState;
 import com.replaymod.replaystudio.rar.cache.ReadableCache;
@@ -91,9 +92,9 @@ public class World implements RandomAccessState {
         public final PacketStateTree.Builder worldTimes = new PacketStateTree.Builder();
         public final PacketStateTree.Builder thunderStrengths = new PacketStateTree.Builder();
 
-        public Builder(PacketTypeRegistry registry, WriteableCache cache) throws IOException {
+        public Builder(PacketTypeRegistry registry, WriteableCache cache, DimensionType dimensionType) throws IOException {
             this.cache = cache;
-            transientThings = new TransientThings.Builder(registry, cache);
+            transientThings = new TransientThings.Builder(registry, cache, dimensionType);
         }
 
         public void build(NetOutput out, int time) throws IOException {

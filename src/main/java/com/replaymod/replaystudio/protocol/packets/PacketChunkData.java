@@ -33,6 +33,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
@@ -102,13 +103,13 @@ public class PacketChunkData {
 
         int[] xs = new int[columns];
         int[] zs = new int[columns];
-        int[] masks = new int[columns];
+        BitSet[] masks = new BitSet[columns];
         int[] lengths = new int[columns];
         for (int column = 0; column < columns; column++) {
             xs[column] = in.readInt();
             zs[column] = in.readInt();
-            masks[column] = in.readUnsignedShort();
-            int nChunks = Integer.bitCount(masks[column]);
+            masks[column] = in.readBitSet();
+            int nChunks = masks[column].cardinality();
             int length = (nChunks * ((4096 * 2) + 2048)) + (skylight ? nChunks * 2048 : 0) + 256;
             lengths[column] = length;
         }
@@ -116,7 +117,7 @@ public class PacketChunkData {
         for (int column = 0; column < columns; column++) {
             byte[] buf = new byte[lengths[column]];
             in.readBytes(buf);
-            result.add(readColumn(packet, buf, xs[column], zs[column], true, skylight, masks[column], 0, null, null, null, false));
+            result.add(readColumn(packet, buf, xs[column], zs[column], true, skylight, masks[column], new BitSet(), null, null, false));
         }
         return result;
     }
@@ -147,15 +148,11 @@ public class PacketChunkData {
             // Read column-specific data.
             int x = in.readInt();
             int z = in.readInt();
-            int chunkMask = in.readShort();
-            int extendedChunkMask = in.readShort();
+            BitSet chunkMask = in.readBitSet();
+            BitSet extendedChunkMask = in.readBitSet();
             // Determine column data length.
-            int chunks = 0;
-            int extended = 0;
-            for(int ch = 0; ch < 16; ch++) {
-                chunks += chunkMask >> ch & 1;
-                extended += extendedChunkMask >> ch & 1;
-            }
+            int chunks = chunkMask.cardinality();
+            int extended = extendedChunkMask.cardinality();
 
             int length = (8192 * chunks + 256) + (2048 * extended);
             if(skylight) {
@@ -166,7 +163,7 @@ public class PacketChunkData {
             byte[] buf = new byte[length];
             System.arraycopy(inflated, pos, buf, 0, length);
             // Read data into chunks and biome data.
-            result.add(readColumn(packet, buf, x, z, true, skylight, chunkMask, extendedChunkMask, null, null, null, false));
+            result.add(readColumn(packet, buf, x, z, true, skylight, chunkMask, extendedChunkMask, null, null, false));
             pos += length;
         }
 
@@ -226,15 +223,22 @@ public class PacketChunkData {
     private void readLoad(Packet packet, Packet.Reader in) throws IOException {
         int x = in.readInt();
         int z = in.readInt();
-        boolean fullChunk = in.readBoolean();
+        boolean fullChunk;
+        if (packet.atLeast(ProtocolVersion.v1_17)) {
+            fullChunk = true;
+        } else {
+            fullChunk = in.readBoolean();
+        }
         boolean useExistingLightData = fullChunk;
         if (packet.atLeast(ProtocolVersion.v1_16) && !packet.atLeast(ProtocolVersion.v1_16_2)) {
             useExistingLightData = in.readBoolean();
         }
-        int chunkMask = packet.atLeast(ProtocolVersion.v1_9) ? in.readVarInt() : in.readUnsignedShort();
-        int extendedChunkMask = 0;
-        if (!packet.atLeast(ProtocolVersion.v1_8)) {
-            extendedChunkMask = in.readUnsignedShort();
+        BitSet chunkMask = in.readBitSet();
+        BitSet extendedChunkMask;
+        if (packet.atLeast(ProtocolVersion.v1_8)) {
+            extendedChunkMask = new BitSet();
+        } else {
+            extendedChunkMask = BitSet.valueOf(new long[] { in.readUnsignedShort() });
         }
         CompoundTag heightmaps = null;
         if (packet.atLeast(ProtocolVersion.v1_14)) {
@@ -251,13 +255,14 @@ public class PacketChunkData {
                 biomes = in.readInts(1024);
             }
         }
+
         byte[] data;
         if (packet.atLeast(ProtocolVersion.v1_8)) {
             data = in.readBytes(in.readVarInt());
         } else {
             byte[] deflated = in.readBytes(in.readInt());
             // Determine inflated data length.
-            int len = 12288 * Integer.bitCount(chunkMask);
+            int len = 12288 * chunkMask.cardinality();
             if (fullChunk) {
                 len += 256;
             }
@@ -273,17 +278,17 @@ public class PacketChunkData {
                 inflater.end();
             }
         }
-        CompoundTag[] tileEntities = null;
+        this.column = readColumn(packet, data, x, z, fullChunk, false, chunkMask, extendedChunkMask, heightmaps, biomes, useExistingLightData);
+
         if (packet.atLeast(ProtocolVersion.v1_9_3)) {
-            tileEntities = new CompoundTag[in.readVarInt()];
+            CompoundTag[] tileEntities = new CompoundTag[in.readVarInt()];
             for (int i = 0; i < tileEntities.length; i++) {
                 tileEntities[i] = in.readNBT();
             }
+            this.column.tileEntities = tileEntities;
         }
 
-        this.column = readColumn(packet, data, x, z, fullChunk, false, chunkMask, extendedChunkMask, tileEntities, heightmaps, biomes, useExistingLightData);
-
-        if (packet.atMost(ProtocolVersion.v1_8) && fullChunk && chunkMask == 0) {
+        if (packet.atMost(ProtocolVersion.v1_8) && fullChunk && chunkMask.isEmpty()) {
             isUnload = true;
             unloadX = x;
             unloadZ = z;
@@ -293,23 +298,21 @@ public class PacketChunkData {
     private void writeLoad(Packet packet, Packet.Writer out) throws IOException {
         ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
         NetOutput netOut = new StreamNetOutput(byteOut);
-        Pair<Integer, Integer> masks = writeColumn(packet, netOut, this.column, this.column.isFull());
-        int mask = masks.getKey();
-        int extendedMask = masks.getValue();
+        Pair<BitSet, BitSet> masks = writeColumn(packet, netOut, this.column, this.column.isFull());
+        BitSet mask = masks.getKey();
+        BitSet extendedMask = masks.getValue();
 
         out.writeInt(this.column.x);
         out.writeInt(this.column.z);
-        out.writeBoolean(this.column.isFull());
+        if (packet.olderThan(ProtocolVersion.v1_17)) {
+            out.writeBoolean(this.column.isFull());
+        }
         if (packet.atLeast(ProtocolVersion.v1_16) && !packet.atLeast(ProtocolVersion.v1_16_2)) {
             out.writeBoolean(this.column.useExistingLightData);
         }
-        if (packet.atLeast(ProtocolVersion.v1_9)) {
-            out.writeVarInt(mask);
-        } else {
-            out.writeShort(mask);
-        }
+        out.writeBitSet(mask);
         if (!packet.atLeast(ProtocolVersion.v1_8)) {
-            out.writeShort(extendedMask);
+            out.writeBitSet(extendedMask);
         }
         if (packet.atLeast(ProtocolVersion.v1_14)) {
             out.writeNBT(this.column.heightMaps);
@@ -352,14 +355,27 @@ public class PacketChunkData {
         }
     }
 
-    private static Column readColumn(Packet packet, byte[] data, int x, int z, boolean fullChunk, boolean hasSkylight, int mask, int extendedMask, CompoundTag[] tileEntities, CompoundTag heightmaps, int[] biomes, boolean useExistingLightData) throws IOException {
+    private static Column readColumn(Packet packet, byte[] data, int x, int z, boolean fullChunk, boolean hasSkylight, BitSet mask, BitSet extendedMask, CompoundTag heightmaps, int[] biomes, boolean useExistingLightData) throws IOException {
         NetInput in = new StreamNetInput(new ByteArrayInputStream(data));
+        if (packet.atLeast(ProtocolVersion.v1_17)) {
+            Chunk[] chunks = new Chunk[mask.length()];
+            for (int index = 0; index < chunks.length; index++) {
+                if (mask.get(index)) {
+                    Chunk chunk = new Chunk();
+                    chunk.blocks = new BlockStorage(packet, in);
+                    chunks[index] = chunk;
+                }
+            }
+            return new Column(x, z, chunks, null, null, heightmaps, biomes, useExistingLightData);
+        }
+
+        // Pre 1.17
         Throwable ex = null;
         Column column = null;
         try {
             Chunk[] chunks = new Chunk[16];
             for(int index = 0; index < chunks.length; index++) {
-                if((mask & (1 << index)) != 0) {
+                if (mask.get(index)) {
                     Chunk chunk = new Chunk();
                     if (packet.atLeast(ProtocolVersion.v1_9)) {
                         chunk.blocks = new BlockStorage(packet, in);
@@ -397,7 +413,7 @@ public class PacketChunkData {
                 }
                 // extendedMask should be 0 for 1.8+
                 for (int index = 0; index < chunks.length; index++) {
-                    if ((extendedMask & (1 << index)) != 0) {
+                    if (extendedMask.get(index)) {
                         if (chunks[index] == null) {
                             in.readLongs(256);
                         } else {
@@ -412,14 +428,14 @@ public class PacketChunkData {
                 biomeData = in.readBytes(packet.atLeast(ProtocolVersion.v1_13) ? 1024 : 256);
             }
 
-            column = new Column(x, z, chunks, biomeData, tileEntities, heightmaps, biomes, useExistingLightData);
+            column = new Column(x, z, chunks, biomeData, null, heightmaps, biomes, useExistingLightData);
         } catch(Throwable e) {
             ex = e;
         }
 
         // Unfortunately, this is needed to detect whether the chunks contain skylight or not.
         if((in.available() > 0 || ex != null) && !hasSkylight) {
-            return readColumn(packet, data, x, z, fullChunk, true, mask, extendedMask, tileEntities, heightmaps, biomes, useExistingLightData);
+            return readColumn(packet, data, x, z, fullChunk, true, mask, extendedMask, heightmaps, biomes, useExistingLightData);
         } else if(ex != null) {
             throw new IOException("Failed to read chunk data.", ex);
         }
@@ -427,14 +443,14 @@ public class PacketChunkData {
         return column;
     }
 
-    private static Pair<Integer, Integer> writeColumn(Packet packet, NetOutput out, Column column, boolean fullChunk) throws IOException {
-        int mask = 0;
-        int extendedMask = 0;
+    private static Pair<BitSet, BitSet> writeColumn(Packet packet, NetOutput out, Column column, boolean fullChunk) throws IOException {
+        BitSet mask = new BitSet();
+        BitSet extendedMask = new BitSet();
         Chunk[] chunks = column.chunks;
         for (int index = 0; index < chunks.length; index++) {
             Chunk chunk = chunks[index];
             if (chunk != null) {
-                mask |= 1 << index;
+                mask.set(index);
                 if (packet.atLeast(ProtocolVersion.v1_9)) {
                     chunk.blocks.write(packet, out);
                     if (packet.atMost(ProtocolVersion.v1_13_2)) {
@@ -469,7 +485,7 @@ public class PacketChunkData {
             // extended should be null for 1.8+
             for (int index = 0; index < chunks.length; index++) {
                 if (chunks[index] != null && chunks[index].blocks.extended != null) {
-                    extendedMask |= 1 << index;
+                    extendedMask.set(index);
                     out.writeLongs(chunks[index].blocks.extended);
                 }
             }

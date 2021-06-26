@@ -182,6 +182,10 @@ public class PacketTypeRegistry {
         return version.getVersion() <= protocolVersion.getVersion();
     }
 
+    public boolean olderThan(ProtocolVersion protocolVersion) {
+        return version.getVersion() < protocolVersion.getVersion();
+    }
+
     @SuppressWarnings("unchecked")
     private static List<Pair<Integer, Integer>> getIdMappings(Protocol<?, ?, ?, ?> protocol, State state) {
         List<Pair<Integer, Integer>> result = new ArrayList<>();

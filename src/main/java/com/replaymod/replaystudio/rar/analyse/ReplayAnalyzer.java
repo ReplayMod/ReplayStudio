@@ -104,6 +104,7 @@ public class ReplayAnalyzer {
                     entity.addSpawnPacket(packet.retain());
                     break;
                 }
+                case DestroyEntity:
                 case DestroyEntities: {
                     for (int id : PacketDestroyEntities.getEntityIds(packet)) {
                         replay.world.transientThings.removeEntity(time, id);
@@ -192,7 +193,8 @@ public class ReplayAnalyzer {
                     break;
                 }
                 case Respawn: {
-                    String newDimension = PacketRespawn.getDimension(packet);
+                    PacketRespawn respawn = PacketRespawn.read(packet);
+                    String newDimension = respawn.dimension;
                     if (!newDimension.equals(activeDimension)) {
                         replay.world.transientThings.flush(time);
                     }
@@ -200,13 +202,17 @@ public class ReplayAnalyzer {
                     break;
                 }
                 case JoinGame: {
+                    PacketJoinGame joinGame = PacketJoinGame.read(packet);
+                    if (replay.world == null) { // TODO support switching to a different world
+                        replay.newWorld(joinGame.dimensionType);
+                    }
                     replay.world.transientThings.flush(time);
-                    activeDimension = PacketJoinGame.getDimension(packet);
+                    activeDimension = joinGame.dimension;
                     if (registry.atLeast(ProtocolVersion.v1_14)) {
                         currentViewChunkX = currentViewChunkZ = 0;
                         replay.world.viewPosition.put(time, PacketUpdateViewPosition.write(registry, 0, 0));
 
-                        currentViewDistance = PacketJoinGame.getViewDistance(packet);
+                        currentViewDistance = joinGame.viewDistance;
                         replay.world.viewDistance.put(time, PacketUpdateViewDistance.write(registry, currentViewDistance));
                     }
                     break;

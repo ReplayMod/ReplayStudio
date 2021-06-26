@@ -25,11 +25,16 @@ import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVe
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public class PacketDestroyEntities {
     public static List<Integer> getEntityIds(Packet packet) throws IOException {
         try (Packet.Reader in = packet.reader()) {
+            if (packet.getType() == PacketType.DestroyEntity) {
+                return Collections.singletonList(in.readVarInt());
+            }
             int len = packet.atLeast(ProtocolVersion.v1_8) ? in.readVarInt() : in.readByte();
             List<Integer> result = new ArrayList<>(len);
             for (int i = 0; i < len; i++) {
@@ -39,7 +44,31 @@ public class PacketDestroyEntities {
         }
     }
 
-    public static Packet write(PacketTypeRegistry registry, int...entityIds) throws IOException {
+    public static Collection<Packet> write(PacketTypeRegistry registry, int...entityIds) throws IOException {
+        if (registry.atLeast(ProtocolVersion.v1_17)) {
+            List<Packet> packets = new ArrayList<>(entityIds.length);
+            for (int entityId : entityIds) {
+                packets.add(write(registry, entityId));
+            }
+            return packets;
+        } else {
+            return Collections.singletonList(writePre1_17(registry, entityIds));
+        }
+    }
+
+    public static Packet write(PacketTypeRegistry registry, int entityId) throws IOException {
+        if (registry.atLeast(ProtocolVersion.v1_17)) {
+            Packet packet = new Packet(registry, PacketType.DestroyEntity);
+            try (Packet.Writer out = packet.overwrite()) {
+                out.writeVarInt(entityId);
+            }
+            return packet;
+        } else {
+            return writePre1_17(registry, entityId);
+        }
+    }
+
+    private static Packet writePre1_17(PacketTypeRegistry registry, int...entityIds) throws IOException {
         Packet packet = new Packet(registry, PacketType.DestroyEntities);
         try (Packet.Writer out = packet.overwrite()) {
             if (packet.atLeast(ProtocolVersion.v1_8)) {

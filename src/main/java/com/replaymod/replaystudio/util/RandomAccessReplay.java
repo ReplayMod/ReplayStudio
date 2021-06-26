@@ -279,6 +279,7 @@ public abstract class RandomAccessReplay<T> {
                         }
                         break;
                     }
+                    case DestroyEntity:
                     case DestroyEntities: {
                         for (int id : PacketDestroyEntities.getEntityIds(packet)) {
                             Entity entity = activeEntities.remove(id);
@@ -409,7 +410,7 @@ public abstract class RandomAccessReplay<T> {
                         break;
                     }
                     case Respawn: {
-                        String newDimension = PacketRespawn.getDimension(packet);
+                        String newDimension = PacketRespawn.read(packet).dimension;
                         if (!newDimension.equals(activeDimension)) {
                             for (Entity entity : activeEntities.values()) {
                                 index = entity.writeToCache(indexOut, out, time, index);
@@ -428,7 +429,8 @@ public abstract class RandomAccessReplay<T> {
                         break;
                     }
                     case JoinGame: {
-                        activeDimension = PacketJoinGame.getDimension(packet);
+                        PacketJoinGame joinGame = PacketJoinGame.read(packet);
+                        activeDimension = joinGame.dimension;
 
                         for (Entity entity : activeEntities.values()) {
                             index = entity.writeToCache(indexOut, out, time, index);
@@ -452,7 +454,7 @@ public abstract class RandomAccessReplay<T> {
                                 prev.release();
                             }
 
-                            currentViewDistance = PacketJoinGame.getViewDistance(packet);
+                            currentViewDistance = joinGame.viewDistance;
                             prev = viewDistance.put(time, PacketUpdateViewDistance.write(registry, currentViewDistance));
                             if (prev != null) {
                                 prev.release();

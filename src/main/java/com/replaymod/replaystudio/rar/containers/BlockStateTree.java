@@ -27,8 +27,8 @@ import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.packets.PacketBlockChange;
 import com.replaymod.replaystudio.protocol.packets.PacketChunkData;
+import com.replaymod.replaystudio.protocol.registry.DimensionType;
 import com.replaymod.replaystudio.rar.PacketSink;
-import com.replaymod.replaystudio.rar.state.Chunk;
 import com.replaymod.replaystudio.util.IPosition;
 
 import java.io.IOException;
@@ -82,21 +82,28 @@ public class BlockStateTree extends DiffStateTree<Collection<BlockStateTree.Bloc
 
     public static class Builder extends DiffStateTree.Builder<Collection<BlockChange>> {
         private final PacketTypeRegistry registry;
+        private final DimensionType dimensionType;
         private final ListMultimap<Integer, BlockChange> blocks = Multimaps.newListMultimap(map, LinkedList::new); // LinkedList to allow .descendingIterator
-        private final PacketChunkData.BlockStorage[] currentBlockState = new PacketChunkData.BlockStorage[16];
+        private final PacketChunkData.BlockStorage[] currentBlockState;
 
-        public Builder(PacketTypeRegistry registry, PacketChunkData.Column column) {
+        public Builder(PacketTypeRegistry registry, DimensionType dimensionType, PacketChunkData.Column column) {
             this.registry = registry;
+            this.dimensionType = dimensionType;
+            this.currentBlockState = new PacketChunkData.BlockStorage[dimensionType.getSections()];
 
             PacketChunkData.Chunk[] chunks = column.chunks;
             for (int i = 0; i < currentBlockState.length; i++) {
-                currentBlockState[i] = chunks[i] == null ? new PacketChunkData.BlockStorage(registry) : chunks[i].blocks.copy();
+                currentBlockState[i] = i >= chunks.length || chunks[i] == null ? new PacketChunkData.BlockStorage(registry) : chunks[i].blocks.copy();
             }
         }
 
         public void update(int time, PacketBlockChange record) {
             IPosition pos = record.getPosition();
-            PacketChunkData.BlockStorage blockStorage = currentBlockState[pos.getY() >> 4];
+            int sectionIndex = dimensionType.sectionYToIndex(pos.getY() >> 4);
+            if (sectionIndex < 0 || sectionIndex >= currentBlockState.length) {
+                return; // the server will send these if you try to place blocks outside the allowed range
+            }
+            PacketChunkData.BlockStorage blockStorage = currentBlockState[sectionIndex];
             int x = pos.getX() & 15, y = pos.getY() & 15, z = pos.getZ() & 15;
             int prevState = blockStorage.get(x, y, z);
             int newState = record.getId();
@@ -105,14 +112,16 @@ public class BlockStateTree extends DiffStateTree<Collection<BlockStateTree.Bloc
         }
 
         public void update(int time, PacketChunkData.Column column) {
-            int sectionY = 0;
+            int sectionY = dimensionType.getMinY();
+            int sectionIndex = 0;
             for (PacketChunkData.Chunk section : column.chunks) {
                 if (section == null) {
                     sectionY++;
+                    sectionIndex++;
                     continue;
                 }
                 PacketChunkData.BlockStorage toBlocks = section.blocks;
-                PacketChunkData.BlockStorage fromBlocks = currentBlockState[sectionY];
+                PacketChunkData.BlockStorage fromBlocks = currentBlockState[sectionIndex];
                 for (int y = 0; y < 16; y++) {
                     for (int z = 0; z < 16; z++) {
                         for (int x = 0; x < 16; x++) {
@@ -125,8 +134,9 @@ public class BlockStateTree extends DiffStateTree<Collection<BlockStateTree.Bloc
                         }
                     }
                 }
-                currentBlockState[sectionY] = toBlocks;
+                currentBlockState[sectionIndex] = toBlocks;
                 sectionY++;
+                sectionIndex++;
             }
 
         }

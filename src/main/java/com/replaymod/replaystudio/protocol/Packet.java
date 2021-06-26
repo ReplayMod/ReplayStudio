@@ -34,6 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.BitSet;
 import java.util.Objects;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -113,6 +114,10 @@ public class Packet {
         return registry.atMost(protocolVersion);
     }
 
+    public boolean olderThan(ProtocolVersion protocolVersion) {
+        return registry.olderThan(protocolVersion);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -161,7 +166,7 @@ public class Packet {
                 y = val >> 26;
                 z = val;
             }
-            return new IPosition((int) (x << 38 >> 38), (int) (y & 0xfff), (int) (z << 38 >> 38));
+            return new IPosition((int) (x << 38 >> 38), (int) (y << 52 >> 52), (int) (z << 38 >> 38));
         }
 
         public CompoundTag readNBT() throws IOException {
@@ -195,6 +200,20 @@ public class Packet {
                 } else {
                     return NBTIO.readTag(new GZIPInputStream(new ByteArrayInputStream(in.readBytes(length))));
                 }
+            }
+        }
+
+        public BitSet readBitSet() throws IOException {
+            return readBitSet(packet.registry, this);
+        }
+
+        public static BitSet readBitSet(PacketTypeRegistry registry, NetInput in) throws IOException {
+            if (registry.atLeast(ProtocolVersion.v1_17)) {
+                return BitSet.valueOf(in.readLongs(in.readVarInt()));
+            } else if (registry.atLeast(ProtocolVersion.v1_9)) {
+                return BitSet.valueOf(new long[] { in.readVarInt() });
+            } else {
+                return BitSet.valueOf(new long[] { in.readUnsignedShort() });
             }
         }
     }
@@ -251,6 +270,33 @@ public class Packet {
                 byte[] bytes = output.toByteArray();
                 out.writeShort(bytes.length);
                 out.writeBytes(bytes);
+            }
+        }
+
+        public void writeBitSet(BitSet bitSet) throws IOException {
+            writeBitSet(packet.registry, this, bitSet);
+        }
+
+        public static void writeBitSet(PacketTypeRegistry registry, NetOutput out, BitSet bitSet) throws IOException {
+            if (registry.atLeast(ProtocolVersion.v1_17)) {
+                long[] longs = bitSet.toLongArray();
+                out.writeVarInt(longs.length);
+                out.writeLongs(longs);
+            } else {
+                long[] longs = bitSet.toLongArray();
+                long value;
+                if (longs.length == 0) {
+                    value = 0;
+                } else if (longs.length == 1) {
+                    value = longs[0];
+                } else {
+                    throw new IllegalArgumentException("Pre-1.17 bitset cannot encode more than 64 bits.");
+                }
+                if (registry.atLeast(ProtocolVersion.v1_9)) {
+                    out.writeVarInt((int) value);
+                } else {
+                    out.writeShort((int) value);
+                }
             }
         }
     }

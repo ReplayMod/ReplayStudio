@@ -45,8 +45,8 @@ public enum PacketType {
 	SpawnPainting(ProtocolVersion.v1_7_6, 0x10),
 	SpawnExpOrb(ProtocolVersion.v1_7_6, 0x11),
 	EntityVelocity(ProtocolVersion.v1_7_6, 0x12),
-	DestroyEntities(ProtocolVersion.v1_7_6, 0x13),
-	EntityMovement(ProtocolVersion.v1_7_6, 0x14),
+	DestroyEntities(ProtocolVersion.v1_7_6, 0x13), // removed in 1.17
+	EntityMovement(ProtocolVersion.v1_7_6, 0x14), // removed in 1.17
 	EntityPosition(ProtocolVersion.v1_7_6, 0x15),
 	EntityRotation(ProtocolVersion.v1_7_6, 0x16),
 	EntityPositionRotation(ProtocolVersion.v1_7_6, 0x17),
@@ -93,7 +93,7 @@ public enum PacketType {
 	Disconnect(ProtocolVersion.v1_7_6, 0x40),
 
 	Difficulty(ProtocolVersion.v1_8, 0x41),
-	Combat(ProtocolVersion.v1_8, 0x42),
+	Combat(ProtocolVersion.v1_8, 0x42), // removed in 1.17
 	SwitchCamera(ProtocolVersion.v1_8, 0x43),
 	WorldBorder(ProtocolVersion.v1_8, 0x44),
 	EntityNBTUpdate(ProtocolVersion.v1_8, 0x49), // removed in 1.9
@@ -108,6 +108,11 @@ public enum PacketType {
 	UpdateViewDistance(ProtocolVersion.v1_14, 0x41),
     EntitySoundEffect(ProtocolVersion.v1_14, 0x50),
 	PlayerActionAck(ProtocolVersion.v1_14, 0x5c),
+
+	CombatEnd(ProtocolVersion.v1_8, 0x33),
+	CombatEnter(ProtocolVersion.v1_8, 0x34),
+	CombatEntityDead(ProtocolVersion.v1_8, 0x35),
+	DestroyEntity(ProtocolVersion.v1_17, 0x3a),
 	;
 
     private final State state;

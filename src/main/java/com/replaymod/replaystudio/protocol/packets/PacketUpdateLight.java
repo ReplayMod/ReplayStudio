@@ -21,10 +21,9 @@ package com.replaymod.replaystudio.protocol.packets;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.List;
 
-import com.github.steveice10.packetlib.io.NetInput;
-import com.github.steveice10.packetlib.io.NetOutput;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
@@ -61,12 +60,6 @@ public class PacketUpdateLight {
     }
 
     public PacketUpdateLight(int x, int z, List<byte[]> skyLight, List<byte[]> blockLight) {
-        if (skyLight.size() != 18) {
-            throw new IllegalArgumentException("skyLight must have exactly 18 entries (null entries are permitted)");
-        }
-        if (blockLight.size() != 18) {
-            throw new IllegalArgumentException("blockLight must have exactly 18 entries (null entries are permitted)");
-        }
         this.x = x;
         this.z = z;
         this.skyLight = skyLight;
@@ -89,40 +82,55 @@ public class PacketUpdateLight {
         return this.blockLight;
     }
 
-    private void read(Packet packet, NetInput in) throws IOException {
+    private void read(Packet packet, Packet.Reader in) throws IOException {
         this.x = in.readVarInt();
         this.z = in.readVarInt();
         if (packet.atLeast(ProtocolVersion.v1_16)) {
             in.readBoolean(); // unknown
         }
 
-        int skyLightMask = in.readVarInt();
-        int blockLightMask = in.readVarInt();
-        int emptySkyLightMask = in.readVarInt();
-        int emptyBlockLightMask = in.readVarInt();
+        BitSet skyLightMask = in.readBitSet();
+        BitSet blockLightMask = in.readBitSet();
+        BitSet emptySkyLightMask = in.readBitSet();
+        BitSet emptyBlockLightMask = in.readBitSet();
 
-        this.skyLight = new ArrayList<>(18);
-        for (int i = 0; i < 18; i++) {
-            if ((skyLightMask & 1 << i) != 0) {
+        int skySections = Math.max(skyLightMask.length(), emptySkyLightMask.length());
+        int blockSections = Math.max(blockLightMask.length(), emptyBlockLightMask.length());
+
+        if (packet.atLeast(ProtocolVersion.v1_17)) {
+            int skyLightsSent = in.readVarInt();
+            if (skyLightMask.cardinality() != skyLightsSent) {
+                throw new IOException("Expected " + skyLightMask.cardinality() + " sky light sections but got " + skyLightsSent);
+            }
+        }
+        this.skyLight = new ArrayList<>(skySections);
+        for (int i = 0; i < skySections; i++) {
+            if (skyLightMask.get(i)) {
                 if (in.readVarInt() != 2048) {
                     throw new IOException("Expected sky light byte array to be of length 2048");
                 }
                 this.skyLight.add(in.readBytes(2048)); // 2048 bytes read = 4096 entries
-            } else if ((emptySkyLightMask & 1 << i) != 0) {
+            } else if (emptySkyLightMask.get(i)) {
                 this.skyLight.add(new byte[2048]);
             } else {
                 this.skyLight.add(null);
             }
         }
 
-        this.blockLight = new ArrayList<>(18);
-        for (int i = 0; i < 18; i++) {
-            if ((blockLightMask & 1 << i) != 0) {
+        if (packet.atLeast(ProtocolVersion.v1_17)) {
+            int blockLightsSent = in.readVarInt();
+            if (blockLightMask.cardinality() != blockLightsSent) {
+                throw new IOException("Expected " + blockLightMask.cardinality() + " block light sections but got " + blockLightsSent);
+            }
+        }
+        this.blockLight = new ArrayList<>(blockSections);
+        for (int i = 0; i < blockSections; i++) {
+            if (blockLightMask.get(i)) {
                 if (in.readVarInt() != 2048) {
                     throw new IOException("Expected block light byte array to be of length 2048");
                 }
                 this.blockLight.add(in.readBytes(2048)); // 2048 bytes read = 4096 entries
-            } else if ((emptyBlockLightMask & 1 << i) != 0) {
+            } else if (emptyBlockLightMask.get(i)) {
                 this.blockLight.add(new byte[2048]);
             } else {
                 this.blockLight.add(null);
@@ -130,54 +138,62 @@ public class PacketUpdateLight {
         }
     }
 
-    private void write(Packet packet, NetOutput out) throws IOException {
+    private void write(Packet packet, Packet.Writer out) throws IOException {
         out.writeVarInt(this.x);
         out.writeVarInt(this.z);
         if (packet.atLeast(ProtocolVersion.v1_16)) {
             out.writeBoolean(true); // unknown, ViaVersion always writes true, so we'll do so as well
         }
 
-        int skyLightMask = 0;
-        int blockLightMask = 0;
-        int emptySkyLightMask = 0;
-        int emptyBlockLightMask = 0;
+        BitSet skyLightMask = new BitSet();
+        BitSet blockLightMask = new BitSet();
+        BitSet emptySkyLightMask = new BitSet();
+        BitSet emptyBlockLightMask = new BitSet();
+        List<byte[]> skyLights = new ArrayList<>();
+        List<byte[]> blockLights = new ArrayList<>();
 
-        for (int i = 0; i < 18; i++) {
+        for (int i = 0; i < this.skyLight.size(); i++) {
             byte[] skyLight = this.skyLight.get(i);
             if (skyLight != null) {
                 if (Arrays.equals(EMPTY, skyLight)) {
-                    emptySkyLightMask |= 1 << i;
+                    emptySkyLightMask.set(i);
                 } else {
-                    skyLightMask |= 1 << i;
+                    skyLightMask.set(i);
+                    skyLights.add(skyLight);
                 }
             }
+        }
+        for (int i = 0; i < this.blockLight.size(); i++) {
             byte[] blockLight = this.blockLight.get(i);
             if (blockLight != null) {
                 if (Arrays.equals(EMPTY, blockLight)) {
-                    emptyBlockLightMask |= 1 << i;
+                    emptyBlockLightMask.set(i);
                 } else {
-                    blockLightMask |= 1 << i;
+                    blockLightMask.set(i);
+                    blockLights.add(blockLight);
                 }
             }
         }
 
-        out.writeVarInt(skyLightMask);
-        out.writeVarInt(blockLightMask);
-        out.writeVarInt(emptySkyLightMask);
-        out.writeVarInt(emptyBlockLightMask);
+        out.writeBitSet(skyLightMask);
+        out.writeBitSet(blockLightMask);
+        out.writeBitSet(emptySkyLightMask);
+        out.writeBitSet(emptyBlockLightMask);
 
-        for (int i = 0; i < 18; i++) {
-            if ((skyLightMask & 1 << i) != 0) {
-                out.writeVarInt(2048); // dunno why Minecraft feels the need to send these
-                out.writeBytes(this.skyLight.get(i));
-            }
+        if (packet.atLeast(ProtocolVersion.v1_17)) {
+            out.writeVarInt(skyLights.size()); // dunno why Minecraft feels the need to send these
+        }
+        for (byte[] bytes : skyLights) {
+            out.writeVarInt(2048); // dunno why Minecraft feels the need to send these
+            out.writeBytes(bytes);
         }
 
-        for (int i = 0; i < 18; i++) {
-            if ((blockLightMask & 1 << i) != 0) {
-                out.writeVarInt(2048); // dunno why Minecraft feels the need to send these
-                out.writeBytes(this.blockLight.get(i));
-            }
+        if (packet.atLeast(ProtocolVersion.v1_17)) {
+            out.writeVarInt(blockLights.size()); // dunno why Minecraft feels the need to send these
+        }
+        for (byte[] bytes : blockLights) {
+            out.writeVarInt(2048); // dunno why Minecraft feels the need to send these
+            out.writeBytes(bytes);
         }
     }
 }

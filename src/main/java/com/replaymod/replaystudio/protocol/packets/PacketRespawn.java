@@ -18,24 +18,98 @@
  */
 package com.replaymod.replaystudio.protocol.packets;
 
-import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
+import com.replaymod.replaystudio.protocol.Packet;
+import com.replaymod.replaystudio.protocol.PacketType;
+import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
+import com.replaymod.replaystudio.protocol.registry.DimensionType;
 
 import java.io.IOException;
 
 public class PacketRespawn {
-    public static String getDimension(Packet packet) throws IOException {
+    public byte gameMode;
+    public byte prevGameMode; // 1.16+
+    public DimensionType dimensionType;
+    public String dimension;
+    public long seed; // 1.15+
+    public int difficulty; // pre 1.14
+    public boolean debugWorld; // 1.16+
+    public boolean flatWorld; // 1.16+
+    public boolean keepPlayerAttributes; // 1.16+
+
+    public static PacketRespawn read(Packet packet) throws IOException {
         try (Packet.Reader in = packet.reader()) {
-            if (packet.atLeast(ProtocolVersion.v1_16)) {
-                if (packet.atLeast(ProtocolVersion.v1_16_2)) {
-                    in.readNBT(); // dimension type
-                } else {
-                    in.readString(); // dimension type
-                }
-                return in.readString();
+            PacketRespawn respawn = new PacketRespawn();
+            respawn.read(packet, in);
+            return respawn;
+        }
+    }
+
+    public void read(Packet packet, Packet.Reader in) throws IOException {
+        if (packet.atLeast(ProtocolVersion.v1_16)) {
+            if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+                this.dimensionType = new DimensionType(in.readNBT());
             } else {
-                return String.valueOf(in.readInt());
+                this.dimensionType = new DimensionType(in.readString());
             }
+            this.dimension = in.readString();
+        } else {
+            this.dimension = String.valueOf(in.readInt());
+        }
+        if (packet.atLeast(ProtocolVersion.v1_15)) {
+            this.seed = in.readLong();
+        }
+        if (packet.olderThan(ProtocolVersion.v1_14)) {
+            this.difficulty = in.readByte();
+        }
+        this.gameMode = in.readByte();
+        if (packet.atLeast(ProtocolVersion.v1_16)) {
+            this.prevGameMode = in.readByte();
+        }
+        if (packet.atLeast(ProtocolVersion.v1_16)) {
+            this.debugWorld = in.readBoolean();
+            this.flatWorld = in.readBoolean();
+            this.keepPlayerAttributes = in.readBoolean();
+        } else {
+            this.dimensionType = new DimensionType(in.readString());
+        }
+    }
+
+    public Packet write(PacketTypeRegistry registry) throws IOException {
+        Packet packet = new Packet(registry, PacketType.Respawn);
+        try (Packet.Writer out = packet.overwrite()) {
+            write(packet, out);
+        }
+        return packet;
+    }
+
+    public void write(Packet packet, Packet.Writer out) throws IOException {
+        if (packet.atLeast(ProtocolVersion.v1_16)) {
+            if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+                out.writeNBT(this.dimensionType.getTag());
+            } else {
+                out.writeString(this.dimensionType.getName());
+            }
+            out.writeString(this.dimension);
+        } else if (packet.atLeast(ProtocolVersion.v1_9_1)) {
+            out.writeInt(Integer.parseInt(this.dimension));
+        } else {
+            out.writeByte(Integer.parseInt(this.dimension));
+        }
+        if (packet.atLeast(ProtocolVersion.v1_15)) {
+            out.writeLong(this.seed);
+        }
+        if (packet.olderThan(ProtocolVersion.v1_14)) {
+            out.writeByte(this.difficulty);
+        }
+        out.writeByte(this.gameMode);
+        if (packet.atLeast(ProtocolVersion.v1_16)) {
+            out.writeByte(this.prevGameMode);
+            out.writeBoolean(this.debugWorld);
+            out.writeBoolean(this.flatWorld);
+            out.writeBoolean(this.keepPlayerAttributes);
+        } else {
+            out.writeString(this.dimensionType.getName());
         }
     }
 }

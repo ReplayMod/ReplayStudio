@@ -23,6 +23,7 @@ import com.google.gson.JsonObject;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
@@ -251,7 +252,7 @@ public class SquashFilter implements StreamFilter {
             if (entityId == -1) { // Multiple entities in fact
                 for (int id : PacketUtils.getEntityIds(packet)) {
                     Entity entity;
-                    if (type == PacketType.DestroyEntities) {
+                    if (type == PacketType.DestroyEntity || type == PacketType.DestroyEntities) {
                         entity = entities.computeIfAbsent(id, i -> new Entity());
                         entity.release();
                         entity.despawned = true;
@@ -312,7 +313,7 @@ public class SquashFilter implements StreamFilter {
             case SpawnParticle:
                 break;
             case Respawn: {
-                String newDimension = PacketRespawn.getDimension(packet);
+                String newDimension = PacketRespawn.read(packet).dimension;
                 if (dimension == null) {
                     // We do not know which dimension we are current in, so we cannot know how to handle this packet.
                     // Instead we flush all state accumulated so far, and then start fresh with the newly
@@ -345,7 +346,7 @@ public class SquashFilter implements StreamFilter {
                 currentWindow.clear();
                 entities.values().forEach(Entity::release);
                 entities.clear();
-                dimension = PacketJoinGame.getDimension(packet);
+                dimension = PacketJoinGame.read(packet).dimension;
                 forgeHandshake = false;
             case SetExperience:
             case PlayerAbilities:
@@ -361,7 +362,7 @@ public class SquashFilter implements StreamFilter {
             case UpdateLight:
                 PacketUpdateLight updateLight = PacketUpdateLight.read(packet);
                 chunks.computeIfAbsent(
-                        ChunkData.coordToLong(updateLight.getX(), updateLight.getZ()),
+                        ColumnPos.coordToLong(updateLight.getX(), updateLight.getZ()),
                         idx -> new ChunkData(data.getTime(), updateLight.getX(), updateLight.getZ())
                 ).updateLight(updateLight);
                 break;
@@ -581,8 +582,8 @@ public class SquashFilter implements StreamFilter {
         }
 
         for (Map.Entry<Long, Long> e : unloadedChunks.entrySet()) {
-            int x = ChunkData.longToX(e.getKey());
-            int z = ChunkData.longToZ(e.getKey());
+            int x = ColumnPos.longToX(e.getKey());
+            int z = ColumnPos.longToZ(e.getKey());
             result.add(new PacketData(e.getValue(), PacketChunkData.unload(x, z).write(registry)));
         }
 
@@ -599,6 +600,9 @@ public class SquashFilter implements StreamFilter {
                         result.add(new PacketData(pair.getLeft(), pair.getRight().write(registry)));
                     }
                 }
+            }
+            for (MutablePair<Long, PacketBlockChange> pair : chunk.allBlockChanges.values()) {
+                result.add(new PacketData(pair.getLeft(), pair.getRight().write(registry)));
             }
             if (chunk.hasLight()) {
                 result.add(new PacketData(chunk.firstAppearance, new PacketUpdateLight(
@@ -651,19 +655,19 @@ public class SquashFilter implements StreamFilter {
     private void updateBlock(long time, PacketBlockChange record) {
         IPosition pos = record.getPosition();
         chunks.computeIfAbsent(
-                ChunkData.coordToLong(pos.getX() >> 4, pos.getZ() >> 4),
+                ColumnPos.coordToLong(pos.getX() >> 4, pos.getZ() >> 4),
                 idx -> new ChunkData(time, pos.getX() >> 4, pos.getZ() >> 4)
         ).updateBlock(time, record);
     }
 
     private void unloadChunk(long time, int x, int z) {
-        long coord = ChunkData.coordToLong(x, z);
+        long coord = ColumnPos.coordToLong(x, z);
         chunks.remove(coord);
         unloadedChunks.put(coord, time);
     }
 
     private void updateChunk(long time, Column column) {
-        long coord = ChunkData.coordToLong(column.x, column.z);
+        long coord = ColumnPos.coordToLong(column.x, column.z);
         unloadedChunks.remove(coord);
         ChunkData chunk = chunks.get(coord);
         if (chunk == null) {
@@ -679,20 +683,24 @@ public class SquashFilter implements StreamFilter {
         );
     }
 
-    private static class ChunkData {
+    private class ChunkData {
         private final long firstAppearance;
         private final int x;
         private final int z;
-        private final Chunk[] changes = new Chunk[16];
+        private Chunk[] changes = new Chunk[0];
         private byte[] biomeData; // pre 1.15
+        // We store block changes per chunk so we can easily clear them when we see a partial chunk update.
+        // This no longer applies to 1.17 cause MC no longer supports partial chunk updates, so instead we just
+        // clear everything. This has the added bonus that we do not need to be aware of the world y to index mapping.
         @SuppressWarnings("unchecked")
-        private Map<Short, MutablePair<Long, PacketBlockChange>>[] blockChanges = new Map[16];
+        private Map<Short, MutablePair<Long, PacketBlockChange>>[] blockChanges = new Map[16]; // pre 1.17
+        private final Map<Integer, MutablePair<Long, PacketBlockChange>> allBlockChanges = new HashMap<>(); // 1.17+
         // 1.9+
         private CompoundTag[] tileEntities;
         // 1.14+
         private CompoundTag heightmaps;
-        private byte[][] skyLight = new byte[18][];
-        private byte[][] blockLight = new byte[18][];
+        private byte[][] skyLight = new byte[0][];
+        private byte[][] blockLight = new byte[0][];
         // 1.15+
         private int[] biomes;
         // 1.16+
@@ -706,6 +714,7 @@ public class SquashFilter implements StreamFilter {
 
         ChunkData copy() {
             ChunkData copy = new ChunkData(this.firstAppearance, this.x, this.z);
+            copy.changes = new Chunk[this.changes.length];
             for (int i = 0; i < this.changes.length; i++) {
                 copy.changes[i] = this.changes[i] != null ? this.changes[i].copy() : null;
             }
@@ -717,6 +726,7 @@ public class SquashFilter implements StreamFilter {
                     this.blockChanges[i].forEach((key, value) -> copyMap.put(key, new MutablePair<>(value.left, value.right)));
                 }
             }
+            this.allBlockChanges.forEach((key, value) -> copy.allBlockChanges.put(key, new MutablePair<>(value.left, value.right)));
             copy.tileEntities = this.tileEntities;
             copy.heightmaps = this.heightmaps;
             copy.skyLight = this.skyLight.clone();
@@ -734,12 +744,18 @@ public class SquashFilter implements StreamFilter {
                 int[] newBiomes, // 1.15+
                 boolean useExistingLightData // 1.16+
         ) {
+            if (changes.length < newChunks.length) {
+                changes = Arrays.copyOf(changes, newChunks.length);
+            }
             for (int i = 0; i < newChunks.length; i++) {
                 if (newChunks[i] != null) {
                     changes[i] = newChunks[i];
-                    blockChanges[i] = null;
+                    if (registry.olderThan(ProtocolVersion.v1_17)) {
+                        blockChanges[i] = null;
+                    }
                 }
             }
+            allBlockChanges.clear();
 
             if (newBiomeData != null) { // pre 1.15
                 this.biomeData = newBiomeData;
@@ -759,15 +775,26 @@ public class SquashFilter implements StreamFilter {
         }
 
         private void updateLight(PacketUpdateLight packet) { // 1.14+
+            List<byte[]> skyLightUpdates = packet.getSkyLight();
+            List<byte[]> blockLightUpdates = packet.getBlockLight();
+
+            if (skyLight.length < skyLightUpdates.size()) {
+                skyLight = Arrays.copyOf(skyLight, skyLightUpdates.size());
+            }
+
+            if (blockLight.length < blockLightUpdates.size()) {
+                blockLight = Arrays.copyOf(blockLight, blockLightUpdates.size());
+            }
+
             int i = 0;
-            for (byte[] light : packet.getSkyLight()) {
+            for (byte[] light : skyLightUpdates) {
                 if (light != null) {
                     skyLight[i] = light;
                 }
                 i++;
             }
             i = 0;
-            for (byte[] light : packet.getBlockLight()) {
+            for (byte[] light : blockLightUpdates) {
                 if (light != null) {
                     blockLight[i] = light;
                 }
@@ -794,14 +821,19 @@ public class SquashFilter implements StreamFilter {
             int y = pos.getY();
             int chunkY = y / 16;
             int z = pos.getZ();
-            if (chunkY < 0 || chunkY >= blockChanges.length) {
-                return null;
+            if (registry.atLeast(ProtocolVersion.v1_17)) {
+                int index = y << 10 | (x & 15) << 5 | (z & 15);
+                return allBlockChanges.computeIfAbsent(index, k -> MutablePair.of(0L, null));
+            } else {
+                if (chunkY < 0 || chunkY >= blockChanges.length) {
+                    return null;
+                }
+                if (blockChanges[chunkY] == null) {
+                    blockChanges[chunkY] = new HashMap<>();
+                }
+                short index = (short) ((x & 15) << 10 | (y & 15) << 5 | (z & 15));
+                return blockChanges[chunkY].computeIfAbsent(index, k -> MutablePair.of(0L, null));
             }
-            if (blockChanges[chunkY] == null) {
-                blockChanges[chunkY] = new HashMap<>();
-            }
-            short index = (short) ((x & 15) << 10 | (y & 15) << 5 | (z & 15));
-            return blockChanges[chunkY].computeIfAbsent(index, k -> MutablePair.of(0L, null));
         }
 
         void updateBlock(long time, PacketBlockChange change) {
@@ -811,7 +843,9 @@ public class SquashFilter implements StreamFilter {
                 pair.setRight(change);
             }
         }
+    }
 
+    private static class ColumnPos {
         private static long coordToLong(int x, int z) {
             return (long) x << 32 | z & 0xFFFFFFFFL;
         }

@@ -22,6 +22,7 @@ package com.replaymod.replaystudio.rar.state;
 import com.github.steveice10.packetlib.io.NetInput;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
+import com.replaymod.replaystudio.protocol.registry.DimensionType;
 import com.replaymod.replaystudio.rar.PacketSink;
 import com.replaymod.replaystudio.rar.RandomAccessState;
 import com.replaymod.replaystudio.rar.cache.ReadableCache;
@@ -57,10 +58,20 @@ public class Replay implements RandomAccessState {
     }
 
     public static class Builder {
+        private final PacketTypeRegistry registry;
+        private final WriteableCache cache;
         public World.Builder world;
 
         public Builder(PacketTypeRegistry registry, WriteableCache cache) throws IOException {
-            this.world = new World.Builder(registry, cache);
+            this.registry = registry;
+            this.cache = cache;
+        }
+
+        public void newWorld(DimensionType dimensionType) throws IOException {
+            if (this.world != null) {
+                throw new IllegalStateException("Multiple worlds are not yet supported."); // TODO
+            }
+            this.world = new World.Builder(registry, cache, dimensionType);
         }
 
         public void build(NetOutput out, int time) throws IOException {

@@ -62,6 +62,9 @@ public class EntityId {
                 }
                 return Collections.emptyList();
             }
+            case CombatEntityDead: try (Packet.Reader in = packet.reader()) {
+                return Arrays.asList(in.readVarInt(), in.readInt());
+            }
             default:
                 Integer entityId = getEntityId(packet);
                 if (entityId != null) {
@@ -107,6 +110,7 @@ public class EntityId {
                 }
             }
             case BlockBreakAnim:
+            case DestroyEntity:
             case SpawnPlayer:
             case SpawnObject:
             case SpawnPainting:
@@ -116,6 +120,10 @@ public class EntityId {
                 return in.readVarInt();
             }
             case EntityStatus: try (Packet.Reader in = packet.reader()) {
+                return in.readInt();
+            }
+            case CombatEnd: try (Packet.Reader in = packet.reader()) {
+                in.readVarInt(); // duration
                 return in.readInt();
             }
             default:

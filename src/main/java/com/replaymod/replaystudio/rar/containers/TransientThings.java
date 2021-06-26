@@ -28,6 +28,7 @@ import com.google.common.collect.Multimaps;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.packets.PacketChunkData;
+import com.replaymod.replaystudio.protocol.registry.DimensionType;
 import com.replaymod.replaystudio.rar.PacketSink;
 import com.replaymod.replaystudio.rar.RandomAccessState;
 import com.replaymod.replaystudio.rar.cache.ReadableCache;
@@ -178,13 +179,15 @@ public class TransientThings implements RandomAccessState {
         private final ByteBuf indexBuf = Unpooled.buffer();
         private final ByteBufExtNetOutput indexOut = new ByteBufExtNetOutput(indexBuf);
 
+        private final DimensionType dimensionType;
         private final Long2ObjectMap<Entity.Builder> entities = new Long2ObjectOpenHashMap<>();
         private final Long2ObjectMap<Chunk.Builder> chunks = new Long2ObjectOpenHashMap<>();
         private final Long2ObjectMap<Weather.Builder> weather = new Long2ObjectOpenHashMap<>();
 
-        public Builder(PacketTypeRegistry registry, WriteableCache cache) {
+        public Builder(PacketTypeRegistry registry, WriteableCache cache, DimensionType dimensionType) {
             this.registry = registry;
             this.cache = cache;
+            this.dimensionType = dimensionType;
         }
 
         public Long2ObjectMap<Chunk.Builder> getChunks() {
@@ -196,7 +199,7 @@ public class TransientThings implements RandomAccessState {
         }
 
         public Chunk.Builder newChunk(int time, PacketChunkData.Column column) throws IOException {
-            return newTransientThing(chunks, time, column.coordToLong(), new Chunk.Builder(registry, column));
+            return newTransientThing(chunks, time, column.coordToLong(), new Chunk.Builder(registry, dimensionType, column));
         }
 
         public Weather.Builder newWeather(int time) throws IOException {

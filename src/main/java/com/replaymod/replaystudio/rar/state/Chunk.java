@@ -23,6 +23,7 @@ import com.github.steveice10.packetlib.io.NetInput;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.packets.PacketChunkData;
+import com.replaymod.replaystudio.protocol.registry.DimensionType;
 import com.replaymod.replaystudio.rar.PacketSink;
 import com.replaymod.replaystudio.rar.RandomAccessState;
 import com.replaymod.replaystudio.rar.cache.ReadableCache;
@@ -68,11 +69,11 @@ public class Chunk extends TransientThing implements RandomAccessState {
     public static class Builder extends TransientThing.Builder {
         public final BlockStateTree.Builder blocks;
 
-        public Builder(PacketTypeRegistry registry, PacketChunkData.Column column) throws IOException {
+        public Builder(PacketTypeRegistry registry, DimensionType dimensionType, PacketChunkData.Column column) throws IOException {
             addSpawnPacket(PacketChunkData.load(column).write(registry));
             addDespawnPacket(PacketChunkData.unload(column.x, column.z).write(registry));
 
-            blocks = new BlockStateTree.Builder(registry, column);
+            blocks = new BlockStateTree.Builder(registry, dimensionType, column);
         }
 
         @Override
