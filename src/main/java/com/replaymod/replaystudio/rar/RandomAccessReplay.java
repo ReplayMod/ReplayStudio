@@ -48,8 +48,6 @@ import java.util.logging.Logger;
  * Allows random access (i.e. very quick backwards and forwards seeking) to a replay. This is what powers the Quick Mode
  * in the Replay Mod.
  * Supports 1.9+ only.
- * Does not emit the initial JoinGame packet, usually the replay viewer will need to fake a respawn to switch to quick
- * mode anyway.
  *
  * To do so, it performs an initial analysis of the replay, scanning all of its packets and storing entity positions
  * and chunk states while doing so.
@@ -63,7 +61,7 @@ import java.util.logging.Logger;
 public abstract class RandomAccessReplay {
     private static final String CACHE_ENTRY = "quickModeCache.bin";
     private static final String CACHE_INDEX_ENTRY = "quickModeCacheIndex.bin";
-    private static final int CACHE_VERSION = 5;
+    private static final int CACHE_VERSION = 6;
     private static final Logger LOGGER = Logger.getLogger(RandomAccessReplay.class.getName());
 
     private final ReplayFile replayFile;

@@ -22,60 +22,70 @@ package com.replaymod.replaystudio.rar.state;
 import com.github.steveice10.packetlib.io.NetInput;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
-import com.replaymod.replaystudio.protocol.registry.DimensionType;
 import com.replaymod.replaystudio.rar.PacketSink;
 import com.replaymod.replaystudio.rar.RandomAccessState;
 import com.replaymod.replaystudio.rar.cache.ReadableCache;
 import com.replaymod.replaystudio.rar.cache.WriteableCache;
+import com.replaymod.replaystudio.rar.containers.PacketStateTree;
+import com.replaymod.replaystudio.rar.containers.WorldStateTree;
 
 import java.io.IOException;
 
 public class Replay implements RandomAccessState {
-    private final World world;
+    private final PacketStateTree tags;
+    private final WorldStateTree world;
 
     public Replay(PacketTypeRegistry registry, NetInput in) throws IOException {
-        this.world = new World(registry, in);
+        tags = new PacketStateTree(registry, in.readVarInt());
+        world = new WorldStateTree(registry, this::restoreStateAfterJoinGame, in.readVarInt());
     }
 
     @Override
     public void load(PacketSink sink, ReadableCache cache) throws IOException {
+        tags.load(sink, cache);
         world.load(sink, cache);
     }
 
     @Override
     public void unload(PacketSink sink, ReadableCache cache) throws IOException {
         world.unload(sink, cache);
+        tags.unload(sink, cache);
     }
 
     @Override
     public void play(PacketSink sink, int currentTimeStamp, int targetTime) throws IOException {
+        tags.play(sink, currentTimeStamp, targetTime);
         world.play(sink, currentTimeStamp, targetTime);
     }
 
     @Override
     public void rewind(PacketSink sink, int currentTimeStamp, int targetTime) throws IOException {
+        tags.rewind(sink, currentTimeStamp, targetTime);
         world.rewind(sink, currentTimeStamp, targetTime);
     }
 
+    private void restoreStateAfterJoinGame(PacketSink sink, int targetTime) throws IOException {
+        tags.play(sink, -1, targetTime);
+    }
+
     public static class Builder {
-        private final PacketTypeRegistry registry;
         private final WriteableCache cache;
+        public final PacketStateTree.Builder tags = new PacketStateTree.Builder();
+        private final WorldStateTree.Builder worlds;
         public World.Builder world;
 
         public Builder(PacketTypeRegistry registry, WriteableCache cache) throws IOException {
-            this.registry = registry;
             this.cache = cache;
+            this.worlds = new WorldStateTree.Builder(registry, cache);
         }
 
-        public void newWorld(DimensionType dimensionType) throws IOException {
-            if (this.world != null) {
-                throw new IllegalStateException("Multiple worlds are not yet supported."); // TODO
-            }
-            this.world = new World.Builder(registry, cache, dimensionType);
+        public World.Builder newWorld(int time, World.Info info) throws IOException {
+            return world = worlds.newWorld(time, info);
         }
 
         public void build(NetOutput out, int time) throws IOException {
-            world.build(out, time);
+            out.writeVarInt(tags.build(cache));
+            out.writeVarInt(worlds.build(time));
         }
     }
 }

@@ -19,8 +19,12 @@
 
 package com.replaymod.replaystudio.rar.cache;
 
+import com.github.steveice10.netty.buffer.ByteBuf;
+import com.github.steveice10.netty.buffer.Unpooled;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.github.steveice10.packetlib.io.stream.StreamNetOutput;
+import com.replaymod.replaystudio.util.ByteBufExtNetOutput;
+import com.replaymod.replaystudio.util.Utils;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -40,6 +44,23 @@ public class WriteableCache {
 
     public NetOutput write() {
         return out;
+    }
+
+    public Deferred deferred() {
+        return new Deferred(Unpooled.buffer());
+    }
+
+    public class Deferred extends ByteBufExtNetOutput {
+        private Deferred(ByteBuf buf) {
+            super(buf);
+        }
+
+        public int commit() throws IOException {
+            int index = index();
+            Utils.writeBytes(out, getBuf());
+            getBuf().release();
+            return index;
+        }
     }
 
     private static class CountingOutputStream extends OutputStream {

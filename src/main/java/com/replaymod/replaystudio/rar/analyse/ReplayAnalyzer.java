@@ -41,6 +41,7 @@ import com.replaymod.replaystudio.rar.state.Entity;
 import com.replaymod.replaystudio.rar.state.Replay;
 import com.replaymod.replaystudio.rar.state.Weather;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
+import com.replaymod.replaystudio.rar.state.World;
 import com.replaymod.replaystudio.util.IPosition;
 import com.replaymod.replaystudio.util.Location;
 import com.replaymod.replaystudio.util.PacketUtils;
@@ -59,7 +60,6 @@ import static com.replaymod.replaystudio.protocol.packets.PacketChunkData.Column
 public class ReplayAnalyzer {
     private final PacketTypeRegistry registry;
     private final NetOutput out;
-    private final WriteableCache cache;
     private final Replay.Builder replay;
 
     private int currentViewChunkX = 0;
@@ -67,13 +67,11 @@ public class ReplayAnalyzer {
     private int currentViewDistance = 0;
 
     private final Map<String, PacketPlayerListEntry> playerListEntries = new HashMap<>();
-    private String activeDimension = null;
     private Packet lastLightUpdate = null;
 
     public ReplayAnalyzer(PacketTypeRegistry registry, NetOutput out, WriteableCache cache) throws IOException {
         this.registry = registry;
         this.out = out;
-        this.cache = cache;
         this.replay = new Replay.Builder(registry, cache);
     }
 
@@ -195,19 +193,19 @@ public class ReplayAnalyzer {
                 case Respawn: {
                     PacketRespawn respawn = PacketRespawn.read(packet);
                     String newDimension = respawn.dimension;
-                    if (!newDimension.equals(activeDimension)) {
-                        replay.world.transientThings.flush(time);
+                    if (!newDimension.equals(replay.world.info.dimension)) {
+                        World.Builder world = replay.newWorld(time, new World.Info(replay.world.info, respawn));
+                        if (registry.atLeast(ProtocolVersion.v1_14)) {
+                            currentViewChunkX = currentViewChunkZ = 0;
+                            world.viewPosition.put(time, PacketUpdateViewPosition.write(registry, 0, 0));
+                            world.viewDistance.put(time, PacketUpdateViewDistance.write(registry, currentViewDistance));
+                        }
                     }
-                    activeDimension = newDimension;
                     break;
                 }
                 case JoinGame: {
                     PacketJoinGame joinGame = PacketJoinGame.read(packet);
-                    if (replay.world == null) { // TODO support switching to a different world
-                        replay.newWorld(joinGame.dimensionType);
-                    }
-                    replay.world.transientThings.flush(time);
-                    activeDimension = joinGame.dimension;
+                    replay.newWorld(time, new World.Info(joinGame));
                     if (registry.atLeast(ProtocolVersion.v1_14)) {
                         currentViewChunkX = currentViewChunkZ = 0;
                         replay.world.viewPosition.put(time, PacketUpdateViewPosition.write(registry, 0, 0));
@@ -215,6 +213,10 @@ public class ReplayAnalyzer {
                         currentViewDistance = joinGame.viewDistance;
                         replay.world.viewDistance.put(time, PacketUpdateViewDistance.write(registry, currentViewDistance));
                     }
+                    break;
+                }
+                case Tags: {
+                    replay.tags.put(time, packet.retain());
                     break;
                 }
                 case UpdateViewPosition: {

@@ -19,9 +19,14 @@
 
 package com.replaymod.replaystudio.rar.state;
 
+import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.github.steveice10.packetlib.io.NetInput;
 import com.github.steveice10.packetlib.io.NetOutput;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
+import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
+import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
+import com.replaymod.replaystudio.protocol.packets.PacketRespawn;
 import com.replaymod.replaystudio.protocol.registry.DimensionType;
 import com.replaymod.replaystudio.rar.PacketSink;
 import com.replaymod.replaystudio.rar.RandomAccessState;
@@ -31,8 +36,13 @@ import com.replaymod.replaystudio.rar.containers.PacketStateTree;
 import com.replaymod.replaystudio.rar.containers.TransientThings;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 public class World implements RandomAccessState {
+    public final Info info;
     private final TransientThings transientThings;
     private final PacketStateTree viewPosition; // 1.14+
     private final PacketStateTree viewDistance; // 1.14+
@@ -40,7 +50,8 @@ public class World implements RandomAccessState {
     private final PacketStateTree thunderStrengths; // For some reason, this isn't tied to Weather
 
     public World(PacketTypeRegistry registry, NetInput in) throws IOException {
-        this.transientThings = new TransientThings(registry, in);
+        this.info = new Info(registry, in);
+        this.transientThings = new TransientThings(registry, in.readVarInt());
         this.viewPosition = new PacketStateTree(registry, in.readVarInt());
         this.viewDistance = new PacketStateTree(registry, in.readVarInt());
         this.worldTimes = new PacketStateTree(registry, in.readVarInt());
@@ -85,24 +96,147 @@ public class World implements RandomAccessState {
 
     public static class Builder {
         private final WriteableCache cache;
+        private final PacketTypeRegistry registry;
 
+        public final Info info;
         public final TransientThings.Builder transientThings;
         public final PacketStateTree.Builder viewPosition = new PacketStateTree.Builder();
         public final PacketStateTree.Builder viewDistance = new PacketStateTree.Builder();
         public final PacketStateTree.Builder worldTimes = new PacketStateTree.Builder();
         public final PacketStateTree.Builder thunderStrengths = new PacketStateTree.Builder();
 
-        public Builder(PacketTypeRegistry registry, WriteableCache cache, DimensionType dimensionType) throws IOException {
+        public Builder(PacketTypeRegistry registry, WriteableCache cache, Info info) throws IOException {
+            this.registry = registry;
             this.cache = cache;
-            transientThings = new TransientThings.Builder(registry, cache, dimensionType);
+            this.info = info;
+            transientThings = new TransientThings.Builder(registry, cache, info.dimensionType);
         }
 
         public void build(NetOutput out, int time) throws IOException {
-            transientThings.build(out, time);
+            info.write(registry, out);
+            out.writeVarInt(transientThings.build(time));
             out.writeVarInt(viewPosition.build(cache));
             out.writeVarInt(viewDistance.build(cache));
             out.writeVarInt(worldTimes.build(cache));
             out.writeVarInt(thunderStrengths.build(cache));
+        }
+    }
+
+    public static final class Info {
+        public final List<String> dimensions; // 1.16+
+        public final CompoundTag registry; // 1.16+
+        public final String dimension;
+        public final DimensionType dimensionType;
+        public final long seed; // 1.15+
+        public final int difficulty; // pre 1.14
+        public final boolean debugWorld; // 1.16+
+        public final boolean flatWorld; // 1.16+
+
+        public Info(List<String> dimensions, CompoundTag registry, String dimension, DimensionType dimensionType, long seed, int difficulty, boolean debugWorld, boolean flatWorld) {
+            this.dimensions = dimensions;
+            this.registry = registry;
+            this.dimension = dimension;
+            this.dimensionType = dimensionType;
+            this.seed = seed;
+            this.difficulty = difficulty;
+            this.debugWorld = debugWorld;
+            this.flatWorld = flatWorld;
+        }
+
+        public Info(PacketJoinGame packet) {
+            this(packet.dimensions, packet.registry, packet.dimension, packet.dimensionType, packet.seed, packet.difficulty, packet.debugWorld, packet.flatWorld);
+        }
+
+        public Info(List<String> dimensions, CompoundTag registry, PacketRespawn packet) {
+            this(dimensions, registry, packet.dimension, packet.dimensionType, packet.seed, packet.difficulty, packet.debugWorld, packet.flatWorld);
+        }
+
+        public Info(Info info, PacketRespawn packet) {
+            this(info.dimensions, info.registry, packet);
+        }
+
+        public Info(PacketTypeRegistry registry, NetInput in) throws IOException {
+            this(
+                    registry.atLeast(ProtocolVersion.v1_16) ? Packet.Reader.readList(registry, in, in::readString) : null,
+                    registry.atLeast(ProtocolVersion.v1_16) ? Packet.Reader.readNBT(registry, in) : null,
+                    in.readString(),
+                    new DimensionType(requireNonNull(Packet.Reader.readNBT(registry, in)), in.readString()),
+                    in.readLong(),
+                    in.readByte(),
+                    in.readBoolean(),
+                    in.readBoolean()
+            );
+        }
+
+        public void write(PacketTypeRegistry registry, NetOutput out) throws IOException {
+            if (registry.atLeast(ProtocolVersion.v1_16)) {
+                Packet.Writer.writeList(registry, out, dimensions, out::writeString);
+                Packet.Writer.writeNBT(registry, out, this.registry);
+            }
+            out.writeString(dimension);
+            Packet.Writer.writeNBT(registry, out, dimensionType.getTag());
+            out.writeString(dimensionType.getName());
+            out.writeLong(seed);
+            out.writeByte(difficulty);
+            out.writeBoolean(debugWorld);
+            out.writeBoolean(flatWorld);
+        }
+
+        public boolean isRespawnSufficient(Info other) {
+            // We can get away with skipping the JoinGame packet if none of the relevant info changed
+            return Objects.equals(this.dimensions, other.dimensions)
+                    && Objects.equals(this.registry, other.registry)
+                    // but only if the dimension did change, otherwise a simple respawn is insufficient
+                    && !this.dimension.equals(other.dimension);
+        }
+
+        public PacketJoinGame toPacketJoinGame() {
+            PacketJoinGame joinGame = new PacketJoinGame();
+            joinGame.entityId = -1789435; // arbitrary negative value
+            joinGame.gameMode = 3; // Spectator
+            joinGame.prevGameMode = 3; // Spectator
+            joinGame.dimensions = dimensions;
+            joinGame.registry = registry;
+            joinGame.dimensionType = dimensionType;
+            joinGame.dimension = dimension;
+            joinGame.seed = seed;
+            joinGame.difficulty = difficulty;
+            joinGame.debugWorld = debugWorld;
+            joinGame.flatWorld = flatWorld;
+            return joinGame;
+        }
+
+        public PacketRespawn toRespawnPacket() {
+            PacketRespawn respawn = new PacketRespawn();
+            respawn.gameMode = 3; // Spectator
+            respawn.prevGameMode = 3; // Spectator
+            respawn.dimensionType = dimensionType;
+            respawn.dimension = dimension;
+            respawn.seed = seed;
+            respawn.difficulty = difficulty;
+            respawn.debugWorld = debugWorld;
+            respawn.flatWorld = flatWorld;
+            return respawn;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Info info = (Info) o;
+            return seed == info.seed
+                    && difficulty == info.difficulty
+                    && debugWorld == info.debugWorld
+                    && flatWorld == info.flatWorld
+                    && Objects.equals(dimensions, info.dimensions)
+                    && Objects.equals(registry, info.registry)
+                    && dimension.equals(info.dimension)
+                    && dimensionType.equals(info.dimensionType);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(dimensions, registry, dimension, dimensionType, seed, difficulty, debugWorld, flatWorld);
         }
     }
 }

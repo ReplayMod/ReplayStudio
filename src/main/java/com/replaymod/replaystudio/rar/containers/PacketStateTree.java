@@ -56,7 +56,7 @@ public class PacketStateTree extends FullStateTree<Packet>  {
 
     public static class Builder extends FullStateTree.Builder<Packet> {
         @Override
-        protected void write(NetOutput out, Packet value) throws IOException {
+        protected void write(NetOutput out, Packet value, int time) throws IOException {
             writeCompressedPacket(out, value);
             value.release();
         }

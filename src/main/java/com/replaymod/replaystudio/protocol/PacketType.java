@@ -107,6 +107,7 @@ public enum PacketType {
 	UpdateViewPosition(ProtocolVersion.v1_14, 0x40),
 	UpdateViewDistance(ProtocolVersion.v1_14, 0x41),
     EntitySoundEffect(ProtocolVersion.v1_14, 0x50),
+    Tags(ProtocolVersion.v1_14, 0x5b),
 	PlayerActionAck(ProtocolVersion.v1_14, 0x5c),
 
 	CombatEnd(ProtocolVersion.v1_8, 0x33),

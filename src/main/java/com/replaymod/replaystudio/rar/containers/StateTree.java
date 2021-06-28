@@ -62,7 +62,7 @@ public abstract class StateTree<T> implements RandomAccessState {
 
         protected final TreeMap<Integer, T> map = new TreeMap<>();
 
-        protected abstract void write(NetOutput out, T value) throws IOException;
+        protected abstract void write(NetOutput out, T value, int time) throws IOException;
         protected abstract void discard(T value);
 
         public void put(int time, T value) {
@@ -73,9 +73,7 @@ public abstract class StateTree<T> implements RandomAccessState {
         }
 
         public int build(WriteableCache cache) throws IOException {
-            int index = cache.index();
-
-            NetOutput out = cache.write();
+            WriteableCache.Deferred out = cache.deferred();
             out.writeVarInt(map.size());
             int lastTime = 0;
             for (Map.Entry<Integer, T> entry : map.entrySet()) {
@@ -84,12 +82,12 @@ public abstract class StateTree<T> implements RandomAccessState {
                 lastTime = time;
 
                 T value = entry.getValue();
-                write(out, value);
+                write(out, value, time);
             }
 
             map.clear();
 
-            return index;
+            return out.commit();
         }
     }
 }

@@ -27,6 +27,8 @@ import com.github.steveice10.packetlib.io.NetOutput;
 import com.github.steveice10.packetlib.tcp.io.ByteBufNetInput;
 import com.github.steveice10.packetlib.tcp.io.ByteBufNetOutput;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
+import com.replaymod.replaystudio.util.IOConsumer;
+import com.replaymod.replaystudio.util.IOSupplier;
 import com.replaymod.replaystudio.util.IPosition;
 
 import java.io.ByteArrayInputStream;
@@ -34,7 +36,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -216,6 +220,19 @@ public class Packet {
                 return BitSet.valueOf(new long[] { in.readUnsignedShort() });
             }
         }
+
+        public <T> List<T> readList(IOSupplier<T> entryReader) throws IOException {
+            return readList(packet.registry, this, entryReader);
+        }
+
+        public static <T> List<T> readList(PacketTypeRegistry registry, NetInput in, IOSupplier<T> entryReader) throws IOException {
+            int len = in.readVarInt();
+            List<T> result = new ArrayList<>(len);
+            for (int i = 0; i < len; i++) {
+                result.add(entryReader.get());
+            }
+            return result;
+        }
     }
 
     public static class Writer extends ByteBufNetOutput implements AutoCloseable {
@@ -297,6 +314,17 @@ public class Packet {
                 } else {
                     out.writeShort((int) value);
                 }
+            }
+        }
+
+        public <T> void writeList(List<T> list, IOConsumer<T> entryWriter) throws IOException {
+            writeList(packet.registry, this, list, entryWriter);
+        }
+
+        public static <T> void writeList(PacketTypeRegistry registry, NetOutput out, List<T> list, IOConsumer<T> entryWriter) throws IOException {
+            out.writeVarInt(list.size());
+            for (T entry : list) {
+                entryWriter.consume(entry);
             }
         }
     }

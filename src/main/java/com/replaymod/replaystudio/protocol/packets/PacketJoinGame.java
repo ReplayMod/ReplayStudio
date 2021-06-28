@@ -47,6 +47,27 @@ public class PacketJoinGame {
     public boolean debugWorld; // 1.16+
     public boolean flatWorld; // 1.16+
 
+    public PacketJoinGame() {
+    }
+
+    public PacketJoinGame(PacketJoinGame other) {
+        this.entityId = other.entityId;
+        this.hardcore = other.hardcore;
+        this.gameMode = other.gameMode;
+        this.prevGameMode = other.prevGameMode;
+        this.dimensions = other.dimensions;
+        this.registry = other.registry;
+        this.dimensionType = other.dimensionType;
+        this.dimension = other.dimension;
+        this.seed = other.seed;
+        this.difficulty = other.difficulty;
+        this.maxPlayers = other.maxPlayers;
+        this.viewDistance = other.viewDistance;
+        this.reducedDebugInfo = other.reducedDebugInfo;
+        this.respawnScreen = other.respawnScreen;
+        this.debugWorld = other.debugWorld;
+        this.flatWorld = other.flatWorld;
+    }
 
     public static PacketJoinGame read(Packet packet) throws IOException {
         try (Packet.Reader in = packet.reader()) {

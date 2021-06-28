@@ -19,10 +19,7 @@
 
 package com.replaymod.replaystudio.rar.containers;
 
-import com.github.steveice10.netty.buffer.ByteBuf;
-import com.github.steveice10.netty.buffer.Unpooled;
 import com.github.steveice10.packetlib.io.NetInput;
-import com.github.steveice10.packetlib.io.NetOutput;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
 import com.replaymod.replaystudio.protocol.Packet;
@@ -37,8 +34,6 @@ import com.replaymod.replaystudio.rar.state.Chunk;
 import com.replaymod.replaystudio.rar.state.Entity;
 import com.replaymod.replaystudio.rar.state.TransientThing;
 import com.replaymod.replaystudio.rar.state.Weather;
-import com.replaymod.replaystudio.util.ByteBufExtNetOutput;
-import com.replaymod.replaystudio.util.Utils;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
@@ -59,9 +54,20 @@ public class TransientThings implements RandomAccessState {
     private int activeThingsTime = -1;
     private final List<TransientThing> activeThings = new LinkedList<>();
 
+    private final PacketTypeRegistry registry;
+    private final int index;
     private ReadableCache cache;
 
-    public TransientThings(PacketTypeRegistry registry, NetInput in) throws IOException {
+    public TransientThings(PacketTypeRegistry registry, int index) {
+        this.registry = registry;
+        this.index = index;
+    }
+
+    @Override
+    public void load(PacketSink sink, ReadableCache cache) throws IOException {
+        this.cache = cache;
+
+        NetInput in = cache.seek(index);
         ListMultimap<Integer, TransientThing> thingSpawns = Multimaps.newListMultimap(this.thingSpawns, ArrayList::new);
         ListMultimap<Integer, TransientThing> thingDespawns = Multimaps.newListMultimap(this.thingDespawns, ArrayList::new);
         things: while (true) {
@@ -79,15 +85,15 @@ public class TransientThings implements RandomAccessState {
     }
 
     @Override
-    public void load(PacketSink sink, ReadableCache cache) throws IOException {
-        this.cache = cache;
-
-        // TODO spawn things?
-    }
-
-    @Override
     public void unload(PacketSink sink, ReadableCache cache) throws IOException {
-        // TODO despawn things?
+        for (TransientThing activeThing : activeThings) {
+            activeThing.unload(sink, cache);
+        }
+        activeThings.clear();
+        activeThingsTime = -1;
+
+        thingSpawns.clear();
+        thingDespawns.clear();
     }
 
     private void computeActiveThings(int time) throws IOException {
@@ -176,8 +182,7 @@ public class TransientThings implements RandomAccessState {
     public static class Builder {
         private final PacketTypeRegistry registry;
         private final WriteableCache cache;
-        private final ByteBuf indexBuf = Unpooled.buffer();
-        private final ByteBufExtNetOutput indexOut = new ByteBufExtNetOutput(indexBuf);
+        private final WriteableCache.Deferred indexOut;
 
         private final DimensionType dimensionType;
         private final Long2ObjectMap<Entity.Builder> entities = new Long2ObjectOpenHashMap<>();
@@ -187,6 +192,7 @@ public class TransientThings implements RandomAccessState {
         public Builder(PacketTypeRegistry registry, WriteableCache cache, DimensionType dimensionType) {
             this.registry = registry;
             this.cache = cache;
+            this.indexOut = cache.deferred();
             this.dimensionType = dimensionType;
         }
 
@@ -282,12 +288,11 @@ public class TransientThings implements RandomAccessState {
             weather.clear();
         }
 
-        public void build(NetOutput out, int time) throws IOException {
+        public int build(int time) throws IOException {
             flush(time);
             indexOut.writeByte(0);
 
-            Utils.writeBytes(out, indexBuf);
-            indexBuf.release();
+            return indexOut.commit();
         }
     }
 }

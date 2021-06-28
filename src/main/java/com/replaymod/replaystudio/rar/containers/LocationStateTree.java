@@ -45,7 +45,7 @@ public abstract class LocationStateTree extends FullStateTree<Location>  {
 
     public static class Builder extends FullStateTree.Builder<Location> {
         @Override
-        protected void write(NetOutput out, Location value) throws IOException {
+        protected void write(NetOutput out, Location value, int time) throws IOException {
             out.writeDouble(value.getX());
             out.writeDouble(value.getY());
             out.writeDouble(value.getZ());

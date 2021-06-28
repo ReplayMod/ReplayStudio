@@ -142,7 +142,7 @@ public class BlockStateTree extends DiffStateTree<Collection<BlockStateTree.Bloc
         }
 
         @Override
-        protected void write(NetOutput out, Collection<BlockChange> value) throws IOException {
+        protected void write(NetOutput out, Collection<BlockChange> value, int time) throws IOException {
             out.writeVarInt(value.size());
             for (BlockChange blockChange : value) {
                 Packet.Writer.writePosition(registry, out, blockChange.pos);
