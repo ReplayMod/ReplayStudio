@@ -665,7 +665,7 @@ public class PacketChunkData {
                     FlexibleStorage oldStorage = this.storage;
                     this.storage = FlexibleStorage.empty(this.registry, this.bitsPerEntry, this.storage.entries);
                     for(int index = 0; index < this.storage.entries; index++) {
-                        this.storage.set(index, this.bitsPerEntry <= 8 ? oldStorage.get(index) : oldStates.get(index));
+                        this.storage.set(index, oldStorage.get(index));
                     }
                 }
 
