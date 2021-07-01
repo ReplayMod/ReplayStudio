@@ -671,6 +671,16 @@ public class PacketChunkData {
                         } else {
                             this.bitsPerEntry = 13;
                         }
+
+                        // Luckily, we currently only modify the block storage for internal tracking, and as long as
+                        // we don't send it, the actual size we use doesn't really matter and we can just increase it
+                        // if it turns out to have been too small.
+                        // We do this here initially, and then also below immediately before `set` if the new id is OOB.
+                        int bitsUsed = (1 << this.bitsPerEntry) - 1;
+                        for (int i = 0; i < this.storage.entries; i++) {
+                            bitsUsed |= this.storage.get(i);
+                        }
+                        this.bitsPerEntry = 32 - Integer.numberOfLeadingZeros(bitsUsed);
                     }
 
                     FlexibleStorage oldStorage = this.storage;
@@ -691,6 +701,17 @@ public class PacketChunkData {
                 this.blockCount--;
             }
 
+            if (this.bitsPerEntry > 8 && id > this.storage.maxEntryValue) {
+                // Workaround for us not knowing the size of the global palette. See the two comment blocks above.
+                // Determine how many bits we need per entry to fit this id
+                this.bitsPerEntry = 32 - Integer.numberOfLeadingZeros(id);
+                // Convert old storage to new entry size
+                FlexibleStorage oldStorage = this.storage;
+                this.storage = FlexibleStorage.empty(this.registry, this.bitsPerEntry, this.storage.entries);
+                for (int i = 0; i < this.storage.entries; i++) {
+                    this.storage.set(i, oldStorage.get(i));
+                }
+            }
             this.storage.set(ind, id);
         }
 
