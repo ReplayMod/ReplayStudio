@@ -200,22 +200,6 @@ public class SquashFilter implements StreamFilter {
         List<PacketData> flushedPackets = new ArrayList<>();
         onEnd(new IteratorStream(flushedPackets.listIterator(), (PacketStream.FilterInfo) null), 0);
 
-        // Release buffer references
-        release();
-
-        // Reset emitted state
-        teams.clear();
-        entities.clear();
-        loginPhase.clear();
-        unhandled.clear();
-        mainInventoryChanges.clear();
-        maps.clear();
-        currentWorld.clear();
-        currentWindow.clear();
-        closeWindows.clear();
-        latestOnly.clear();
-        chunks.clear();
-
         // Store the flushed packets in the login phase list
         // They aren't technically login phase but like the login phase, they must be emitted first.
         loginPhase.addAll(flushedPackets);
@@ -508,6 +492,7 @@ public class SquashFilter implements StreamFilter {
         for (PacketData data : loginPhase) {
             stream.insert(timestamp, data.getPacket());
         }
+        loginPhase.clear();
 
         // Join/respawn packet must be the first packet
         PacketData join = latestOnly.remove(PacketType.JoinGame);
@@ -538,6 +523,12 @@ public class SquashFilter implements StreamFilter {
         result.addAll(closeWindows);
         result.addAll(mainInventoryChanges.values());
         result.addAll(latestOnly.values());
+        unhandled.clear();
+        currentWorld.clear();
+        currentWindow.clear();
+        closeWindows.clear();
+        mainInventoryChanges.clear();
+        latestOnly.clear();
 
         for (Map.Entry<Integer, Entity> e : entities.entrySet()) {
             Entity entity = e.getValue();
@@ -580,6 +571,7 @@ public class SquashFilter implements StreamFilter {
                         registry, e.getKey(), null, Pair.of(entity.yaw, entity.pitch), entity.onGround)));
             }
         }
+        entities.clear();
 
         for (Map.Entry<Long, Long> e : unloadedChunks.entrySet()) {
             int x = ColumnPos.longToX(e.getKey());
@@ -609,6 +601,7 @@ public class SquashFilter implements StreamFilter {
                         chunk.x, chunk.z, Arrays.asList(chunk.skyLight), Arrays.asList(chunk.blockLight)).write(registry)));
             }
         }
+        chunks.clear();
 
         result.sort(Comparator.comparingLong(PacketData::getTime));
         for (PacketData data : result) {
@@ -633,10 +626,12 @@ public class SquashFilter implements StreamFilter {
                 }
             }
         }
+        teams.clear();
 
         for (Packet packet : maps.values()) {
             add(stream, timestamp, packet);
         }
+        maps.clear();
     }
 
     @Override
