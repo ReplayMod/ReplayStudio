@@ -659,7 +659,18 @@ public class PacketChunkData {
                     if(this.bitsPerEntry > 8) {
                         oldStates = new ArrayList<Integer>(this.states);
                         this.states.clear();
-                        this.bitsPerEntry = 13;
+                        // These match the size of the vanilla global palette and may be incorrect when it comes to
+                        // modded servers.
+                        // Unfortunately there is no easy way to determine what the actual size of the global palette
+                        // should be without having to parse the mod loader handshake. Which is annoying, so it has not
+                        // yet been implemented.
+                        if (registry.atLeast(ProtocolVersion.v1_16)) {
+                            this.bitsPerEntry = 15;
+                        } else if (registry.atLeast(ProtocolVersion.v1_13)) {
+                            this.bitsPerEntry = 14;
+                        } else {
+                            this.bitsPerEntry = 13;
+                        }
                     }
 
                     FlexibleStorage oldStorage = this.storage;
