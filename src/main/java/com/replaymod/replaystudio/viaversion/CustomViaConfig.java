@@ -20,6 +20,7 @@ package com.replaymod.replaystudio.viaversion;
 
 import com.replaymod.replaystudio.lib.viaversion.api.configuration.ViaVersionConfig;
 import com.replaymod.replaystudio.lib.viaversion.libs.fastutil.ints.IntSet;
+import com.replaymod.replaystudio.lib.viaversion.libs.gson.JsonElement;
 
 // Configured as per recommendations at https://docs.viaversion.com/display/VIAVERSION/Configuration
 public class CustomViaConfig implements ViaVersionConfig {
@@ -295,5 +296,10 @@ public class CustomViaConfig implements ViaVersionConfig {
     @Override
     public boolean isForcedUse1_17ResourcePack() {
         return false;
+    }
+
+    @Override
+    public JsonElement get1_17ResourcePackPrompt() {
+        return null;
     }
 }

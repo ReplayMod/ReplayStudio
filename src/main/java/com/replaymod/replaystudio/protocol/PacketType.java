@@ -45,7 +45,7 @@ public enum PacketType {
 	SpawnPainting(ProtocolVersion.v1_7_6, 0x10),
 	SpawnExpOrb(ProtocolVersion.v1_7_6, 0x11),
 	EntityVelocity(ProtocolVersion.v1_7_6, 0x12),
-	DestroyEntities(ProtocolVersion.v1_7_6, 0x13), // removed in 1.17
+	DestroyEntities(ProtocolVersion.v1_7_6, 0x13), // removed in 1.17, re-added in 1.17.1
 	EntityMovement(ProtocolVersion.v1_7_6, 0x14), // removed in 1.17
 	EntityPosition(ProtocolVersion.v1_7_6, 0x15),
 	EntityRotation(ProtocolVersion.v1_7_6, 0x16),
@@ -113,7 +113,7 @@ public enum PacketType {
 	CombatEnd(ProtocolVersion.v1_8, 0x33),
 	CombatEnter(ProtocolVersion.v1_8, 0x34),
 	CombatEntityDead(ProtocolVersion.v1_8, 0x35),
-	DestroyEntity(ProtocolVersion.v1_17, 0x3a),
+	DestroyEntity(ProtocolVersion.v1_17, 0x3a), // removed in 1.17.1, that didn't last long
 	;
 
     private final State state;

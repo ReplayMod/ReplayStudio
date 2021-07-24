@@ -18,6 +18,7 @@
  */
 package com.replaymod.replaystudio.protocol.packets;
 
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.protocol.Packet;
 
 import java.io.IOException;
@@ -32,6 +33,9 @@ public class PacketSetSlot {
     public static int getSlot(Packet packet) throws IOException {
         try (Packet.Reader in = packet.reader()) {
             in.readUnsignedByte(); // window id
+            if (packet.atLeast(ProtocolVersion.v1_17_1)) {
+                in.readVarInt(); // revision
+            }
             return in.readShort();
         }
     }

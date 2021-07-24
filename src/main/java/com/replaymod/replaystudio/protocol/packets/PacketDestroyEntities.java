@@ -45,30 +45,31 @@ public class PacketDestroyEntities {
     }
 
     public static Collection<Packet> write(PacketTypeRegistry registry, int...entityIds) throws IOException {
-        if (registry.atLeast(ProtocolVersion.v1_17)) {
+        if (registry.atLeast(ProtocolVersion.v1_17) && registry.olderThan(ProtocolVersion.v1_17_1)) {
             List<Packet> packets = new ArrayList<>(entityIds.length);
             for (int entityId : entityIds) {
                 packets.add(write(registry, entityId));
             }
             return packets;
         } else {
-            return Collections.singletonList(writePre1_17(registry, entityIds));
+            return Collections.singletonList(writeDestroyEntities(registry, entityIds));
         }
     }
 
     public static Packet write(PacketTypeRegistry registry, int entityId) throws IOException {
-        if (registry.atLeast(ProtocolVersion.v1_17)) {
+        if (registry.atLeast(ProtocolVersion.v1_17) && registry.olderThan(ProtocolVersion.v1_17_1)) {
             Packet packet = new Packet(registry, PacketType.DestroyEntity);
             try (Packet.Writer out = packet.overwrite()) {
                 out.writeVarInt(entityId);
             }
             return packet;
         } else {
-            return writePre1_17(registry, entityId);
+            return writeDestroyEntities(registry, entityId);
         }
     }
 
-    private static Packet writePre1_17(PacketTypeRegistry registry, int...entityIds) throws IOException {
+    // All versions except 1.17.0
+    private static Packet writeDestroyEntities(PacketTypeRegistry registry, int...entityIds) throws IOException {
         Packet packet = new Packet(registry, PacketType.DestroyEntities);
         try (Packet.Writer out = packet.overwrite()) {
             if (packet.atLeast(ProtocolVersion.v1_8)) {

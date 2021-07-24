@@ -27,6 +27,8 @@ import com.replaymod.replaystudio.lib.viaversion.api.protocol.Protocol;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_14to1_13_2.Protocol1_14To1_13_2;
 import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_16to1_15_2.Protocol1_16To1_15_2;
+import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_17_1to1_17.Protocol1_17_1To1_17;
+import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_17to1_16_4.Protocol1_17To1_16_4;
 import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_9to1_8.Protocol1_9To1_8;
 import com.replaymod.replaystudio.viaversion.CustomViaManager;
 import org.apache.commons.lang3.tuple.Pair;
@@ -102,7 +104,22 @@ public class PacketTypeRegistry {
                     int newId = idMapping.getValue();
                     if (oldId == id) {
                         if (newId == -1) {
-                            continue packets; // packet no longer exists in this version
+                            // Packet no longer exists in this version.
+
+                            // Special case: Minecraft replaces the DestroyEntities packet in 1.17 with a singe-entity
+                            //               variant, only to revert that change in 1.17.1. So let's keep that around
+                            //               if we are not stopping at 1.17.
+                            if (protocol instanceof Protocol1_17To1_16_4 && packetType == PacketType.DestroyEntities && version != ProtocolVersion.v1_17) {
+                                // ViaVersion maps the newly introduced DestroyEntity back to the good old
+                                // DestroyEntities in 1.17.1, but not the other way around (cause it has to emit many
+                                // packets for one), so if we just manually map to DestroyEntity here, it'll map back
+                                // in 1.17.1 for us.
+                                id = PacketType.DestroyEntity.getInitialId();
+                                wasReplaced = false;
+                                break;
+                            }
+
+                            continue packets;
                         }
                         id = newId;
                         wasReplaced = false;
@@ -128,6 +145,12 @@ public class PacketTypeRegistry {
                 // Special case: ViaVersion cancels the Update Entity NBT packets unconditionally, instead of setting
                 //               their newId to -1.
                 if (protocol instanceof Protocol1_9To1_8 && packetType == PacketType.EntityNBTUpdate) {
+                    wasReplaced = true;
+                }
+
+                // Special case: ViaVersion remaps the DestroyEntity packet into a DestroyEntities. thought they're
+                //               logically distinct packets for us.
+                if (protocol instanceof Protocol1_17_1To1_17 && packetType == PacketType.DestroyEntity) {
                     wasReplaced = true;
                 }
 
