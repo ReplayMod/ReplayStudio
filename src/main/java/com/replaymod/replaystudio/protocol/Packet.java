@@ -215,7 +215,15 @@ public class Packet {
             if (registry.atLeast(ProtocolVersion.v1_17)) {
                 return BitSet.valueOf(in.readLongs(in.readVarInt()));
             } else if (registry.atLeast(ProtocolVersion.v1_9)) {
-                return BitSet.valueOf(new long[] { in.readVarInt() });
+                int value = in.readVarInt();
+                // There appear to be some broken server implementations which write the lower 31 bits as they should be
+                // but then have the 32nd bit set (i.e. the whole number is negative).
+                // Pre-1.18 only ever reads the first 18 bits (for PacketUpdateLight) or 16 bits (for PacketChunkData),
+                // so this issue does not affect vanilla playback. It does affect our parsing though cause we take the
+                // masks at face value.
+                // So, to work around these broken masks, we ignore the highest bit.
+                value = value & ~0x80000000;
+                return BitSet.valueOf(new long[] { value });
             } else {
                 return BitSet.valueOf(new long[] { in.readUnsignedShort() });
             }
