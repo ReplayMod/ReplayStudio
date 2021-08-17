@@ -281,7 +281,10 @@ public class ReplayAnalyzer {
         replay.build(out, time);
     }
 
-    private void invalidateOutOfBoundsChunks(int time, int centerX, int centerZ, int distance) throws IOException {
+    private void invalidateOutOfBoundsChunks(int time, int centerX, int centerZ, int viewDistance) throws IOException {
+        // For some reason MC does not transmit the actual value, instead we have to compute it ourselves.
+        int distance = Math.max(2, viewDistance) + 3;
+
         LongSet toBeRemoved = new LongOpenHashSet();
 
         for (Long2ObjectMap.Entry<Chunk.Builder> entry : replay.world.transientThings.getChunks().long2ObjectEntrySet()) {
