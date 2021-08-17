@@ -110,9 +110,9 @@ public enum PacketType {
     Tags(ProtocolVersion.v1_14, 0x5b),
 	PlayerActionAck(ProtocolVersion.v1_14, 0x5c),
 
-	CombatEnd(ProtocolVersion.v1_8, 0x33),
-	CombatEnter(ProtocolVersion.v1_8, 0x34),
-	CombatEntityDead(ProtocolVersion.v1_8, 0x35),
+    CombatEnd(ProtocolVersion.v1_17, 0x33),
+    CombatEnter(ProtocolVersion.v1_17, 0x34),
+    CombatEntityDead(ProtocolVersion.v1_17, 0x35),
 	DestroyEntity(ProtocolVersion.v1_17, 0x3a), // removed in 1.17.1, that didn't last long
 	;
 
