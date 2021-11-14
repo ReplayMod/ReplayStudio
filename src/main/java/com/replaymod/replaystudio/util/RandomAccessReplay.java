@@ -32,6 +32,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.io.ReplayInputStream;
+import com.replaymod.replaystudio.lib.viaversion.api.minecraft.chunks.PaletteType;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.packets.PacketBlockChange;
@@ -290,7 +291,7 @@ public abstract class RandomAccessReplay<T> {
                         break;
                     }
                     case ChunkData: {
-                        PacketChunkData chunkData = PacketChunkData.read(packet);
+                        PacketChunkData chunkData = PacketChunkData.read(packet, 24);
                         PacketChunkData.Column column = chunkData.getColumn();
                         if (column.isFull()) {
                             Packet initialLight = null;
@@ -316,8 +317,8 @@ public abstract class RandomAccessReplay<T> {
                                         sectionY++;
                                         continue;
                                     }
-                                    PacketChunkData.BlockStorage toBlocks = section.blocks;
-                                    PacketChunkData.BlockStorage fromBlocks = chunk.currentBlockState[sectionY];
+                                    PacketChunkData.PalettedStorage toBlocks = section.blocks;
+                                    PacketChunkData.PalettedStorage fromBlocks = chunk.currentBlockState[sectionY];
                                     for (int y = 0; y < 16; y++) {
                                         for (int z = 0; z < 16; z++) {
                                             for (int x = 0; x < 16; x++) {
@@ -361,7 +362,7 @@ public abstract class RandomAccessReplay<T> {
                         break;
                     }
                     case UnloadChunk: {
-                        PacketChunkData chunkData = PacketChunkData.read(packet);
+                        PacketChunkData chunkData = PacketChunkData.readUnload(packet);
                         Chunk prev = activeChunks.remove(coordToLong(chunkData.getUnloadX(), chunkData.getUnloadZ()));
                         if (prev != null) {
                             index = prev.writeToCache(indexOut, out, time, index);
@@ -374,7 +375,7 @@ public abstract class RandomAccessReplay<T> {
                             IPosition pos = record.getPosition();
                             Chunk chunk = activeChunks.get(coordToLong(pos.getX() >> 4, pos.getZ() >> 4));
                             if (chunk != null) {
-                                PacketChunkData.BlockStorage blockStorage = chunk.currentBlockState[pos.getY() >> 4];
+                                PacketChunkData.PalettedStorage blockStorage = chunk.currentBlockState[pos.getY() >> 4];
                                 int x = pos.getX() & 15, y = pos.getY() & 15, z = pos.getZ() & 15;
                                 int prevState = blockStorage.get(x, y, z);
                                 int newState = record.getId();
@@ -979,7 +980,7 @@ public abstract class RandomAccessReplay<T> {
     private class Chunk extends TrackedThing {
         private TreeMap<Integer, Collection<BlockChange>> blocksT = new TreeMap<>();
         private ListMultimap<Integer, BlockChange> blocks = Multimaps.newListMultimap(blocksT, LinkedList::new); // LinkedList to allow .descendingIterator
-        private PacketChunkData.BlockStorage[] currentBlockState = new PacketChunkData.BlockStorage[16];
+        private PacketChunkData.PalettedStorage[] currentBlockState = new PacketChunkData.PalettedStorage[16];
 
         private Chunk(PacketChunkData.Column column, Packet initialLight) throws IOException {
             super(initialLight == null
@@ -988,7 +989,7 @@ public abstract class RandomAccessReplay<T> {
                     Collections.singletonList(PacketChunkData.unload(column.x, column.z).write(registry)));
             PacketChunkData.Chunk[] chunks = column.chunks;
             for (int i = 0; i < currentBlockState.length; i++) {
-                currentBlockState[i] = chunks[i] == null ? new PacketChunkData.BlockStorage(registry) : chunks[i].blocks.copy();
+                currentBlockState[i] = chunks[i] == null ? new PacketChunkData.PalettedStorage(PaletteType.BLOCKS, registry) : chunks[i].blocks.copy();
             }
         }
 

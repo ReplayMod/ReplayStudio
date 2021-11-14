@@ -39,6 +39,7 @@ import com.replaymod.replaystudio.protocol.packets.PacketSetSlot;
 import com.replaymod.replaystudio.protocol.packets.PacketTeam;
 import com.replaymod.replaystudio.protocol.packets.PacketUpdateLight;
 import com.replaymod.replaystudio.protocol.packets.PacketWindowItems;
+import com.replaymod.replaystudio.protocol.registry.DimensionType;
 import com.replaymod.replaystudio.stream.IteratorStream;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.util.DPosition;
@@ -171,8 +172,22 @@ public class SquashFilter implements StreamFilter {
      */
     private String dimension;
 
+    /**
+     * Starting with 1.18, we need to know the height of our dimension to be able to parse a chunk packet.
+     */
+    private DimensionType dimensionType;
+
+    public SquashFilter(String dimension, DimensionType dimensionType) {
+        this.dimension = dimension;
+        this.dimensionType = dimensionType;
+    }
+
+    public SquashFilter(DimensionTracker dimensionTracker) {
+        this(dimensionTracker.dimension, dimensionTracker.dimensionType);
+    }
+
     public SquashFilter copy() {
-        SquashFilter copy = new SquashFilter();
+        SquashFilter copy = new SquashFilter(this.dimension, this.dimensionType);
         copy.registry = this.registry;
         copy.forgeHandshake = this.forgeHandshake;
         this.teams.forEach((key, value) -> copy.teams.put(key, value.copy()));
@@ -187,7 +202,6 @@ public class SquashFilter implements StreamFilter {
         this.latestOnly.forEach((key, value) -> copy.latestOnly.put(key, value.copy()));
         this.chunks.forEach((key, value) -> copy.chunks.put(key, value.copy()));
         copy.unloadedChunks.putAll(this.unloadedChunks);
-        copy.dimension = this.dimension;
         return copy;
     }
 
@@ -297,7 +311,8 @@ public class SquashFilter implements StreamFilter {
             case SpawnParticle:
                 break;
             case Respawn: {
-                String newDimension = PacketRespawn.read(packet).dimension;
+                PacketRespawn packetRespawn = PacketRespawn.read(packet);
+                String newDimension = packetRespawn.dimension;
                 if (dimension == null) {
                     // We do not know which dimension we are current in, so we cannot know how to handle this packet.
                     // Instead we flush all state accumulated so far, and then start fresh with the newly
@@ -314,6 +329,7 @@ public class SquashFilter implements StreamFilter {
                     entities.clear();
                 }
                 dimension = newDimension;
+                dimensionType = packetRespawn.dimensionType;
 
                 PacketData prev = this.latestOnly.put(type, data.retain());
                 if (prev != null) {
@@ -330,7 +346,9 @@ public class SquashFilter implements StreamFilter {
                 currentWindow.clear();
                 entities.values().forEach(Entity::release);
                 entities.clear();
-                dimension = PacketJoinGame.read(packet).dimension;
+                PacketJoinGame packetJoinGame = PacketJoinGame.read(packet);
+                dimension = packetJoinGame.dimension;
+                dimensionType = packetJoinGame.dimensionType;
                 forgeHandshake = false;
             case SetExperience:
             case PlayerAbilities:
@@ -348,11 +366,11 @@ public class SquashFilter implements StreamFilter {
                 chunks.computeIfAbsent(
                         ColumnPos.coordToLong(updateLight.getX(), updateLight.getZ()),
                         idx -> new ChunkData(data.getTime(), updateLight.getX(), updateLight.getZ())
-                ).updateLight(updateLight);
+                ).updateLight(updateLight.getData());
                 break;
             case ChunkData:
             case UnloadChunk:
-                PacketChunkData chunkData = PacketChunkData.read(packet);
+                PacketChunkData chunkData = PacketChunkData.read(packet, dimensionType.getSections());
                 if (chunkData.isUnload()) {
                     unloadChunk(data.getTime(), chunkData.getUnloadX(), chunkData.getUnloadZ());
                 } else {
@@ -580,8 +598,14 @@ public class SquashFilter implements StreamFilter {
         }
 
         for (ChunkData chunk : chunks.values()) {
+            PacketUpdateLight.Data lightData = new PacketUpdateLight.Data(
+                    Arrays.asList(chunk.skyLight),
+                    Arrays.asList(chunk.blockLight)
+            );
             Column column = new Column(
-                    chunk.x, chunk.z, chunk.changes, chunk.biomeData, chunk.tileEntities, chunk.heightmaps, chunk.biomes, chunk.useExistingLightData
+                    chunk.x, chunk.z, chunk.changes,
+                    chunk.biomeData, chunk.tileEntities, chunk.heightmaps, chunk.biomes, chunk.useExistingLightData,
+                    lightData
             );
             if (column.isFull() || !Utils.containsOnlyNull(chunk.changes)) {
                 result.add(new PacketData(chunk.firstAppearance, PacketChunkData.load(column).write(registry)));
@@ -596,9 +620,9 @@ public class SquashFilter implements StreamFilter {
             for (MutablePair<Long, PacketBlockChange> pair : chunk.allBlockChanges.values()) {
                 result.add(new PacketData(pair.getLeft(), pair.getRight().write(registry)));
             }
-            if (chunk.hasLight()) {
-                result.add(new PacketData(chunk.firstAppearance, new PacketUpdateLight(
-                        chunk.x, chunk.z, Arrays.asList(chunk.skyLight), Arrays.asList(chunk.blockLight)).write(registry)));
+            if (chunk.hasLight() && registry.olderThan(ProtocolVersion.v1_18)) {
+                result.add(new PacketData(chunk.firstAppearance,
+                        new PacketUpdateLight(chunk.x, chunk.z, lightData).write(registry)));
             }
         }
         chunks.clear();
@@ -676,6 +700,9 @@ public class SquashFilter implements StreamFilter {
                 column.biomes,
                 column.useExistingLightData
         );
+        if (column.lightData != null) { // 1.18+
+            chunk.updateLight(column.lightData);
+        }
     }
 
     private class ChunkData {
@@ -691,7 +718,7 @@ public class SquashFilter implements StreamFilter {
         private Map<Short, MutablePair<Long, PacketBlockChange>>[] blockChanges = new Map[16]; // pre 1.17
         private final Map<Integer, MutablePair<Long, PacketBlockChange>> allBlockChanges = new HashMap<>(); // 1.17+
         // 1.9+
-        private CompoundTag[] tileEntities;
+        private PacketChunkData.TileEntity[] tileEntities;
         // 1.14+
         private CompoundTag heightmaps;
         private byte[][] skyLight = new byte[0][];
@@ -734,7 +761,7 @@ public class SquashFilter implements StreamFilter {
         void update(
                 Chunk[] newChunks,
                 byte[] newBiomeData, // pre 1.15
-                CompoundTag[] newTileEntities, // 1.9+
+                PacketChunkData.TileEntity[] newTileEntities, // 1.9+
                 CompoundTag newHeightmaps, // 1.14+
                 int[] newBiomes, // 1.15+
                 boolean useExistingLightData // 1.16+
@@ -769,9 +796,9 @@ public class SquashFilter implements StreamFilter {
             }
         }
 
-        private void updateLight(PacketUpdateLight packet) { // 1.14+
-            List<byte[]> skyLightUpdates = packet.getSkyLight();
-            List<byte[]> blockLightUpdates = packet.getBlockLight();
+        private void updateLight(PacketUpdateLight.Data data) { // 1.14+
+            List<byte[]> skyLightUpdates = data.skyLight;
+            List<byte[]> blockLightUpdates = data.blockLight;
 
             if (skyLight.length < skyLightUpdates.size()) {
                 skyLight = Arrays.copyOf(skyLight, skyLightUpdates.size());

@@ -23,10 +23,11 @@ import com.github.steveice10.packetlib.io.NetInput;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.github.steveice10.packetlib.io.stream.StreamNetInput;
 import com.github.steveice10.packetlib.io.stream.StreamNetOutput;
+import com.replaymod.replaystudio.lib.viaversion.api.minecraft.chunks.PaletteType;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
-import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.ByteArrayInputStream;
@@ -46,18 +47,26 @@ public class PacketChunkData {
     private int unloadX;
     private int unloadZ;
 
-    public static PacketChunkData read(Packet packet) throws IOException {
+    public static PacketChunkData read(Packet packet, int sections) throws IOException {
         PacketChunkData chunkData = new PacketChunkData();
         try (Packet.Reader reader = packet.reader()) {
             if (packet.atLeast(ProtocolVersion.v1_9)) {
                 if (packet.getType() == PacketType.UnloadChunk) {
                     chunkData.readUnload(reader);
                 } else {
-                    chunkData.readLoad(packet, reader);
+                    chunkData.readLoad(packet, reader, sections);
                 }
             } else {
-                chunkData.readLoad(packet, reader);
+                chunkData.readLoad(packet, reader, sections);
             }
+        }
+        return chunkData;
+    }
+
+    public static PacketChunkData readUnload(Packet packet) throws IOException {
+        PacketChunkData chunkData = new PacketChunkData();
+        try (Packet.Reader reader = packet.reader()) {
+            chunkData.readUnload(reader);
         }
         return chunkData;
     }
@@ -185,7 +194,7 @@ public class PacketChunkData {
         chunkData.unloadZ = chunkZ;
 
         // Pre 1.9
-        chunkData.column = new Column(chunkX, chunkZ, new Chunk[16], new byte[256], null, null, null, false);
+        chunkData.column = new Column(chunkX, chunkZ, new Chunk[16], new byte[256], null, null, null, false, null);
 
         return chunkData;
     }
@@ -220,7 +229,7 @@ public class PacketChunkData {
         out.writeInt(this.unloadZ);
     }
 
-    private void readLoad(Packet packet, Packet.Reader in) throws IOException {
+    private void readLoad(Packet packet, Packet.Reader in, int sections) throws IOException {
         int x = in.readInt();
         int z = in.readInt();
         boolean fullChunk;
@@ -233,7 +242,18 @@ public class PacketChunkData {
         if (packet.atLeast(ProtocolVersion.v1_16) && !packet.atLeast(ProtocolVersion.v1_16_2)) {
             useExistingLightData = in.readBoolean();
         }
-        BitSet chunkMask = in.readBitSet();
+        BitSet chunkMask;
+        if (packet.atLeast(ProtocolVersion.v1_18)) {
+            // With 1.18, MC always sends all sections. You might think that we may be able to infer the number of
+            // sections based on how many bytes are left and while that does sound reasonable, there's one major issue:
+            // The vanilla packet sizing code is broken. It allocates one byte for the IdListPalette even though that
+            // one does not send any data. As a result there may be garbage padding at the end (it's just vanilla which
+            // is buggy, e.g. ViaVersion is sized properly; so we can't just rely on exception that either).
+            chunkMask = new BitSet();
+            chunkMask.set(0, sections);
+        } else {
+            chunkMask = in.readBitSet();
+        }
         BitSet extendedChunkMask;
         if (packet.atLeast(ProtocolVersion.v1_8)) {
             extendedChunkMask = new BitSet();
@@ -245,7 +265,7 @@ public class PacketChunkData {
             heightmaps = in.readNBT();
         }
         int[] biomes = null;
-        if (packet.atLeast(ProtocolVersion.v1_15) && fullChunk) {
+        if (packet.atLeast(ProtocolVersion.v1_15) && packet.olderThan(ProtocolVersion.v1_18) && fullChunk) {
             if (packet.atLeast(ProtocolVersion.v1_16_2)) {
                 biomes = new int[in.readVarInt()];
                 for (int i = 0; i < biomes.length; i++) {
@@ -281,11 +301,15 @@ public class PacketChunkData {
         this.column = readColumn(packet, data, x, z, fullChunk, false, chunkMask, extendedChunkMask, heightmaps, biomes, useExistingLightData);
 
         if (packet.atLeast(ProtocolVersion.v1_9_3)) {
-            CompoundTag[] tileEntities = new CompoundTag[in.readVarInt()];
+            TileEntity[] tileEntities = new TileEntity[in.readVarInt()];
             for (int i = 0; i < tileEntities.length; i++) {
-                tileEntities[i] = in.readNBT();
+                tileEntities[i] = new TileEntity(packet, in);
             }
             this.column.tileEntities = tileEntities;
+        }
+
+        if (packet.atLeast(ProtocolVersion.v1_18)) {
+            this.column.lightData = PacketUpdateLight.readData(packet, in);
         }
 
         if (packet.atMost(ProtocolVersion.v1_8) && fullChunk && chunkMask.isEmpty()) {
@@ -310,7 +334,9 @@ public class PacketChunkData {
         if (packet.atLeast(ProtocolVersion.v1_16) && !packet.atLeast(ProtocolVersion.v1_16_2)) {
             out.writeBoolean(this.column.useExistingLightData);
         }
-        out.writeBitSet(mask);
+        if (packet.olderThan(ProtocolVersion.v1_18)) {
+            out.writeBitSet(mask);
+        }
         if (!packet.atLeast(ProtocolVersion.v1_8)) {
             out.writeBitSet(extendedMask);
         }
@@ -318,7 +344,7 @@ public class PacketChunkData {
             out.writeNBT(this.column.heightMaps);
         }
         int[] biomes = this.column.biomes;
-        if (packet.atLeast(ProtocolVersion.v1_15) && biomes != null) {
+        if (packet.atLeast(ProtocolVersion.v1_15) && packet.olderThan(ProtocolVersion.v1_18) && biomes != null) {
             if (packet.atLeast(ProtocolVersion.v1_16_2)) {
                 out.writeVarInt(biomes.length);
                 for (int biome : biomes) {
@@ -349,9 +375,12 @@ public class PacketChunkData {
         out.writeBytes(data, len);
         if (packet.atLeast(ProtocolVersion.v1_9_3)) {
             out.writeVarInt(this.column.tileEntities.length);
-            for (CompoundTag tag : this.column.tileEntities) {
-                out.writeNBT(tag);
+            for (TileEntity tileEntity : this.column.tileEntities) {
+                tileEntity.write(packet, out);
             }
+        }
+        if (packet.atLeast(ProtocolVersion.v1_18)) {
+            PacketUpdateLight.writeData(packet, out, this.column.lightData);
         }
     }
 
@@ -361,12 +390,10 @@ public class PacketChunkData {
             Chunk[] chunks = new Chunk[mask.length()];
             for (int index = 0; index < chunks.length; index++) {
                 if (mask.get(index)) {
-                    Chunk chunk = new Chunk();
-                    chunk.blocks = new BlockStorage(packet, in);
-                    chunks[index] = chunk;
+                    chunks[index] = new Chunk(packet, in);
                 }
             }
-            return new Column(x, z, chunks, null, null, heightmaps, biomes, useExistingLightData);
+            return new Column(x, z, chunks, null, null, heightmaps, biomes, useExistingLightData, null);
         }
 
         // Pre 1.17
@@ -376,15 +403,15 @@ public class PacketChunkData {
             Chunk[] chunks = new Chunk[16];
             for(int index = 0; index < chunks.length; index++) {
                 if (mask.get(index)) {
-                    Chunk chunk = new Chunk();
+                    Chunk chunk;
                     if (packet.atLeast(ProtocolVersion.v1_9)) {
-                        chunk.blocks = new BlockStorage(packet, in);
+                        chunk = new Chunk(packet, in);
                         if (packet.atMost(ProtocolVersion.v1_13_2)) {
                             chunk.blockLight = in.readBytes(2048);
                             chunk.skyLight = hasSkylight ? in.readBytes(2048) : null;
                         }
                     } else {
-                        chunk.blocks = new BlockStorage(packet);
+                        chunk = new Chunk(packet);
                     }
                     chunks[index] = chunk;
                 }
@@ -428,7 +455,7 @@ public class PacketChunkData {
                 biomeData = in.readBytes(packet.atLeast(ProtocolVersion.v1_13) ? 1024 : 256);
             }
 
-            column = new Column(x, z, chunks, biomeData, null, heightmaps, biomes, useExistingLightData);
+            column = new Column(x, z, chunks, biomeData, null, heightmaps, biomes, useExistingLightData, null);
         } catch(Throwable e) {
             ex = e;
         }
@@ -452,7 +479,7 @@ public class PacketChunkData {
             if (chunk != null) {
                 mask.set(index);
                 if (packet.atLeast(ProtocolVersion.v1_9)) {
-                    chunk.blocks.write(packet, out);
+                    chunk.write(packet, out);
                     if (packet.atMost(ProtocolVersion.v1_13_2)) {
                         out.writeBytes(chunk.blockLight);
                         if (chunk.skyLight != null) {
@@ -503,12 +530,13 @@ public class PacketChunkData {
         public int z;
         public Chunk[] chunks;
         public byte[] biomeData; // pre 1.15
-        public CompoundTag[] tileEntities;
+        public TileEntity[] tileEntities;
         public CompoundTag heightMaps;
-        public int[] biomes; // 1.15+
+        public int[] biomes; // 1.15+ pre 1.18
         public boolean useExistingLightData; // 1.16+
+        public PacketUpdateLight.Data lightData; // 1.18+
 
-        public Column(int x, int z, Chunk[] chunks, byte[] biomeData, CompoundTag[] tileEntities, CompoundTag heightmaps, int[] biomes, boolean useExistingLightData) {
+        public Column(int x, int z, Chunk[] chunks, byte[] biomeData, TileEntity[] tileEntities, CompoundTag heightmaps, int[] biomes, boolean useExistingLightData, PacketUpdateLight.Data lightData) {
             this.x = x;
             this.z = z;
             this.chunks = chunks;
@@ -517,10 +545,11 @@ public class PacketChunkData {
             this.heightMaps = heightmaps;
             this.biomes = biomes;
             this.useExistingLightData = useExistingLightData;
+            this.lightData = lightData;
         }
 
         public boolean isFull() {
-            return this.biomeData != null || this.biomes != null;
+            return this.biomeData != null || this.biomes != null || (this.lightData != null && this.tileEntities != null);
         }
 
         public static long coordToLong(int x, int z) {
@@ -541,31 +570,81 @@ public class PacketChunkData {
     }
 
     public static class Chunk {
-        public BlockStorage blocks;
-        public byte[] blockLight;
-        public byte[] skyLight;
+        private final int blockCount;
+        public final PalettedStorage blocks;
+        public final PalettedStorage biomes; // 1.18+
+        public byte[] blockLight; // pre 1.14
+        public byte[] skyLight; // pre 1.14
+
+        private Chunk(Chunk from) {
+            this.blockCount = from.blockCount;
+            this.blocks = from.blocks != null ? from.blocks.copy() : null;
+            this.biomes = from.biomes != null ? from.biomes.copy() : null;
+            this.blockLight = from.blockLight != null ? from.blockLight.clone() : null;
+            this.skyLight = from.skyLight != null ? from.skyLight.clone() : null;
+        }
+
+        /**
+         * 1.9+
+         */
+        public Chunk(PacketTypeRegistry registry) {
+            this.blockCount = 0;
+            this.blocks = new PalettedStorage(PaletteType.BLOCKS, registry);
+            if (registry.atLeast(ProtocolVersion.v1_18)) {
+                this.biomes = new PalettedStorage(PaletteType.BIOMES, registry);
+            } else {
+                this.biomes = null;
+            }
+        }
+
+        // 1.7-1.8
+        Chunk(Packet packet) {
+            this.blockCount = 0;
+            this.blocks = new PalettedStorage(PaletteType.BLOCKS, packet);
+            this.biomes = null;
+        }
+
+        // 1.9+
+        Chunk(Packet packet, NetInput in) throws IOException {
+            this.blockCount = packet.atLeast(ProtocolVersion.v1_14) ? in.readShort() : 0;
+            this.blocks = new PalettedStorage(PaletteType.BLOCKS, packet, in);
+            if (packet.atLeast(ProtocolVersion.v1_18)) {
+                this.biomes = new PalettedStorage(PaletteType.BIOMES, packet, in);
+            } else {
+                this.biomes = null;
+            }
+        }
+
+        // 1.9+
+        void write(Packet packet, NetOutput out) throws IOException {
+            if (packet.atLeast(ProtocolVersion.v1_14)) {
+                out.writeShort(this.blockCount + this.blocks.countDelta);
+            }
+            this.blocks.write(packet, out);
+            if (this.biomes != null) {
+                this.biomes.write(packet, out);
+            }
+        }
 
         public Chunk copy() {
-            Chunk copy = new Chunk();
-            copy.blocks = this.blocks != null ? this.blocks.copy() : null;
-            copy.blockLight = this.blockLight != null ? this.blockLight.clone() : null;
-            copy.skyLight = this.skyLight != null ? this.skyLight.clone() : null;
-            return copy;
+            return new Chunk(this);
         }
     }
 
-    public static class BlockStorage {
+    public static class PalettedStorage {
+        private final PaletteType type;
         private final PacketTypeRegistry registry;
-        private int blockCount;
+        private int countDelta;
         private int bitsPerEntry;
         private List<Integer> states;
         private FlexibleStorage storage;
         private long[] metadata; // 1.7 only
         private long[] extended; // 1.7 only
 
-        private BlockStorage(BlockStorage from) {
+        private PalettedStorage(PalettedStorage from) {
+            this.type = from.type;
             this.registry = from.registry;
-            this.blockCount = from.blockCount;
+            this.countDelta = from.countDelta;
             this.bitsPerEntry = from.bitsPerEntry;
             if (from.states != null) {
                 this.states = new ArrayList<>(from.states);
@@ -584,45 +663,50 @@ public class PacketChunkData {
         /**
          * 1.9+
          */
-        public BlockStorage(PacketTypeRegistry registry) {
+        public PalettedStorage(PaletteType type, PacketTypeRegistry registry) {
+            this.type = type;
             this.registry = registry;
-            this.blockCount = 0;
-            this.bitsPerEntry = 4;
+            this.bitsPerEntry = type == PaletteType.BLOCKS ? 4 : 0;
 
             this.states = new ArrayList<>();
             this.states.add(0);
 
-            this.storage = FlexibleStorage.empty(registry, bitsPerEntry, 4096);
+            this.storage = FlexibleStorage.empty(registry, bitsPerEntry, type.size());
         }
 
         // 1.7-1.8
-        BlockStorage(Packet packet) {
+        PalettedStorage(PaletteType type, Packet packet) {
+            this.type = type;
             this.registry = packet.getRegistry();
         }
 
         // 1.9+
-        BlockStorage(Packet packet, NetInput in) throws IOException {
+        PalettedStorage(PaletteType type, Packet packet, NetInput in) throws IOException {
+            this.type = type;
             this.registry = packet.getRegistry();
-            if (packet.atLeast(ProtocolVersion.v1_14)) {
-                this.blockCount = in.readShort();
-            }
             this.bitsPerEntry = in.readUnsignedByte();
             this.states = new ArrayList<>();
-            int stateCount = this.bitsPerEntry > 8 && packet.atLeast(ProtocolVersion.v1_13) ? 0 : in.readVarInt();
+            int stateCount;
+            if (this.bitsPerEntry > type.highestBitsPerValue() && packet.atLeast(ProtocolVersion.v1_13)) {
+                stateCount = 0;
+            } else if (this.bitsPerEntry == 0 && packet.atLeast(ProtocolVersion.v1_18)) {
+                stateCount = 1;
+            } else {
+                stateCount = in.readVarInt();
+            }
             for(int i = 0; i < stateCount; ++i) {
                 this.states.add(in.readVarInt());
             }
 
-            this.storage = FlexibleStorage.from(registry, bitsPerEntry, 4096, in.readLongs(in.readVarInt()));
+            this.storage = FlexibleStorage.from(registry, bitsPerEntry, type.size(), in.readLongs(in.readVarInt()));
         }
 
         // 1.9+
         void write(Packet packet, NetOutput out) throws IOException {
-            if (packet.atLeast(ProtocolVersion.v1_14)) {
-                out.writeShort(this.blockCount);
-            }
             out.writeByte(this.bitsPerEntry);
-            if (this.bitsPerEntry <= 8 || !packet.atLeast(ProtocolVersion.v1_13)) {
+            if (this.bitsPerEntry == 0 && packet.atLeast(ProtocolVersion.v1_18)) {
+                out.writeVarInt(this.states.get(0));
+            } else if (this.bitsPerEntry <= type.highestBitsPerValue() || !packet.atLeast(ProtocolVersion.v1_13)) {
                 out.writeVarInt(this.states.size());
                 for (Integer state : this.states) {
                     out.writeVarInt(state);
@@ -633,30 +717,37 @@ public class PacketChunkData {
             out.writeLongs(storage.data);
         }
 
-        private static int index(int x, int y, int z) {
-            return y << 8 | z << 4 | x;
+        private int index(int x, int y, int z) {
+            if (this.type == PaletteType.BIOMES) {
+                return y << 4 | z << 2 | x;
+            } else {
+                return y << 8 | z << 4 | x;
+            }
         }
 
         /**
          * Only 1.9+
          */
         public int get(int x, int y, int z) {
+            if (this.bitsPerEntry == 0) {
+                return this.states.get(0);
+            }
             int id = this.storage.get(index(x, y, z));
-            return this.bitsPerEntry <= 8 ? (id >= 0 && id < this.states.size() ? this.states.get(id) : 0) : id;
+            return this.bitsPerEntry <= type.highestBitsPerValue() ? (id >= 0 && id < this.states.size() ? this.states.get(id) : 0) : id;
         }
 
         /**
          * Only 1.9+
          */
         public void set(int x, int y, int z, int state) {
-            int id = this.bitsPerEntry <= 8 ? this.states.indexOf(state) : state;
+            int id = this.bitsPerEntry <= type.highestBitsPerValue() ? this.states.indexOf(state) : state;
             if(id == -1) {
                 this.states.add(state);
                 if(this.states.size() > 1 << this.bitsPerEntry) {
                     this.bitsPerEntry++;
 
                     List<Integer> oldStates = this.states;
-                    if(this.bitsPerEntry > 8) {
+                    if(this.bitsPerEntry > type.highestBitsPerValue()) {
                         oldStates = new ArrayList<Integer>(this.states);
                         this.states.clear();
                         // These match the size of the vanilla global palette and may be incorrect when it comes to
@@ -690,18 +781,22 @@ public class PacketChunkData {
                     }
                 }
 
-                id = this.bitsPerEntry <= 8 ? this.states.indexOf(state) : state;
+                id = this.bitsPerEntry <= type.highestBitsPerValue() ? this.states.indexOf(state) : state;
+            }
+
+            if (this.bitsPerEntry == 0) {
+                return;
             }
 
             int ind = index(x, y, z);
             int curr = this.storage.get(ind);
             if(state != 0 && curr == 0) {
-                this.blockCount++;
+                countDelta++;
             } else if(state == 0 && curr != 0) {
-                this.blockCount--;
+                countDelta--;
             }
 
-            if (this.bitsPerEntry > 8 && id > this.storage.maxEntryValue) {
+            if (this.bitsPerEntry > type.highestBitsPerValue() && id > this.storage.maxEntryValue) {
                 // Workaround for us not knowing the size of the global palette. See the two comment blocks above.
                 // Determine how many bits we need per entry to fit this id
                 this.bitsPerEntry = 32 - Integer.numberOfLeadingZeros(id);
@@ -715,8 +810,8 @@ public class PacketChunkData {
             this.storage.set(ind, id);
         }
 
-        public BlockStorage copy() {
-            return new BlockStorage(this);
+        public PalettedStorage copy() {
+            return new PalettedStorage(this);
         }
     }
 
@@ -728,7 +823,7 @@ public class PacketChunkData {
 
         protected FlexibleStorage(long[] data, int bitsPerEntry, int entries) {
             this.data = data;
-            this.bitsPerEntry = Math.max(bitsPerEntry, 4);
+            this.bitsPerEntry = bitsPerEntry;
             this.entries = entries;
             this.maxEntryValue = (1L << this.bitsPerEntry) - 1;
         }
@@ -762,11 +857,14 @@ public class PacketChunkData {
 
         public PaddedFlexibleStorage(int bitsPerEntry, int entries, long[] data) {
             super(data, bitsPerEntry, entries);
-            this.entriesPerLong = 64 / this.bitsPerEntry;
+            this.entriesPerLong = bitsPerEntry == 0 ? 0 : 64 / bitsPerEntry;
         }
 
         private static int longsForEntries(int bitsPerEntry, int entries) {
-            int entriesPerLong = 64 / Math.max(bitsPerEntry, 4);
+            if (bitsPerEntry == 0) {
+                return 0;
+            }
+            int entriesPerLong = 64 / bitsPerEntry;
             return (entries + entriesPerLong - 1) / entriesPerLong;
         }
 
@@ -774,6 +872,9 @@ public class PacketChunkData {
         public int get(int index) {
             if (index < 0 || index > this.entries - 1) {
                 throw new IndexOutOfBoundsException();
+            }
+            if (this.bitsPerEntry == 0) {
+                return 0;
             }
 
             int blockIndex = index / this.entriesPerLong;
@@ -828,6 +929,9 @@ public class PacketChunkData {
             if(index < 0 || index > this.entries - 1) {
                 throw new IndexOutOfBoundsException();
             }
+            if (this.bitsPerEntry == 0) {
+                return 0;
+            }
 
             int bitIndex = index * this.bitsPerEntry;
             int startIndex = bitIndex / 64;
@@ -860,6 +964,31 @@ public class PacketChunkData {
                 int endBitSubIndex = 64 - startBitSubIndex;
                 this.data[endIndex] = this.data[endIndex] >>> endBitSubIndex << endBitSubIndex | ((long) value & this.maxEntryValue) >> endBitSubIndex;
             }
+        }
+    }
+
+    public static class TileEntity {
+        public byte xz; // 1.18+
+        public short y; // 1.18+
+        public int type; // 1.18+
+        public CompoundTag tag;
+
+        TileEntity(Packet packet, Packet.Reader in) throws IOException {
+            if (packet.atLeast(ProtocolVersion.v1_18)) {
+                this.xz = in.readByte();
+                this.y = in.readShort();
+                this.type = in.readVarInt();
+            }
+            this.tag = in.readNBT();
+        }
+
+        void write(Packet packet, Packet.Writer out) throws IOException {
+            if (packet.atLeast(ProtocolVersion.v1_18)) {
+                out.writeByte(this.xz);
+                out.writeShort(this.y);
+                out.writeVarInt(this.type);
+            }
+            out.writeNBT(this.tag);
         }
     }
 }

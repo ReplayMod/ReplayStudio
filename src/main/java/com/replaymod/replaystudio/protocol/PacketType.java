@@ -114,6 +114,8 @@ public enum PacketType {
     CombatEnter(ProtocolVersion.v1_17, 0x34),
     CombatEntityDead(ProtocolVersion.v1_17, 0x35),
 	DestroyEntity(ProtocolVersion.v1_17, 0x3a), // removed in 1.17.1, that didn't last long
+
+	UpdateSimulationDistance(ProtocolVersion.v1_18, 0x57),
 	;
 
     private final State state;

@@ -46,6 +46,7 @@ public class World implements RandomAccessState {
     private final TransientThings transientThings;
     private final PacketStateTree viewPosition; // 1.14+
     private final PacketStateTree viewDistance; // 1.14+
+    private final PacketStateTree simulationDistance; // 1.18+
     private final PacketStateTree worldTimes;
     private final PacketStateTree thunderStrengths; // For some reason, this isn't tied to Weather
 
@@ -54,6 +55,7 @@ public class World implements RandomAccessState {
         this.transientThings = new TransientThings(registry, in.readVarInt());
         this.viewPosition = new PacketStateTree(registry, in.readVarInt());
         this.viewDistance = new PacketStateTree(registry, in.readVarInt());
+        this.simulationDistance = new PacketStateTree(registry, in.readVarInt());
         this.worldTimes = new PacketStateTree(registry, in.readVarInt());
         this.thunderStrengths = new PacketStateTree(registry, in.readVarInt());
     }
@@ -62,6 +64,7 @@ public class World implements RandomAccessState {
     public void load(PacketSink sink, ReadableCache cache) throws IOException {
         viewPosition.load(sink, cache);
         viewDistance.load(sink, cache);
+        simulationDistance.load(sink, cache);
         transientThings.load(sink, cache);
         worldTimes.load(sink, cache);
         thunderStrengths.load(sink, cache);
@@ -71,6 +74,7 @@ public class World implements RandomAccessState {
     public void unload(PacketSink sink, ReadableCache cache) throws IOException {
         viewPosition.unload(sink, cache);
         viewDistance.unload(sink, cache);
+        simulationDistance.unload(sink, cache);
         transientThings.unload(sink, cache);
         worldTimes.unload(sink, cache);
         thunderStrengths.unload(sink, cache);
@@ -80,6 +84,7 @@ public class World implements RandomAccessState {
     public void play(PacketSink sink, int currentTimeStamp, int targetTime) throws IOException {
         viewPosition.play(sink, currentTimeStamp, targetTime);
         viewDistance.play(sink, currentTimeStamp, targetTime);
+        simulationDistance.play(sink, currentTimeStamp, targetTime);
         transientThings.play(sink, currentTimeStamp, targetTime);
         worldTimes.play(sink, currentTimeStamp, targetTime);
         thunderStrengths.play(sink, currentTimeStamp, targetTime);
@@ -89,6 +94,7 @@ public class World implements RandomAccessState {
     public void rewind(PacketSink sink, int currentTimeStamp, int targetTime) throws IOException {
         viewPosition.rewind(sink, currentTimeStamp, targetTime);
         viewDistance.rewind(sink, currentTimeStamp, targetTime);
+        simulationDistance.rewind(sink, currentTimeStamp, targetTime);
         transientThings.rewind(sink, currentTimeStamp, targetTime);
         worldTimes.rewind(sink, currentTimeStamp, targetTime);
         thunderStrengths.rewind(sink, currentTimeStamp, targetTime);
@@ -102,6 +108,7 @@ public class World implements RandomAccessState {
         public final TransientThings.Builder transientThings;
         public final PacketStateTree.Builder viewPosition = new PacketStateTree.Builder();
         public final PacketStateTree.Builder viewDistance = new PacketStateTree.Builder();
+        public final PacketStateTree.Builder simulationDistance = new PacketStateTree.Builder();
         public final PacketStateTree.Builder worldTimes = new PacketStateTree.Builder();
         public final PacketStateTree.Builder thunderStrengths = new PacketStateTree.Builder();
 
@@ -117,6 +124,7 @@ public class World implements RandomAccessState {
             out.writeVarInt(transientThings.build(time));
             out.writeVarInt(viewPosition.build(cache));
             out.writeVarInt(viewDistance.build(cache));
+            out.writeVarInt(simulationDistance.build(cache));
             out.writeVarInt(worldTimes.build(cache));
             out.writeVarInt(thunderStrengths.build(cache));
         }

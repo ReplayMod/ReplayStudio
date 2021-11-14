@@ -61,7 +61,7 @@ import java.util.logging.Logger;
 public abstract class RandomAccessReplay {
     private static final String CACHE_ENTRY = "quickModeCache.bin";
     private static final String CACHE_INDEX_ENTRY = "quickModeCacheIndex.bin";
-    private static final int CACHE_VERSION = 6;
+    private static final int CACHE_VERSION = 7;
     private static final Logger LOGGER = Logger.getLogger(RandomAccessReplay.class.getName());
 
     private final ReplayFile replayFile;
@@ -118,8 +118,8 @@ public abstract class RandomAccessReplay {
         NetInput in = new StreamNetInput(rawIndexIn);
         if (in.readVarInt() != CACHE_VERSION) return null; // Incompatible cache version
         if (cacheIn.readVarInt() != CACHE_VERSION) return null; // Incompatible cache version
-        if (in.readVarInt() != registry.getVersion().getVersion()) return null; // Cache of incompatible protocol version
-        if (cacheIn.readVarInt() != registry.getVersion().getVersion()) return null; // Cache of incompatible protocol version
+        if (in.readVarInt() != registry.getVersion().getOriginalVersion()) return null; // Cache of incompatible protocol version
+        if (cacheIn.readVarInt() != registry.getVersion().getOriginalVersion()) return null; // Cache of incompatible protocol version
 
         Replay replay = new Replay(registry, in);
 
@@ -146,10 +146,10 @@ public abstract class RandomAccessReplay {
              OutputStream cacheIndexOut = replayFile.writeCache(CACHE_INDEX_ENTRY)) {
             NetOutput out = new StreamNetOutput(cacheOut);
             out.writeVarInt(CACHE_VERSION);
-            out.writeVarInt(registry.getVersion().getVersion());
+            out.writeVarInt(registry.getVersion().getOriginalVersion());
             NetOutput indexOut = new StreamNetOutput(cacheIndexOut);
             indexOut.writeVarInt(CACHE_VERSION);
-            indexOut.writeVarInt(registry.getVersion().getVersion());
+            indexOut.writeVarInt(registry.getVersion().getOriginalVersion());
 
             WriteableCache cache = new WriteableCache(cacheOut);
 

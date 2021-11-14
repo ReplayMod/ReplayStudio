@@ -23,6 +23,7 @@ import com.github.steveice10.packetlib.io.NetInput;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
+import com.replaymod.replaystudio.lib.viaversion.api.minecraft.chunks.PaletteType;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.packets.PacketBlockChange;
@@ -84,16 +85,18 @@ public class BlockStateTree extends DiffStateTree<Collection<BlockStateTree.Bloc
         private final PacketTypeRegistry registry;
         private final DimensionType dimensionType;
         private final ListMultimap<Integer, BlockChange> blocks = Multimaps.newListMultimap(map, LinkedList::new); // LinkedList to allow .descendingIterator
-        private final PacketChunkData.BlockStorage[] currentBlockState;
+        private final PacketChunkData.PalettedStorage[] currentBlockState;
 
         public Builder(PacketTypeRegistry registry, DimensionType dimensionType, PacketChunkData.Column column) {
             this.registry = registry;
             this.dimensionType = dimensionType;
-            this.currentBlockState = new PacketChunkData.BlockStorage[dimensionType.getSections()];
+            this.currentBlockState = new PacketChunkData.PalettedStorage[dimensionType.getSections()];
 
             PacketChunkData.Chunk[] chunks = column.chunks;
             for (int i = 0; i < currentBlockState.length; i++) {
-                currentBlockState[i] = i >= chunks.length || chunks[i] == null ? new PacketChunkData.BlockStorage(registry) : chunks[i].blocks.copy();
+                currentBlockState[i] = i >= chunks.length || chunks[i] == null
+                        ? new PacketChunkData.PalettedStorage(PaletteType.BLOCKS, registry)
+                        : chunks[i].blocks.copy();
             }
         }
 
@@ -103,7 +106,7 @@ public class BlockStateTree extends DiffStateTree<Collection<BlockStateTree.Bloc
             if (sectionIndex < 0 || sectionIndex >= currentBlockState.length) {
                 return; // the server will send these if you try to place blocks outside the allowed range
             }
-            PacketChunkData.BlockStorage blockStorage = currentBlockState[sectionIndex];
+            PacketChunkData.PalettedStorage blockStorage = currentBlockState[sectionIndex];
             int x = pos.getX() & 15, y = pos.getY() & 15, z = pos.getZ() & 15;
             int prevState = blockStorage.get(x, y, z);
             int newState = record.getId();
@@ -120,8 +123,8 @@ public class BlockStateTree extends DiffStateTree<Collection<BlockStateTree.Bloc
                     sectionIndex++;
                     continue;
                 }
-                PacketChunkData.BlockStorage toBlocks = section.blocks;
-                PacketChunkData.BlockStorage fromBlocks = currentBlockState[sectionIndex];
+                PacketChunkData.PalettedStorage toBlocks = section.blocks;
+                PacketChunkData.PalettedStorage fromBlocks = currentBlockState[sectionIndex];
                 for (int y = 0; y < 16; y++) {
                     for (int z = 0; z < 16; z++) {
                         for (int x = 0; x < 16; x++) {

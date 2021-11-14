@@ -34,8 +34,7 @@ public class PacketUpdateLight {
     private static final byte[] EMPTY = new byte[2048];
     private int x;
     private int z;
-    private List<byte[]> skyLight;
-    private List<byte[]> blockLight;
+    private Data data;
 
     public static PacketUpdateLight read(Packet packet) throws IOException {
         if (packet.getType() != PacketType.UpdateLight) {
@@ -60,10 +59,13 @@ public class PacketUpdateLight {
     }
 
     public PacketUpdateLight(int x, int z, List<byte[]> skyLight, List<byte[]> blockLight) {
+        this(x, z, new Data(skyLight, blockLight));
+    }
+
+    public PacketUpdateLight(int x, int z, Data data) {
         this.x = x;
         this.z = z;
-        this.skyLight = skyLight;
-        this.blockLight = blockLight;
+        this.data = data;
     }
 
     public int getX() {
@@ -74,17 +76,27 @@ public class PacketUpdateLight {
         return this.z;
     }
 
+    public Data getData() {
+        return this.data;
+    }
+
     public List<byte[]> getSkyLight() {
-        return this.skyLight;
+        return this.data.skyLight;
     }
 
     public List<byte[]> getBlockLight() {
-        return this.blockLight;
+        return this.data.blockLight;
     }
 
     private void read(Packet packet, Packet.Reader in) throws IOException {
         this.x = in.readVarInt();
         this.z = in.readVarInt();
+        this.data = readData(packet, in);
+    }
+
+    static Data readData(Packet packet, Packet.Reader in) throws IOException {
+        Data data = new Data();
+
         if (packet.atLeast(ProtocolVersion.v1_16)) {
             in.readBoolean(); // unknown
         }
@@ -103,17 +115,17 @@ public class PacketUpdateLight {
                 throw new IOException("Expected " + skyLightMask.cardinality() + " sky light sections but got " + skyLightsSent);
             }
         }
-        this.skyLight = new ArrayList<>(skySections);
+        data.skyLight = new ArrayList<>(skySections);
         for (int i = 0; i < skySections; i++) {
             if (skyLightMask.get(i)) {
                 if (in.readVarInt() != 2048) {
                     throw new IOException("Expected sky light byte array to be of length 2048");
                 }
-                this.skyLight.add(in.readBytes(2048)); // 2048 bytes read = 4096 entries
+                data.skyLight.add(in.readBytes(2048)); // 2048 bytes read = 4096 entries
             } else if (emptySkyLightMask.get(i)) {
-                this.skyLight.add(new byte[2048]);
+                data.skyLight.add(new byte[2048]);
             } else {
-                this.skyLight.add(null);
+                data.skyLight.add(null);
             }
         }
 
@@ -123,24 +135,29 @@ public class PacketUpdateLight {
                 throw new IOException("Expected " + blockLightMask.cardinality() + " block light sections but got " + blockLightsSent);
             }
         }
-        this.blockLight = new ArrayList<>(blockSections);
+        data.blockLight = new ArrayList<>(blockSections);
         for (int i = 0; i < blockSections; i++) {
             if (blockLightMask.get(i)) {
                 if (in.readVarInt() != 2048) {
                     throw new IOException("Expected block light byte array to be of length 2048");
                 }
-                this.blockLight.add(in.readBytes(2048)); // 2048 bytes read = 4096 entries
+                data.blockLight.add(in.readBytes(2048)); // 2048 bytes read = 4096 entries
             } else if (emptyBlockLightMask.get(i)) {
-                this.blockLight.add(new byte[2048]);
+                data.blockLight.add(new byte[2048]);
             } else {
-                this.blockLight.add(null);
+                data.blockLight.add(null);
             }
         }
+
+        return data;
     }
 
     private void write(Packet packet, Packet.Writer out) throws IOException {
         out.writeVarInt(this.x);
         out.writeVarInt(this.z);
+    }
+
+    static void writeData(Packet packet, Packet.Writer out, Data data) throws IOException {
         if (packet.atLeast(ProtocolVersion.v1_16)) {
             out.writeBoolean(true); // unknown, ViaVersion always writes true, so we'll do so as well
         }
@@ -152,8 +169,8 @@ public class PacketUpdateLight {
         List<byte[]> skyLights = new ArrayList<>();
         List<byte[]> blockLights = new ArrayList<>();
 
-        for (int i = 0; i < this.skyLight.size(); i++) {
-            byte[] skyLight = this.skyLight.get(i);
+        for (int i = 0; i < data.skyLight.size(); i++) {
+            byte[] skyLight = data.skyLight.get(i);
             if (skyLight != null) {
                 if (Arrays.equals(EMPTY, skyLight)) {
                     emptySkyLightMask.set(i);
@@ -163,8 +180,8 @@ public class PacketUpdateLight {
                 }
             }
         }
-        for (int i = 0; i < this.blockLight.size(); i++) {
-            byte[] blockLight = this.blockLight.get(i);
+        for (int i = 0; i < data.blockLight.size(); i++) {
+            byte[] blockLight = data.blockLight.get(i);
             if (blockLight != null) {
                 if (Arrays.equals(EMPTY, blockLight)) {
                     emptyBlockLightMask.set(i);
@@ -194,6 +211,19 @@ public class PacketUpdateLight {
         for (byte[] bytes : blockLights) {
             out.writeVarInt(2048); // dunno why Minecraft feels the need to send these
             out.writeBytes(bytes);
+        }
+    }
+
+    public static class Data {
+        public List<byte[]> skyLight;
+        public List<byte[]> blockLight;
+
+        public Data() {
+        }
+
+        public Data(List<byte[]> skyLight, List<byte[]> blockLight) {
+            this.skyLight = skyLight;
+            this.blockLight = blockLight;
         }
     }
 }

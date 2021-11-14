@@ -222,7 +222,11 @@ public class PacketTypeRegistry {
                     continue;
                 }
                 AbstractProtocol.ProtocolPacket mapping = entry.getValue();
-                result.add(Pair.of(mapping.getOldID(), mapping.getNewID()));
+                com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.PacketType unmappedPacketType = mapping.getUnmappedPacketType();
+                com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.PacketType mappedPacketType = mapping.getMappedPacketType();
+                int oldId = unmappedPacketType != null ? unmappedPacketType.getId() : -1;
+                int newId = mappedPacketType != null ? mappedPacketType.getId() : -1;
+                result.add(Pair.of(oldId, newId));
             }
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);

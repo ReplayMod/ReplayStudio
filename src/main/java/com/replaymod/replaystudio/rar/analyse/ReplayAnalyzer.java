@@ -33,6 +33,7 @@ import com.replaymod.replaystudio.protocol.packets.PacketPlayerListEntry;
 import com.replaymod.replaystudio.protocol.packets.PacketRespawn;
 import com.replaymod.replaystudio.protocol.packets.PacketSpawnPlayer;
 import com.replaymod.replaystudio.protocol.packets.PacketUpdateLight;
+import com.replaymod.replaystudio.protocol.packets.PacketUpdateSimulationDistance;
 import com.replaymod.replaystudio.protocol.packets.PacketUpdateViewDistance;
 import com.replaymod.replaystudio.protocol.packets.PacketUpdateViewPosition;
 import com.replaymod.replaystudio.rar.cache.WriteableCache;
@@ -65,6 +66,7 @@ public class ReplayAnalyzer {
     private int currentViewChunkX = 0;
     private int currentViewChunkZ = 0;
     private int currentViewDistance = 0;
+    private int currentSimulationDistance = 0;
 
     private final Map<String, PacketPlayerListEntry> playerListEntries = new HashMap<>();
     private Packet lastLightUpdate = null;
@@ -110,7 +112,7 @@ public class ReplayAnalyzer {
                     break;
                 }
                 case ChunkData: {
-                    PacketChunkData chunkData = PacketChunkData.read(packet);
+                    PacketChunkData chunkData = PacketChunkData.read(packet, replay.world.info.dimensionType.getSections());
                     PacketChunkData.Column column = chunkData.getColumn();
                     if (column.isFull()) {
                         Chunk.Builder chunk = replay.world.transientThings.newChunk(time, column);
@@ -130,6 +132,9 @@ public class ReplayAnalyzer {
                     break;
                 }
                 case UpdateLight: {
+                    if (registry.atLeast(ProtocolVersion.v1_18)) {
+                        break; // initial light is now part of the chunk packet again
+                    }
                     // A light update packet may be sent either before or after the corresponding chunk packet.
                     // The vanilla server appears to always send it immediately before the chunk packet.
                     // Third-party servers (e.g. Hypixel) may sent it after the corresponding chunk packet, hence
@@ -150,7 +155,7 @@ public class ReplayAnalyzer {
                     break;
                 }
                 case UnloadChunk: {
-                    PacketChunkData chunkData = PacketChunkData.read(packet);
+                    PacketChunkData chunkData = PacketChunkData.readUnload(packet);
                     replay.world.transientThings.removeChunk(time, chunkData.getUnloadX(), chunkData.getUnloadZ());
                     break;
                 }
@@ -200,6 +205,9 @@ public class ReplayAnalyzer {
                             world.viewPosition.put(time, PacketUpdateViewPosition.write(registry, 0, 0));
                             world.viewDistance.put(time, PacketUpdateViewDistance.write(registry, currentViewDistance));
                         }
+                        if (registry.atLeast(ProtocolVersion.v1_18)) {
+                            world.simulationDistance.put(time, PacketUpdateSimulationDistance.write(registry, currentSimulationDistance));
+                        }
                     }
                     break;
                 }
@@ -212,6 +220,10 @@ public class ReplayAnalyzer {
 
                         currentViewDistance = joinGame.viewDistance;
                         replay.world.viewDistance.put(time, PacketUpdateViewDistance.write(registry, currentViewDistance));
+                    }
+                    if (registry.atLeast(ProtocolVersion.v1_18)) {
+                        currentSimulationDistance = joinGame.simulationDistance;
+                        replay.world.simulationDistance.put(time, PacketUpdateSimulationDistance.write(registry, currentSimulationDistance));
                     }
                     break;
                 }
@@ -232,6 +244,12 @@ public class ReplayAnalyzer {
                     invalidateOutOfBoundsChunks(time, currentViewChunkX, currentViewChunkZ, currentViewDistance);
 
                     replay.world.viewDistance.put(time, packet.retain());
+                    break;
+                }
+                case UpdateSimulationDistance: {
+                    currentSimulationDistance = PacketUpdateSimulationDistance.getDistance(packet);
+
+                    replay.world.simulationDistance.put(time, packet.retain());
                     break;
                 }
                 case UpdateTime: {

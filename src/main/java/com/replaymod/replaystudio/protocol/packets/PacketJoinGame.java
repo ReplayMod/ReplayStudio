@@ -42,6 +42,7 @@ public class PacketJoinGame {
     public int difficulty; // pre 1.14
     public int maxPlayers;
     public int viewDistance; // 1.14+
+    public int simulationDistance; // 1.18+
     public boolean reducedDebugInfo; // 1.8+
     public boolean respawnScreen; // 1.15+
     public boolean debugWorld; // 1.16+
@@ -63,6 +64,7 @@ public class PacketJoinGame {
         this.difficulty = other.difficulty;
         this.maxPlayers = other.maxPlayers;
         this.viewDistance = other.viewDistance;
+        this.simulationDistance = other.simulationDistance;
         this.reducedDebugInfo = other.reducedDebugInfo;
         this.respawnScreen = other.respawnScreen;
         this.debugWorld = other.debugWorld;
@@ -126,6 +128,9 @@ public class PacketJoinGame {
         }
         if (packet.atLeast(ProtocolVersion.v1_14)) {
             this.viewDistance = in.readVarInt();
+        }
+        if (packet.atLeast(ProtocolVersion.v1_18)) {
+            this.simulationDistance = in.readVarInt();
         }
         if (packet.atLeast(ProtocolVersion.v1_8)) {
             this.reducedDebugInfo = in.readBoolean();
@@ -193,6 +198,9 @@ public class PacketJoinGame {
         }
         if (packet.atLeast(ProtocolVersion.v1_14)) {
             out.writeVarInt(this.viewDistance);
+        }
+        if (packet.atLeast(ProtocolVersion.v1_18)) {
+            out.writeVarInt(this.simulationDistance);
         }
         if (packet.atLeast(ProtocolVersion.v1_8)) {
             out.writeBoolean(this.reducedDebugInfo);

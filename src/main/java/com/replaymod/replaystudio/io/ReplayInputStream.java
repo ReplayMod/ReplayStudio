@@ -101,7 +101,7 @@ public class ReplayInputStream extends InputStream {
             this.registry = PacketTypeRegistry.get(registry.getVersion(), State.LOGIN);
         }
         this.in = in;
-        this.viaVersionConverter = ViaVersionPacketConverter.createForFileVersion(fileFormatVersion, fileProtocol, registry.getVersion().getVersion());
+        this.viaVersionConverter = ViaVersionPacketConverter.createForFileVersion(fileFormatVersion, fileProtocol, registry.getVersion().getOriginalVersion());
     }
 
     @Override

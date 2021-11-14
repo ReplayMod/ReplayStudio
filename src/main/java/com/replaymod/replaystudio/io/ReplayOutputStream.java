@@ -104,7 +104,7 @@ public class ReplayOutputStream extends OutputStream {
         }
         metaData.setFileFormat("MCPR");
         metaData.setFileFormatVersion(ReplayMetaData.CURRENT_FILE_FORMAT_VERSION);
-        metaData.setProtocolVersion(version.getVersion());
+        metaData.setProtocolVersion(version.getOriginalVersion());
         metaData.setGenerator("ReplayStudio v" + studio.getVersion());
         this.metaData = metaData;
 
