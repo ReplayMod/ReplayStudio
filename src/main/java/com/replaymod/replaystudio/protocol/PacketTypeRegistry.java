@@ -18,7 +18,7 @@
  */
 package com.replaymod.replaystudio.protocol;
 
-import com.google.common.collect.Lists;
+import com.replaymod.replaystudio.lib.guava.collect.Lists;
 import com.replaymod.replaystudio.lib.viaversion.api.Via;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.AbstractProtocol;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolPathEntry;

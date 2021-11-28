@@ -21,7 +21,7 @@ package com.replaymod.replaystudio.util;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.replaymod.replaystudio.lib.guava.base.Preconditions.checkNotNull;
 
 /**
  * Output stream which uses a different underlying output stream depending on the current thread.

@@ -18,7 +18,7 @@
  */
 package com.replaymod.replaystudio.filter;
 
-import com.google.common.collect.Ordering;
+import com.replaymod.replaystudio.lib.guava.collect.Ordering;
 import com.google.gson.JsonObject;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;

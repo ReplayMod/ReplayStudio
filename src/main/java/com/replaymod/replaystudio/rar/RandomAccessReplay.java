@@ -25,7 +25,7 @@ import com.github.steveice10.packetlib.io.NetInput;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.github.steveice10.packetlib.io.stream.StreamNetInput;
 import com.github.steveice10.packetlib.io.stream.StreamNetOutput;
-import com.google.common.base.Optional;
+import com.replaymod.replaystudio.lib.guava.base.Optional;
 import com.replaymod.replaystudio.io.ReplayInputStream;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;

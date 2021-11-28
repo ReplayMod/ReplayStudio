@@ -18,7 +18,7 @@
  */
 package com.replaymod.replaystudio.pathing.serialize;
 
-import com.google.common.base.Optional;
+import com.replaymod.replaystudio.lib.guava.base.Optional;
 import com.google.gson.GsonBuilder;
 import com.replaymod.replaystudio.pathing.PathingRegistry;
 import com.replaymod.replaystudio.pathing.interpolation.CubicSplineInterpolator;

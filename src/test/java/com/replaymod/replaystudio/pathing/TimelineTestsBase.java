@@ -18,7 +18,7 @@
  */
 package com.replaymod.replaystudio.pathing;
 
-import com.google.common.collect.Iterables;
+import com.replaymod.replaystudio.lib.guava.collect.Iterables;
 import com.replaymod.replaystudio.pathing.impl.TimelineImpl;
 import com.replaymod.replaystudio.pathing.path.Keyframe;
 import com.replaymod.replaystudio.pathing.path.Path;

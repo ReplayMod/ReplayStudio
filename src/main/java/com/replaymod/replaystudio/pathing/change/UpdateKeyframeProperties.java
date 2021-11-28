@@ -18,7 +18,7 @@
  */
 package com.replaymod.replaystudio.pathing.change;
 
-import com.google.common.base.Preconditions;
+import com.replaymod.replaystudio.lib.guava.base.Preconditions;
 import com.replaymod.replaystudio.pathing.path.Keyframe;
 import com.replaymod.replaystudio.pathing.path.Path;
 import com.replaymod.replaystudio.pathing.path.Timeline;
@@ -30,9 +30,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.google.common.base.Predicates.equalTo;
-import static com.google.common.collect.Iterables.get;
-import static com.google.common.collect.Iterables.indexOf;
+import static com.replaymod.replaystudio.lib.guava.base.Predicates.equalTo;
+import static com.replaymod.replaystudio.lib.guava.collect.Iterables.get;
+import static com.replaymod.replaystudio.lib.guava.collect.Iterables.indexOf;
 
 /**
  * Updates some properties of a property.

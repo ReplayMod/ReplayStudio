@@ -75,7 +75,7 @@ repositories {
 dependencies {
     preshadow 'com.github.replaymod.viaversion:viaversion-common:7615405'
 
-    compile 'com.google.guava:guava:17.0'
+    preshadow 'com.google.guava:guava:17.0'
     compile 'com.google.code.gson:gson:2.3.1'
 
     compile 'it.unimi.dsi:fastutil:8.3.1' // this is the version MC ships with 1.14.4, upgrade with care
@@ -96,6 +96,7 @@ preshadowJar {
     relocate 'io.netty', 'com.github.steveice10.netty'
     relocate 'us.myles.ViaVersion.api', 'com.replaymod.replaystudio.lib.viaversion.legacyapi'
     relocate 'com.viaversion.viaversion', 'com.replaymod.replaystudio.lib.viaversion'
+    relocate 'com.google.common', 'com.replaymod.replaystudio.lib.guava'
 }
 
 shadowJar {

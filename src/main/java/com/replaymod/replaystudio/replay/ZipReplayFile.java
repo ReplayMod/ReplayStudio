@@ -18,9 +18,9 @@
  */
 package com.replaymod.replaystudio.replay;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
-import com.google.common.io.Closeables;
+import com.replaymod.replaystudio.lib.guava.base.Charsets;
+import com.replaymod.replaystudio.lib.guava.base.Optional;
+import com.replaymod.replaystudio.lib.guava.io.Closeables;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.util.Utils;
 
@@ -36,7 +36,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
-import static com.google.common.io.Files.*;
+import static com.replaymod.replaystudio.lib.guava.io.Files.*;
 import static java.nio.file.Files.*;
 import static java.nio.file.Files.move;
 

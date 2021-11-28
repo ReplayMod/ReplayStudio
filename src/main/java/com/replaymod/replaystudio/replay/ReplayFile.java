@@ -18,7 +18,7 @@
  */
 package com.replaymod.replaystudio.replay;
 
-import com.google.common.base.Optional;
+import com.replaymod.replaystudio.lib.guava.base.Optional;
 import com.replaymod.replaystudio.data.Marker;
 import com.replaymod.replaystudio.data.ModInfo;
 import com.replaymod.replaystudio.data.ReplayAssetEntry;

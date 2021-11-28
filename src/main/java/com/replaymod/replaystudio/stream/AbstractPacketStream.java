@@ -18,8 +18,8 @@
  */
 package com.replaymod.replaystudio.stream;
 
-import com.google.common.base.Supplier;
-import com.google.common.collect.Lists;
+import com.replaymod.replaystudio.lib.guava.base.Supplier;
+import com.replaymod.replaystudio.lib.guava.collect.Lists;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.filter.StreamFilter;
 import com.replaymod.replaystudio.protocol.Packet;
@@ -27,7 +27,7 @@ import com.replaymod.replaystudio.protocol.Packet;
 import java.io.IOException;
 import java.util.*;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.replaymod.replaystudio.lib.guava.base.Preconditions.checkNotNull;
 
 public abstract class AbstractPacketStream implements PacketStream {
 

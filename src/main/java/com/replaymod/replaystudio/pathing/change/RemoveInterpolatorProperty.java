@@ -18,7 +18,7 @@
  */
 package com.replaymod.replaystudio.pathing.change;
 
-import com.google.common.base.Preconditions;
+import com.replaymod.replaystudio.lib.guava.base.Preconditions;
 import com.replaymod.replaystudio.pathing.interpolation.Interpolator;
 import com.replaymod.replaystudio.pathing.path.Timeline;
 import com.replaymod.replaystudio.pathing.property.Property;

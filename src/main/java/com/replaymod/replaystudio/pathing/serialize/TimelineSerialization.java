@@ -18,9 +18,9 @@
  */
 package com.replaymod.replaystudio.pathing.serialize;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
-import com.google.common.io.CharStreams;
+import com.replaymod.replaystudio.lib.guava.base.Charsets;
+import com.replaymod.replaystudio.lib.guava.base.Optional;
+import com.replaymod.replaystudio.lib.guava.io.CharStreams;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;

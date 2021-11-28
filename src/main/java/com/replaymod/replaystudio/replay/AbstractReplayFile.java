@@ -18,8 +18,8 @@
  */
 package com.replaymod.replaystudio.replay;
 
-import com.google.common.base.Optional;
-import com.google.common.io.Closeables;
+import com.replaymod.replaystudio.lib.guava.base.Optional;
+import com.replaymod.replaystudio.lib.guava.io.Closeables;
 import com.google.gson.*;
 import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.data.Marker;
