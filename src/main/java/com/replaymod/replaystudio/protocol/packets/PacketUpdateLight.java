@@ -155,6 +155,7 @@ public class PacketUpdateLight {
     private void write(Packet packet, Packet.Writer out) throws IOException {
         out.writeVarInt(this.x);
         out.writeVarInt(this.z);
+        writeData(packet, out, this.data);
     }
 
     static void writeData(Packet packet, Packet.Writer out, Data data) throws IOException {
