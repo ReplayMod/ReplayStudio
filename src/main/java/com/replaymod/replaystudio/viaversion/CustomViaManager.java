@@ -22,11 +22,13 @@ import com.replaymod.replaystudio.lib.viaversion.api.Via;
 import com.replaymod.replaystudio.lib.viaversion.api.ViaManager;
 import com.replaymod.replaystudio.lib.viaversion.api.command.ViaVersionCommand;
 import com.replaymod.replaystudio.lib.viaversion.api.connection.ConnectionManager;
+import com.replaymod.replaystudio.lib.viaversion.api.debug.DebugHandler;
 import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaInjector;
 import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaPlatform;
 import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaPlatformLoader;
 import com.replaymod.replaystudio.lib.viaversion.api.platform.providers.ViaProviders;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolManager;
+import com.replaymod.replaystudio.lib.viaversion.debug.DebugHandlerImpl;
 import com.replaymod.replaystudio.lib.viaversion.protocol.ProtocolManagerImpl;
 
 import java.util.HashSet;
@@ -49,7 +51,7 @@ public class CustomViaManager implements ViaManager {
     private final ViaPlatform<?> platform = new CustomViaPlatform();
     private final ViaInjector injector = new CustomViaInjector();
     private final Set<String> subPlatforms = new HashSet<>();
-    private boolean debug;
+    private final DebugHandler debugHandler = new DebugHandlerImpl();
 
     private CustomViaManager() {
     }
@@ -90,13 +92,8 @@ public class CustomViaManager implements ViaManager {
     }
 
     @Override
-    public boolean isDebug() {
-        return debug;
-    }
-
-    @Override
-    public void setDebug(boolean debug) {
-        this.debug = debug;
+    public DebugHandler debugHandler() {
+        return debugHandler;
     }
 
     @Override

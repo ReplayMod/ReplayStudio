@@ -315,4 +315,9 @@ public class CustomViaConfig implements ViaVersionConfig {
     public WorldIdentifiers get1_16WorldNamesMap() {
         return new WorldIdentifiers(WorldIdentifiers.OVERWORLD_DEFAULT);
     }
+
+    @Override
+    public boolean cache1_17Light() {
+        return true;
+    }
 }
