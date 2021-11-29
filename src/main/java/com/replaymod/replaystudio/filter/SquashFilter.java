@@ -573,7 +573,7 @@ public class SquashFilter implements StreamFilter {
             if (entity.teleport != null) {
                 result.add(new PacketData(entity.lastTimestamp, entity.teleport));
             }
-            while (entity.dx != 0 && entity.dy != 0 && entity.dz != 0) {
+            while (entity.dx != 0 || entity.dy != 0 || entity.dz != 0) {
                 long mx = within(entity.dx, POS_MIN, POS_MAX);
                 long my = within(entity.dy, POS_MIN, POS_MAX);
                 long mz = within(entity.dz, POS_MIN, POS_MAX);
