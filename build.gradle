@@ -1,7 +1,7 @@
 buildscript {
     repositories {
-        jcenter()
         mavenCentral()
+        gradlePluginPortal()
         maven {
             url 'https://oss.sonatype.org/content/groups/staging'
         }
@@ -10,19 +10,17 @@ buildscript {
 
     dependencies {
         classpath 'ch.raffael.gradlePlugins.preshadow:gradle-preshadow-plugin:1.0'
-        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+        classpath 'gradle.plugin.com.github.johnrengelman:shadow:7.1.0'
         classpath 'com.github.johni0702:gradle-reproducible-builds-plugin:3dbf20d'
     }
 }
 
-defaultTasks 'clean', 'build', 'shadowJar', 'install'
+defaultTasks 'publishToMavenLocal'
 
-apply plugin: 'java'
+apply plugin: 'java-library'
 apply plugin: 'application'
-apply plugin: 'eclipse'
-apply plugin: 'idea'
 apply plugin: 'com.github.johnrengelman.shadow'
-apply plugin: 'maven'
+apply plugin: 'maven-publish'
 apply plugin: 'ch.raffael.preshadow'
 apply plugin: 'de.johni0702.reproducible-builds'
 
@@ -49,8 +47,7 @@ ext.packaging = 'jar'
 ext.author = 'johni0702'
 ext.authorUrl = 'https://github.com/johni0702'
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+java.toolchain.languageVersion.set(JavaLanguageVersion.of(8))
 
 compileJava {
     options.encoding = 'UTF-8'
@@ -76,20 +73,20 @@ dependencies {
     preshadow 'com.github.replaymod.viaversion:viaversion-common:8f78683'
 
     preshadow 'com.google.guava:guava:17.0'
-    compile 'com.google.code.gson:gson:2.3.1'
+    implementation 'com.google.code.gson:gson:2.3.1'
 
-    compile 'it.unimi.dsi:fastutil:8.3.1' // this is the version MC ships with 1.14.4, upgrade with care
+    implementation 'it.unimi.dsi:fastutil:8.3.1' // this is the version MC ships with 1.14.4, upgrade with care
 
-    compile 'com.github.viaversion:opennbt:0a02214' // 2.0-SNAPSHOT (ViaVersion Edition)
+    implementation 'com.github.viaversion:opennbt:0a02214' // 2.0-SNAPSHOT (ViaVersion Edition)
     preshadow 'com.github.steveice10:packetlib:614d56cdc0' // 1.3
 
-    compile 'org.apache.commons:commons-lang3:3.3.2'
-    compile 'org.apache.commons:commons-collections4:4.0'
-    compile 'commons-cli:commons-cli:1.2'
-    compileOnly "org.projectlombok:lombok:1.16.6"
-    testCompile 'junit:junit:4.11'
-    testCompile 'com.google.guava:guava-testlib:18.0'
-    testCompile 'pl.pragmatists:JUnitParams:1.0.4'
+    implementation 'org.apache.commons:commons-lang3:3.3.2'
+    implementation 'org.apache.commons:commons-collections4:4.0'
+    implementation 'commons-cli:commons-cli:1.2'
+    compileOnly(annotationProcessor("org.projectlombok:lombok:1.16.6"))
+    testImplementation 'junit:junit:4.11'
+    testImplementation 'com.google.guava:guava-testlib:18.0'
+    testImplementation 'pl.pragmatists:JUnitParams:1.0.4'
 }
 
 preshadowJar {
@@ -100,7 +97,7 @@ preshadowJar {
 }
 
 shadowJar {
-    archiveName = "${baseName}-${version}.full.${extension}"
+    archiveClassifier.set("full")
     append('META-INF/NOTICE.txt')
     from(tasks.findByName('preshadowJar').outputs.files.collect {it.isDirectory() ? it : zipTree(it)})
 }
@@ -112,3 +109,10 @@ jar.manifest.mainAttributes(
         'Implementation-Version': gitCommitHash()
 )
 
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from(components.java)
+        }
+    }
+}
