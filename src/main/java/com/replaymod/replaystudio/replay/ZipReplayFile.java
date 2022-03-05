@@ -188,7 +188,13 @@ public class ZipReplayFile extends AbstractReplayFile {
         if (!Files.exists(path)) {
             return Optional.absent();
         }
-        return Optional.of(new GZIPInputStream(new BufferedInputStream(Files.newInputStream(path))));
+        InputStream rawIn = new BufferedInputStream(Files.newInputStream(path));
+        try {
+            return Optional.of(new GZIPInputStream(rawIn));
+        } catch (IOException e) {
+            Closeables.closeQuietly(rawIn);
+            return Optional.absent();
+        }
     }
 
     @Override
