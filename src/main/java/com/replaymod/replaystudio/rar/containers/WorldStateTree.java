@@ -34,6 +34,7 @@ import com.replaymod.replaystudio.rar.cache.ReadableCache;
 import com.replaymod.replaystudio.rar.cache.WriteableCache;
 import com.replaymod.replaystudio.rar.state.World;
 import com.replaymod.replaystudio.util.IOBiConsumer;
+import com.replaymod.replaystudio.util.IPosition;
 
 import java.io.IOException;
 import java.util.Map;
@@ -123,9 +124,6 @@ public class WorldStateTree extends StateTree<World> {
                     if (previousWorld == null || !previousWorld.info.isRespawnSufficient(targetWorld.info)) {
                         // We need to send a JoinGame packet to update the client. Followed by a player pos look packet
                         // to get rid of the Loading Terrain screen.
-                        // But we also require `ClientPlayNetworkHandler.positionLookSetup` to be set to false before
-                        // that arrives (only the first pos look packet closes the screen), which only happens when we
-                        // send a Respawn packet. So we must send one of those as well.
                         PacketJoinGame joinGame = targetWorld.info.toPacketJoinGame();
                         if (registry.olderThan(ProtocolVersion.v1_16)) {
                             // In older versions, the Respawn packet only sets `positionLookSetup` if the dimension
@@ -137,23 +135,40 @@ public class WorldStateTree extends StateTree<World> {
 
                         // JoinGame resets various interdimensional game state, so we need to restore that
                         restoreStateAfterJoinGame.accept(sink, targetTime);
+
+                        // But on versions prior to 1.18.2, we also require `ClientPlayNetworkHandler.positionLookSetup`
+                        // to be set to false before that arrives (only the first pos look packet closes the screen),
+                        // which only happens when we send a Respawn packet. So we must send one of those as well.
+                        if (registry.olderThan(ProtocolVersion.v1_18_2)) {
+                            sink.accept(targetWorld.info.toRespawnPacket().write(registry));
+                        }
+                    } else {
+                        sink.accept(targetWorld.info.toRespawnPacket().write(registry));
                     }
 
-                    sink.accept(targetWorld.info.toRespawnPacket().write(registry));
-
-                    Packet packet = new Packet(registry, PacketType.PlayerPositionRotation);
-                    try (Packet.Writer out = packet.overwrite()) {
-                        out.writeDouble(0); // x
-                        out.writeDouble(0); // y
-                        out.writeDouble(0); // z
-                        out.writeFloat(0); // yaw
-                        out.writeFloat(0); // pitch
-                        out.writeByte(0); // flags
-                        if (packet.atLeast(ProtocolVersion.v1_9)) {
-                            out.writeVarInt(0); // teleport id
+                    // This packet is required to close the "Loading Terrain" screen
+                    Packet packet;
+                    if (registry.atLeast(ProtocolVersion.v1_18_2)) {
+                        packet = new Packet(registry, PacketType.SpawnPosition);
+                        try (Packet.Writer out = packet.overwrite()) {
+                            out.writePosition(new IPosition(0, 0, 0));
+                            out.writeFloat(0);
                         }
-                        if (packet.atLeast(ProtocolVersion.v1_17)) {
-                            out.writeBoolean(false); // dismount
+                    } else {
+                        packet = new Packet(registry, PacketType.PlayerPositionRotation);
+                        try (Packet.Writer out = packet.overwrite()) {
+                            out.writeDouble(0); // x
+                            out.writeDouble(0); // y
+                            out.writeDouble(0); // z
+                            out.writeFloat(0); // yaw
+                            out.writeFloat(0); // pitch
+                            out.writeByte(0); // flags
+                            if (packet.atLeast(ProtocolVersion.v1_9)) {
+                                out.writeVarInt(0); // teleport id
+                            }
+                            if (packet.atLeast(ProtocolVersion.v1_17)) {
+                                out.writeBoolean(false); // dismount
+                            }
                         }
                     }
                     sink.accept(packet);
