@@ -47,7 +47,7 @@ import java.util.logging.Logger;
 /**
  * Allows random access (i.e. very quick backwards and forwards seeking) to a replay. This is what powers the Quick Mode
  * in the Replay Mod.
- * Supports 1.9+ only.
+ * Supports 1.8+ only.
  *
  * To do so, it performs an initial analysis of the replay, scanning all of its packets and storing entity positions
  * and chunk states while doing so.

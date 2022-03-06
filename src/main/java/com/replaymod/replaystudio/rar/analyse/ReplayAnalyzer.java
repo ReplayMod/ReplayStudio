@@ -111,23 +111,19 @@ public class ReplayAnalyzer {
                     }
                     break;
                 }
+                case UnloadChunk:
                 case ChunkData: {
                     PacketChunkData chunkData = PacketChunkData.read(packet, replay.world.info.dimensionType.getSections());
-                    PacketChunkData.Column column = chunkData.getColumn();
-                    if (column.isFull()) {
-                        Chunk.Builder chunk = replay.world.transientThings.newChunk(time, column);
-                        if (lastLightUpdate != null) {
-                            PacketUpdateLight updateLight = PacketUpdateLight.read(lastLightUpdate);
-                            if (column.x == updateLight.getX() && column.z == updateLight.getZ()) {
-                                chunk.spawnPackets.list.add(0, lastLightUpdate);
-                                lastLightUpdate = null;
-                            }
-                        }
+                    if (chunkData.isUnload()) {
+                        replay.world.transientThings.removeChunk(time, chunkData.getUnloadX(), chunkData.getUnloadZ());
                     } else {
-                        Chunk.Builder chunk = replay.world.transientThings.getChunk(column.x, column.z);
-                        if (chunk != null) {
-                            chunk.blocks.update(time, column);
-                        }
+                        processChunkLoad(time, chunkData.getColumn());
+                    }
+                    break;
+                }
+                case BulkChunkData: {
+                    for (PacketChunkData.Column column : PacketChunkData.readBulk(packet)) {
+                        processChunkLoad(time, column);
                     }
                     break;
                 }
@@ -152,11 +148,6 @@ public class ReplayAnalyzer {
                         }
                         lastLightUpdate = packet.retain();
                     }
-                    break;
-                }
-                case UnloadChunk: {
-                    PacketChunkData chunkData = PacketChunkData.readUnload(packet);
-                    replay.world.transientThings.removeChunk(time, chunkData.getUnloadX(), chunkData.getUnloadZ());
                     break;
                 }
                 case BlockChange:
@@ -297,6 +288,24 @@ public class ReplayAnalyzer {
         }
 
         replay.build(out, time);
+    }
+
+    private void processChunkLoad(int time, PacketChunkData.Column column) throws IOException {
+        if (column.isFull()) {
+            Chunk.Builder chunk = replay.world.transientThings.newChunk(time, column);
+            if (lastLightUpdate != null) {
+                PacketUpdateLight updateLight = PacketUpdateLight.read(lastLightUpdate);
+                if (column.x == updateLight.getX() && column.z == updateLight.getZ()) {
+                    chunk.spawnPackets.list.add(0, lastLightUpdate);
+                    lastLightUpdate = null;
+                }
+            }
+        } else {
+            Chunk.Builder chunk = replay.world.transientThings.getChunk(column.x, column.z);
+            if (chunk != null) {
+                chunk.blocks.update(time, column);
+            }
+        }
     }
 
     private void invalidateOutOfBoundsChunks(int time, int centerX, int centerZ, int viewDistance) throws IOException {
