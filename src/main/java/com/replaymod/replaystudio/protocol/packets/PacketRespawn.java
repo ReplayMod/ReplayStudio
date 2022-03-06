@@ -91,10 +91,8 @@ public class PacketRespawn {
                 out.writeString(this.dimensionType.getName());
             }
             out.writeString(this.dimension);
-        } else if (packet.atLeast(ProtocolVersion.v1_9_1)) {
-            out.writeInt(Integer.parseInt(this.dimension));
         } else {
-            out.writeByte(Integer.parseInt(this.dimension));
+            out.writeInt(Integer.parseInt(this.dimension));
         }
         if (packet.atLeast(ProtocolVersion.v1_15)) {
             out.writeLong(this.seed);
