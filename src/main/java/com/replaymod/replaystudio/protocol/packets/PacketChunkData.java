@@ -733,6 +733,7 @@ public class PacketChunkData {
         PalettedStorage(PaletteType type, Packet packet) {
             this.type = type;
             this.registry = packet.getRegistry();
+            this.bitsPerEntry = type.highestBitsPerValue() + 1; // these versions never use a local palette
         }
 
         // 1.9+
@@ -781,7 +782,7 @@ public class PacketChunkData {
         }
 
         /**
-         * Only 1.9+
+         * Only 1.8+
          */
         public int get(int x, int y, int z) {
             if (this.bitsPerEntry == 0) {
@@ -792,7 +793,7 @@ public class PacketChunkData {
         }
 
         /**
-         * Only 1.9+
+         * Only 1.8+
          */
         public void set(int x, int y, int z, int state) {
             int id = this.bitsPerEntry <= type.highestBitsPerValue() ? this.states.indexOf(state) : state;
