@@ -177,6 +177,17 @@ public class SquashFilter implements StreamFilter {
      */
     private DimensionType dimensionType;
 
+    /**
+     * We rely on the timestamps to keep relative packet order. However, by default, two packets may have the same
+     * timestamp, in which case their relative order may be affected by the place in which we store the packet, and that
+     * change may break things (e.g. set block needs to be sent before the corresponding block entity data packet, but
+     * we process them the other way round).
+     * We therefore need to keep track and manually increment the timestamp if it didn't increment by itself. This will
+     * mess with the actual time value but that is not much of an issue because everything will get squashed into a
+     * single moment at the end anyway.
+     */
+    private long prevTimestamp;
+
     public SquashFilter(String dimension, DimensionType dimensionType) {
         this.dimension = dimension;
         this.dimensionType = dimensionType;
@@ -202,6 +213,7 @@ public class SquashFilter implements StreamFilter {
         this.latestOnly.forEach((key, value) -> copy.latestOnly.put(key, value.copy()));
         this.chunks.forEach((key, value) -> copy.chunks.put(key, value.copy()));
         copy.unloadedChunks.putAll(this.unloadedChunks);
+        copy.prevTimestamp = this.prevTimestamp;
         return copy;
     }
 
@@ -238,7 +250,11 @@ public class SquashFilter implements StreamFilter {
     }
 
     @Override
-    public boolean onPacket(PacketStream stream, PacketData data) throws IOException {
+    public boolean onPacket(PacketStream stream, PacketData originalData) throws IOException {
+        // Ensure timestamps are strictly increasing; just monotonically increasing is not enough; see prevTimestamp
+        PacketData data = new PacketData(Math.max(originalData.getTime(), prevTimestamp + 1), originalData.getPacket());
+        prevTimestamp = data.getTime();
+
         Packet packet = data.getPacket();
         PacketType type = packet.getType();
         registry = packet.getRegistry();
