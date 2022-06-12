@@ -18,13 +18,17 @@
  */
 package com.replaymod.replaystudio.protocol.packets;
 
+import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.registry.DimensionType;
+import com.replaymod.replaystudio.util.IGlobalPosition;
 
 import java.io.IOException;
+
+import static com.replaymod.replaystudio.protocol.packets.PacketJoinGame.getDimensionType;
 
 public class PacketRespawn {
     public byte gameMode;
@@ -36,18 +40,21 @@ public class PacketRespawn {
     public boolean debugWorld; // 1.16+
     public boolean flatWorld; // 1.16+
     public boolean keepPlayerAttributes; // 1.16+
+    public IGlobalPosition lastDeathPosition; // 1.19+
 
-    public static PacketRespawn read(Packet packet) throws IOException {
+    public static PacketRespawn read(Packet packet, CompoundTag registries) throws IOException {
         try (Packet.Reader in = packet.reader()) {
             PacketRespawn respawn = new PacketRespawn();
-            respawn.read(packet, in);
+            respawn.read(packet, in, registries);
             return respawn;
         }
     }
 
-    public void read(Packet packet, Packet.Reader in) throws IOException {
+    public void read(Packet packet, Packet.Reader in, CompoundTag registries) throws IOException {
         if (packet.atLeast(ProtocolVersion.v1_16)) {
-            if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+            if (packet.atLeast(ProtocolVersion.v1_19)) {
+                this.dimensionType = getDimensionType(registries, in.readString());
+            } else if (packet.atLeast(ProtocolVersion.v1_16_2)) {
                 this.dimensionType = new DimensionType(in.readNBT());
             } else {
                 this.dimensionType = new DimensionType(in.readString());
@@ -73,6 +80,11 @@ public class PacketRespawn {
         } else {
             this.dimensionType = new DimensionType(in.readString());
         }
+        if (packet.atLeast(ProtocolVersion.v1_19)) {
+            if (in.readBoolean()) {
+                this.lastDeathPosition = in.readGlobalPosition();
+            }
+        }
     }
 
     public Packet write(PacketTypeRegistry registry) throws IOException {
@@ -85,7 +97,9 @@ public class PacketRespawn {
 
     public void write(Packet packet, Packet.Writer out) throws IOException {
         if (packet.atLeast(ProtocolVersion.v1_16)) {
-            if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+            if (packet.atLeast(ProtocolVersion.v1_19)) {
+                out.writeString(this.dimensionType.getName());
+            } else if (packet.atLeast(ProtocolVersion.v1_16_2)) {
                 out.writeNBT(this.dimensionType.getTag());
             } else {
                 out.writeString(this.dimensionType.getName());
@@ -108,6 +122,14 @@ public class PacketRespawn {
             out.writeBoolean(this.keepPlayerAttributes);
         } else {
             out.writeString(this.dimensionType.getName());
+        }
+        if (packet.atLeast(ProtocolVersion.v1_19)) {
+            if (this.lastDeathPosition != null) {
+                out.writeBoolean(true);
+                out.writeGlobalPosition(this.lastDeathPosition);
+            } else {
+                out.writeBoolean(false);
+            }
         }
     }
 }

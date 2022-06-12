@@ -187,7 +187,7 @@ public class ReplayAnalyzer {
                     break;
                 }
                 case Respawn: {
-                    PacketRespawn respawn = PacketRespawn.read(packet);
+                    PacketRespawn respawn = PacketRespawn.read(packet, replay.world.info.registry);
                     String newDimension = respawn.dimension;
                     if (!newDimension.equals(replay.world.info.dimension)) {
                         World.Builder world = replay.newWorld(time, new World.Info(replay.world.info, respawn));

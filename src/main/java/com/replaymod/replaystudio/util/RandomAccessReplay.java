@@ -411,7 +411,7 @@ public abstract class RandomAccessReplay<T> {
                         break;
                     }
                     case Respawn: {
-                        String newDimension = PacketRespawn.read(packet).dimension;
+                        String newDimension = PacketRespawn.read(packet, null).dimension;
                         if (!newDimension.equals(activeDimension)) {
                             for (Entity entity : activeEntities.values()) {
                                 index = entity.writeToCache(indexOut, out, time, index);

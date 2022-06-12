@@ -18,6 +18,7 @@
  */
 package com.replaymod.replaystudio.filter;
 
+import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.google.gson.JsonObject;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
@@ -32,6 +33,7 @@ import java.io.IOException;
 
 public class DimensionTracker implements StreamFilter {
 
+    public CompoundTag registries;
     public String dimension;
     public DimensionType dimensionType;
 
@@ -46,13 +48,14 @@ public class DimensionTracker implements StreamFilter {
 
         switch (type) {
             case Respawn: {
-                PacketRespawn packetRespawn = PacketRespawn.read(packet);
+                PacketRespawn packetRespawn = PacketRespawn.read(packet, registries);
                 dimension = packetRespawn.dimension;
                 dimensionType = packetRespawn.dimensionType;
                 break;
             }
             case JoinGame: {
                 PacketJoinGame packetJoinGame = PacketJoinGame.read(packet);
+                registries = packetJoinGame.registry;
                 dimension = packetJoinGame.dimension;
                 dimensionType = packetJoinGame.dimensionType;
                 break;

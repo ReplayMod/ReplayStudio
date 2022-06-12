@@ -19,11 +19,15 @@
 package com.replaymod.replaystudio.protocol.packets;
 
 import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
+import com.github.steveice10.opennbt.tag.builtin.ListTag;
+import com.github.steveice10.opennbt.tag.builtin.StringTag;
+import com.github.steveice10.opennbt.tag.builtin.Tag;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.registry.DimensionType;
+import com.replaymod.replaystudio.util.IGlobalPosition;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -47,6 +51,7 @@ public class PacketJoinGame {
     public boolean respawnScreen; // 1.15+
     public boolean debugWorld; // 1.16+
     public boolean flatWorld; // 1.16+
+    public IGlobalPosition lastDeathPosition; // 1.19+
 
     public PacketJoinGame() {
     }
@@ -69,6 +74,7 @@ public class PacketJoinGame {
         this.respawnScreen = other.respawnScreen;
         this.debugWorld = other.debugWorld;
         this.flatWorld = other.flatWorld;
+        this.lastDeathPosition = other.lastDeathPosition;
     }
 
     public static PacketJoinGame read(Packet packet) throws IOException {
@@ -97,7 +103,9 @@ public class PacketJoinGame {
                 this.dimensions.add(in.readString());
             }
             this.registry = in.readNBT();
-            if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+            if (packet.atLeast(ProtocolVersion.v1_19)) {
+                this.dimensionType = getDimensionType(this.registry, in.readString());
+            } else if (packet.atLeast(ProtocolVersion.v1_16_2)) {
                 this.dimensionType = new DimensionType(in.readNBT());
             } else {
                 this.dimensionType = new DimensionType(in.readString());
@@ -142,6 +150,11 @@ public class PacketJoinGame {
             this.debugWorld = in.readBoolean();
             this.flatWorld = in.readBoolean();
         }
+        if (packet.atLeast(ProtocolVersion.v1_19)) {
+            if (in.readBoolean()) {
+                this.lastDeathPosition = in.readGlobalPosition();
+            }
+        }
     }
 
     public Packet write(PacketTypeRegistry registry) throws IOException {
@@ -167,7 +180,9 @@ public class PacketJoinGame {
                 out.writeString(dimension);
             }
             out.writeNBT(this.registry);
-            if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+            if (packet.atLeast(ProtocolVersion.v1_19)) {
+                out.writeString(this.dimensionType.getName());
+            } else if (packet.atLeast(ProtocolVersion.v1_16_2)) {
                 out.writeNBT(this.dimensionType.getTag());
             } else {
                 out.writeString(this.dimensionType.getName());
@@ -212,5 +227,44 @@ public class PacketJoinGame {
             out.writeBoolean(this.debugWorld);
             out.writeBoolean(this.flatWorld);
         }
+        if (packet.atLeast(ProtocolVersion.v1_19)) {
+            if (this.lastDeathPosition != null) {
+                out.writeBoolean(true);
+                out.writeGlobalPosition(this.lastDeathPosition);
+            } else {
+                out.writeBoolean(false);
+            }
+        }
+    }
+
+    public static ListTag getRegistry(CompoundTag registries, String id) {
+        if (registries == null) {
+            return null;
+        }
+        CompoundTag entry = registries.get(id);
+        if (entry == null) {
+            return null;
+        }
+        return entry.get("value");
+    }
+
+    public static CompoundTag getRegistryEntry(CompoundTag registries, String registryId, String entryId) {
+        ListTag entries = getRegistry(registries, registryId);
+        if (entries == null) return null;
+        for (Tag entry : entries) {
+            StringTag name = ((CompoundTag) entry).get("name");
+            if (name != null && name.getValue().equals(entryId)) {
+                return ((CompoundTag) entry).get("element");
+            }
+        }
+        return null;
+    }
+
+    public static DimensionType getDimensionType(CompoundTag registries, String id) {
+        CompoundTag tag = getRegistryEntry(registries, "minecraft:dimension_type", id);
+        if (tag == null) {
+            tag = new CompoundTag();
+        }
+        return new DimensionType(tag, id);
     }
 }

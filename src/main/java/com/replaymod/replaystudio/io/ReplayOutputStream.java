@@ -36,6 +36,7 @@ import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVe
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Collections;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -141,7 +142,7 @@ public class ReplayOutputStream extends OutputStream {
     public void write(long time, Packet packet) throws IOException {
         if (packet.getRegistry().getState() != State.LOGIN && loginPhase) {
             PacketTypeRegistry registry = PacketTypeRegistry.get(packet.getProtocolVersion(), State.LOGIN);
-            doWrite(0, new PacketLoginSuccess(UUID.nameUUIDFromBytes(new byte[0]), "Player").write(registry));
+            doWrite(0, new PacketLoginSuccess(UUID.nameUUIDFromBytes(new byte[0]), "Player", Collections.emptyList()).write(registry));
         }
         doWrite(time, packet);
     }

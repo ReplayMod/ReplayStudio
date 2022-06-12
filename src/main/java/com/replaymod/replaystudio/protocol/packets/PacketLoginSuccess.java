@@ -22,17 +22,21 @@ import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
+import com.replaymod.replaystudio.util.Property;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 
 public class PacketLoginSuccess {
     private final UUID id;
     private final String name;
+    private final List<Property> properties; // 1.19+
 
-    public PacketLoginSuccess(UUID id, String name) {
+    public PacketLoginSuccess(UUID id, String name, List<Property> properties) {
         this.id = id;
         this.name = name;
+        this.properties = properties;
     }
 
     public static PacketLoginSuccess read(Packet packet) throws IOException {
@@ -43,7 +47,12 @@ public class PacketLoginSuccess {
             } else {
                 id = UUID.fromString(in.readString());
             }
-            return new PacketLoginSuccess(id, in.readString());
+            String name = in.readString();
+            List<Property> properties = null;
+            if (packet.atLeast(ProtocolVersion.v1_19)) {
+                properties = in.readList(() -> Property.read(in));
+            }
+            return new PacketLoginSuccess(id, name, properties);
         }
     }
 
@@ -56,6 +65,9 @@ public class PacketLoginSuccess {
                 out.writeString(id.toString());
             }
             out.writeString(name);
+            if (packet.atLeast(ProtocolVersion.v1_19)) {
+                out.writeList(properties, it -> it.write(out));
+            }
         }
         return packet;
     }

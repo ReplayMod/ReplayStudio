@@ -27,6 +27,7 @@ import com.github.steveice10.packetlib.io.NetOutput;
 import com.github.steveice10.packetlib.tcp.io.ByteBufNetInput;
 import com.github.steveice10.packetlib.tcp.io.ByteBufNetOutput;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
+import com.replaymod.replaystudio.util.IGlobalPosition;
 import com.replaymod.replaystudio.util.IOConsumer;
 import com.replaymod.replaystudio.util.IOSupplier;
 import com.replaymod.replaystudio.util.IPosition;
@@ -173,6 +174,15 @@ public class Packet {
             return new IPosition((int) (x << 38 >> 38), (int) (y << 52 >> 52), (int) (z << 38 >> 38));
         }
 
+        public IGlobalPosition readGlobalPosition() throws IOException {
+            return readGlobalPosition(packet.registry, this);
+        }
+
+        public static IGlobalPosition readGlobalPosition(PacketTypeRegistry registry, NetInput in) throws IOException {
+            String dimension = in.readString();
+            return new IGlobalPosition(dimension, readPosition(registry, in));
+        }
+
         public CompoundTag readNBT() throws IOException {
             return readNBT(packet.registry, this);
         }
@@ -268,6 +278,15 @@ public class Packet {
             } else {
                 out.writeLong(x << 38 | y << 26 | z);
             }
+        }
+
+        public void writeGlobalPosition(IGlobalPosition pos) throws IOException {
+            writeGlobalPosition(packet.registry, this, pos);
+        }
+
+        public static void writeGlobalPosition(PacketTypeRegistry registry, NetOutput out, IGlobalPosition pos) throws IOException {
+            out.writeString(pos.getDimension());
+            writePosition(registry, out, pos.getPosition());
         }
 
         public void writeNBT(CompoundTag tag) throws IOException {

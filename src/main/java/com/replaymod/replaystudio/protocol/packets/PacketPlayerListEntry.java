@@ -46,6 +46,7 @@ public class PacketPlayerListEntry {
     private String displayName; // ADD or DISPLAY_NAME, nullable (1.8+)
     private int gamemode; // ADD or GAMEMODE (1.8+)
     private int latency; // ADD or latency
+    private SigData sigData; // ADD (1.19+)
 
     public static PacketPlayerListEntry updateGamemode(PacketPlayerListEntry entry, int gamemode) {
         entry = new PacketPlayerListEntry(entry);
@@ -97,6 +98,11 @@ public class PacketPlayerListEntry {
                             entry.latency = in.readVarInt();
                             if (in.readBoolean()) {
                                 entry.displayName = in.readString();
+                            }
+                            if (packet.atLeast(ProtocolVersion.v1_19)) {
+                                if (in.readBoolean()) {
+                                    entry.sigData = SigData.read(in);
+                                }
                             }
                             break;
                         case GAMEMODE:
@@ -159,6 +165,14 @@ public class PacketPlayerListEntry {
                             out.writeString(entry.displayName);
                         } else {
                             out.writeBoolean(false);
+                        }
+                        if (packet.atLeast(ProtocolVersion.v1_19)) {
+                            if (entry.sigData != null) {
+                                out.writeBoolean(true);
+                                entry.sigData.write(out);
+                            } else {
+                                out.writeBoolean(false);
+                            }
                         }
                         break;
                     case GAMEMODE:
@@ -231,6 +245,10 @@ public class PacketPlayerListEntry {
         return latency;
     }
 
+    public SigData getSigData() {
+        return sigData;
+    }
+
     /**
      * Returns the key identifying the player which this packet relates to.
      * In 1.8+ that is the UUID, in 1.7 it's the name.
@@ -238,5 +256,32 @@ public class PacketPlayerListEntry {
      */
     public String getId() {
         return uuid != null ? uuid.toString() : name;
+    }
+
+    public static class SigData {
+        private final long expireTimestamp;
+        private final byte[] publicKey;
+        private final byte[] signature;
+
+        public SigData(long expireTimestamp, byte[] publicKey, byte[] signature) {
+            this.expireTimestamp = expireTimestamp;
+            this.publicKey = publicKey;
+            this.signature = signature;
+        }
+
+        public static SigData read(Packet.Reader in) throws IOException {
+            long expireTimestamp = in.readLong();
+            byte[] publicKey = in.readBytes(in.readVarInt());
+            byte[] signature = in.readBytes(in.readVarInt());
+            return new SigData(expireTimestamp, publicKey, signature);
+        }
+
+        public void write(Packet.Writer out) throws IOException {
+            out.writeLong(expireTimestamp);
+            out.writeVarInt(publicKey.length);
+            out.writeBytes(publicKey);
+            out.writeVarInt(signature.length);
+            out.writeBytes(signature);
+        }
     }
 }

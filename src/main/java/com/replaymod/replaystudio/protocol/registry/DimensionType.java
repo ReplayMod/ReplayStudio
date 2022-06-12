@@ -36,11 +36,12 @@ public class DimensionType {
         this(new CompoundTag(), name);
     }
 
-    // 1.16.2+
+    // 1.16.2+ pre 1.19
     public DimensionType(CompoundTag tag) {
         this(tag, "");
     }
 
+    // 1.19+ (and internally all versions)
     public DimensionType(CompoundTag tag, String name) {
         this.tag = tag;
         this.name = name;
@@ -51,7 +52,7 @@ public class DimensionType {
         this.height = height instanceof NumberTag ? ((NumberTag) height).asInt() : 256;
     }
 
-    // pre 1.16.2
+    // pre 1.16.2 and 1.19+
     public String getName() {
         return this.name;
     }
