@@ -22,7 +22,7 @@ import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
-import org.apache.commons.lang3.tuple.Triple;
+import com.replaymod.replaystudio.util.Property;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,7 +42,7 @@ public class PacketPlayerListEntry {
 
     private UUID uuid; // any action (1.8+)
     private String name; // only in ADD (or 1.7.10 REMOVE)
-    private List<Triple<String, String, String>> properties; // only in ADD (1.8+)
+    private List<Property> properties; // only in ADD (1.8+)
     private String displayName; // ADD or DISPLAY_NAME, nullable (1.8+)
     private int gamemode; // ADD or GAMEMODE (1.8+)
     private int latency; // ADD or latency
@@ -92,17 +92,7 @@ public class PacketPlayerListEntry {
                     switch (action) {
                         case ADD:
                             entry.name = in.readString();
-                            int properties = in.readVarInt();
-                            entry.properties = new ArrayList<>(properties);
-                            for (int j = 0; j < properties; j++) {
-                                String property = in.readString();
-                                String value = in.readString();
-                                String signature = null;
-                                if (in.readBoolean()) {
-                                    signature = in.readString();
-                                }
-                                entry.properties.add(Triple.of(property, value, signature));
-                            }
+                            entry.properties = in.readList(() -> Property.read(in));
                             entry.gamemode = in.readVarInt();
                             entry.latency = in.readVarInt();
                             if (in.readBoolean()) {
@@ -161,16 +151,7 @@ public class PacketPlayerListEntry {
                     case ADD:
                         out.writeString(entry.name);
                         out.writeVarInt(entry.properties.size());
-                        for (Triple<String, String, String> property : entry.properties) {
-                            out.writeString(property.getLeft());
-                            out.writeString(property.getMiddle());
-                            if (property.getRight() != null) {
-                                out.writeBoolean(true);
-                                out.writeString(property.getRight());
-                            } else {
-                                out.writeBoolean(false);
-                            }
-                        }
+                        out.writeList(entry.properties, it -> it.write(out));
                         out.writeVarInt(entry.gamemode);
                         out.writeVarInt(entry.latency);
                         if (entry.displayName != null) {
@@ -234,7 +215,7 @@ public class PacketPlayerListEntry {
         return name;
     }
 
-    public List<Triple<String, String, String>> getProperties() {
+    public List<Property> getProperties() {
         return properties;
     }
 
