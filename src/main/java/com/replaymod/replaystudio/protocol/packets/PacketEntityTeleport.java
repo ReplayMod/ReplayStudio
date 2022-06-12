@@ -34,7 +34,7 @@ public class PacketEntityTeleport {
             } else {
                 in.readInt(); // entity id
             }
-            return SpawnEntity.readXYZYaPi(packet, in);
+            return SpawnEntity.readXYZYaPi(packet, in, false);
         }
     }
 

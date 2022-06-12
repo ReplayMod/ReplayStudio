@@ -49,7 +49,7 @@ public class SpawnEntity {
                 } else {
                     in.readUnsignedByte(); // type
                 }
-                return readXYZYaPi(packet, in);
+                return readXYZYaPi(packet, in, type == PacketType.SpawnObject);
             }
             case SpawnPlayer: try (Packet.Reader in = packet.reader()) {
                 in.readVarInt(); // id
@@ -65,7 +65,7 @@ public class SpawnEntity {
                         in.readString(); // signature
                     }
                 }
-                return readXYZYaPi(packet, in);
+                return readXYZYaPi(packet, in, false);
             }
             case SpawnPainting: try (Packet.Reader in = packet.reader()) {
                 in.readVarInt(); // id
@@ -89,14 +89,25 @@ public class SpawnEntity {
         }
     }
 
-    static Location readXYZYaPi(Packet packet, Packet.Reader in) throws IOException {
+    static Location readXYZYaPi(Packet packet, Packet.Reader in, boolean flippedYawPitch) throws IOException {
+        double x, y, z;
         if (packet.atLeast(ProtocolVersion.v1_9)) {
-            return new Location(in.readDouble(), in.readDouble(), in.readDouble(),
-                    in.readByte() / 256f * 360, in.readByte() / 256f * 360);
+            x = in.readDouble();
+            y = in.readDouble();
+            z = in.readDouble();
         } else {
-            return new Location(in.readInt() / 32.0, in.readInt() / 32.0, in.readInt() / 32.0,
-                    in.readByte() / 256f * 360, in.readByte() / 256f * 360);
+            x = in.readInt() / 32.0;
+            y = in.readInt() / 32.0;
+            z = in.readInt() / 32.0;
         }
+        float yaw = in.readByte() / 256f * 360;
+        float pitch = in.readByte() / 256f * 360;
+        if (flippedYawPitch) {
+            float tmp = pitch;
+            pitch = yaw;
+            yaw = tmp;
+        }
+        return new Location(x, y, z, yaw, pitch);
     }
 
     static void writeXYZYaPi(Packet packet, Packet.Writer out, Location loc) throws IOException {
