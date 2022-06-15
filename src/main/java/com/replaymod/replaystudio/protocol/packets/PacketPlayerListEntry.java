@@ -156,7 +156,6 @@ public class PacketPlayerListEntry {
                 switch (action) {
                     case ADD:
                         out.writeString(entry.name);
-                        out.writeVarInt(entry.properties.size());
                         out.writeList(entry.properties, it -> it.write(out));
                         out.writeVarInt(entry.gamemode);
                         out.writeVarInt(entry.latency);
