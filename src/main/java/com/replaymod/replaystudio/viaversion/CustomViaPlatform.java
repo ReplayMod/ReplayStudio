@@ -125,4 +125,9 @@ public class CustomViaPlatform implements ViaPlatform<Void> {
     public boolean isOldClientsAllowed() {
         return false;
     }
+
+    @Override
+    public boolean hasPlugin(String name) {
+        return false;
+    }
 }
