@@ -32,16 +32,19 @@ import com.replaymod.replaystudio.rar.containers.WorldStateTree;
 import java.io.IOException;
 
 public class Replay implements RandomAccessState {
+    private final PacketStateTree features;
     private final PacketStateTree tags;
     private final WorldStateTree world;
 
     public Replay(PacketTypeRegistry registry, NetInput in) throws IOException {
+        features = new PacketStateTree(registry, in.readVarInt());
         tags = new PacketStateTree(registry, in.readVarInt());
         world = new WorldStateTree(registry, this::restoreStateAfterJoinGame, in.readVarInt());
     }
 
     @Override
     public void load(PacketSink sink, ReadableCache cache) throws IOException {
+        features.load(sink, cache);
         tags.load(sink, cache);
         world.load(sink, cache);
     }
@@ -50,16 +53,19 @@ public class Replay implements RandomAccessState {
     public void unload(PacketSink sink, ReadableCache cache) throws IOException {
         world.unload(sink, cache);
         tags.unload(sink, cache);
+        features.unload(sink, cache);
     }
 
     @Override
     public void play(PacketSink sink, int currentTimeStamp, int targetTime) throws IOException {
+        features.play(sink, currentTimeStamp, targetTime);
         tags.play(sink, currentTimeStamp, targetTime);
         world.play(sink, currentTimeStamp, targetTime);
     }
 
     @Override
     public void rewind(PacketSink sink, int currentTimeStamp, int targetTime) throws IOException {
+        features.rewind(sink, currentTimeStamp, targetTime);
         tags.rewind(sink, currentTimeStamp, targetTime);
         world.rewind(sink, currentTimeStamp, targetTime);
     }
@@ -70,6 +76,7 @@ public class Replay implements RandomAccessState {
 
     public static class Builder {
         private final WriteableCache cache;
+        public final PacketStateTree.Builder features = new PacketStateTree.Builder();
         public final PacketStateTree.Builder tags = new PacketStateTree.Builder();
         private final WorldStateTree.Builder worlds;
         public World.Builder world;
@@ -84,6 +91,7 @@ public class Replay implements RandomAccessState {
         }
 
         public void build(NetOutput out, int time) throws IOException {
+            out.writeVarInt(features.build(cache));
             out.writeVarInt(tags.build(cache));
             out.writeVarInt(worlds.build(time));
         }

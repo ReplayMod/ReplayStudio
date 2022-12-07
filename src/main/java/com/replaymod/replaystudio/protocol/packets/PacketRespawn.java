@@ -40,6 +40,7 @@ public class PacketRespawn {
     public boolean debugWorld; // 1.16+
     public boolean flatWorld; // 1.16+
     public boolean keepPlayerAttributes; // 1.16+
+    public boolean keepPlayerDataTracker; // 1.19.3+
     public IGlobalPosition lastDeathPosition; // 1.19+
 
     public static PacketRespawn read(Packet packet, CompoundTag registries) throws IOException {
@@ -76,7 +77,13 @@ public class PacketRespawn {
         if (packet.atLeast(ProtocolVersion.v1_16)) {
             this.debugWorld = in.readBoolean();
             this.flatWorld = in.readBoolean();
-            this.keepPlayerAttributes = in.readBoolean();
+            if (packet.atLeast(ProtocolVersion.v1_19_3)) {
+                int flags = in.readByte();
+                this.keepPlayerAttributes = (flags & 0x01) != 0;
+                this.keepPlayerDataTracker = (flags & 0x02) != 0;
+            } else {
+                this.keepPlayerAttributes = in.readBoolean();
+            }
         } else {
             this.dimensionType = new DimensionType(in.readString());
         }
@@ -119,7 +126,14 @@ public class PacketRespawn {
             out.writeByte(this.prevGameMode);
             out.writeBoolean(this.debugWorld);
             out.writeBoolean(this.flatWorld);
-            out.writeBoolean(this.keepPlayerAttributes);
+            if (packet.atLeast(ProtocolVersion.v1_19_3)) {
+                int flags = 0;
+                if (this.keepPlayerAttributes) flags |= 0x01;
+                if (this.keepPlayerDataTracker) flags |= 0x02;
+                out.writeByte(flags);
+            } else {
+                out.writeBoolean(this.keepPlayerAttributes);
+            }
         } else {
             out.writeString(this.dimensionType.getName());
         }

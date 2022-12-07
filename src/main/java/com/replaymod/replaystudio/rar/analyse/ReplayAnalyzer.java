@@ -53,6 +53,7 @@ import it.unimi.dsi.fastutil.longs.LongSet;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.IntConsumer;
 
 import static com.replaymod.replaystudio.protocol.packets.PacketChunkData.Column.longToX;
@@ -98,7 +99,7 @@ public class ReplayAnalyzer {
 
                     PacketPlayerListEntry entry = playerListEntries.get(PacketSpawnPlayer.getPlayerListEntryId(packet));
                     if (entry != null) {
-                        entity.addSpawnPacket(PacketPlayerListEntry.write(registry, PacketPlayerListEntry.Action.ADD, entry));
+                        entity.addSpawnPacket(PacketPlayerListEntry.write(registry, PacketPlayerListEntry.Action.init(registry), entry));
                     }
 
                     entity.addSpawnPacket(packet.retain());
@@ -162,26 +163,36 @@ public class ReplayAnalyzer {
                     break;
                 }
                 case PlayerListEntry: {
-                    PacketPlayerListEntry.Action action = PacketPlayerListEntry.getAction(packet);
+                    Set<PacketPlayerListEntry.Action> actions = PacketPlayerListEntry.getActions(packet);
                     for (PacketPlayerListEntry entry : PacketPlayerListEntry.read(packet)) {
-                        switch (action) {
-                            case ADD:
-                                playerListEntries.put(entry.getId(), entry);
-                                break;
-                            case GAMEMODE:
-                                playerListEntries.computeIfPresent(entry.getId(), (key, it) ->
-                                        PacketPlayerListEntry.updateGamemode(it, entry.getGamemode()));
-                                break;
-                            case LATENCY:
-                                playerListEntries.computeIfPresent(entry.getId(), (key, it) ->
-                                        PacketPlayerListEntry.updateLatency(it, entry.getLatency()));
-                                break;
-                            case DISPLAY_NAME:
-                                playerListEntries.computeIfPresent(entry.getId(), (key, it) ->
-                                        PacketPlayerListEntry.updateDisplayName(it, entry.getDisplayName()));
-                                break;
-                            case REMOVE:
-                                playerListEntries.remove(entry.getId());
+                        for (PacketPlayerListEntry.Action action : actions) {
+                            switch (action) {
+                                case ADD:
+                                    playerListEntries.put(entry.getId(), entry);
+                                    break;
+                                case CHAT_KEY:
+                                    playerListEntries.computeIfPresent(entry.getId(), (key, it) ->
+                                            PacketPlayerListEntry.updateChatKey(it, entry.getSigData()));
+                                    break;
+                                case GAMEMODE:
+                                    playerListEntries.computeIfPresent(entry.getId(), (key, it) ->
+                                            PacketPlayerListEntry.updateGamemode(it, entry.getGamemode()));
+                                    break;
+                                case LISTED:
+                                    playerListEntries.computeIfPresent(entry.getId(), (key, it) ->
+                                            PacketPlayerListEntry.updateListed(it, entry.isListed()));
+                                    break;
+                                case LATENCY:
+                                    playerListEntries.computeIfPresent(entry.getId(), (key, it) ->
+                                            PacketPlayerListEntry.updateLatency(it, entry.getLatency()));
+                                    break;
+                                case DISPLAY_NAME:
+                                    playerListEntries.computeIfPresent(entry.getId(), (key, it) ->
+                                            PacketPlayerListEntry.updateDisplayName(it, entry.getDisplayName()));
+                                    break;
+                                case REMOVE:
+                                    playerListEntries.remove(entry.getId());
+                            }
                         }
                     }
                     break;
@@ -216,6 +227,10 @@ public class ReplayAnalyzer {
                         currentSimulationDistance = joinGame.simulationDistance;
                         replay.world.simulationDistance.put(time, PacketUpdateSimulationDistance.write(registry, currentSimulationDistance));
                     }
+                    break;
+                }
+                case Features: {
+                    replay.features.put(time, packet.retain());
                     break;
                 }
                 case Tags: {

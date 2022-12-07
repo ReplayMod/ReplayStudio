@@ -116,6 +116,9 @@ public enum PacketType {
 	DestroyEntity(ProtocolVersion.v1_17, 0x3a), // removed in 1.17.1, that didn't last long
 
 	UpdateSimulationDistance(ProtocolVersion.v1_18, 0x57),
+
+	Features(ProtocolVersion.v1_19_3, 0x67),
+	PlayerListEntryRemove(ProtocolVersion.v1_19_3, 0x35),
 	;
 
     private final State state;
