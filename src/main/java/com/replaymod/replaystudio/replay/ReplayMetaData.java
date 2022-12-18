@@ -170,9 +170,13 @@ public class ReplayMetaData {
     }
 
     public ProtocolVersion getProtocolVersion() {
+        return getProtocolVersion(this.fileFormatVersion, this.getRawProtocolVersionOr0());
+    }
+
+    public static ProtocolVersion getProtocolVersion(int fileFormatVersion, int fileProtocol) {
         // See https://github.com/ReplayMod/ReplayStudio/issues/9#issuecomment-464451582
         // and https://github.com/ReplayMod/ReplayStudio/issues/9#issuecomment-464456558
-        Integer protocol = this.protocol;
+        Integer protocol = fileProtocol != 0 ? fileProtocol : null;
         if (protocol == null) {
             protocol = PROTOCOL_FOR_FILE_FORMAT.get(fileFormatVersion);
             if (protocol == null) {

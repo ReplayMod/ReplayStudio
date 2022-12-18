@@ -27,7 +27,9 @@ import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
+import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
 import com.replaymod.replaystudio.protocol.packets.PacketLoginSuccess;
+import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.studio.StudioPacketStream;
 import com.replaymod.replaystudio.viaversion.ViaVersionPacketConverter;
@@ -51,6 +53,7 @@ public class ReplayInputStream extends InputStream {
 
     private static final ByteBufAllocator ALLOC = PooledByteBufAllocator.DEFAULT;
 
+    private PacketTypeRegistry rawRegistry;
     private PacketTypeRegistry registry;
 
     /**
@@ -103,6 +106,7 @@ public class ReplayInputStream extends InputStream {
         }
         this.in = in;
         this.viaVersionConverter = ViaVersionPacketConverter.createForFileVersion(fileFormatVersion, fileProtocol, registry.getVersion().getOriginalVersion());
+        this.rawRegistry = PacketTypeRegistry.get(ReplayMetaData.getProtocolVersion(fileFormatVersion, fileProtocol), this.registry.getState());
     }
 
     @Override
@@ -148,6 +152,21 @@ public class ReplayInputStream extends InputStream {
                 }
                 length -= read;
             }
+
+            int rawPacketId = new ByteBufNetInput(buf).readVarInt();
+            Packet rawPacket = new Packet(rawRegistry, rawPacketId, buf);
+            if (rawPacket.getType() == PacketType.JoinGame) {
+                PacketJoinGame joinGame = PacketJoinGame.read(rawPacket);
+                joinGame.entityId = -1789435; // arbitrary negative value
+                joinGame.gameMode = 3; // Spectator
+                try (Packet.Writer writer = rawPacket.overwrite()) {
+                    joinGame.write(rawPacket, writer);
+                }
+            } else if (rawPacket.getType() == PacketType.LoginSuccess) {
+                rawRegistry = PacketTypeRegistry.get(rawRegistry.getVersion(), State.PLAY);
+            }
+
+            buf.resetReaderIndex();
 
             List<Packet> decoded = new LinkedList<>();
             try {
