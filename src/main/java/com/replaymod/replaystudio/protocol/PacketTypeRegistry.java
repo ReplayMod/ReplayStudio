@@ -35,6 +35,7 @@ import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_14to1_13_2.
 import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_16to1_15_2.Protocol1_16To1_15_2;
 import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_17_1to1_17.Protocol1_17_1To1_17;
 import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_17to1_16_4.Protocol1_17To1_16_4;
+import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_19to1_18_2.Protocol1_19To1_18_2;
 import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_9to1_8.Protocol1_9To1_8;
 import com.replaymod.replaystudio.viaversion.CustomViaManager;
 import org.apache.commons.lang3.tuple.Pair;
@@ -133,6 +134,20 @@ public class PacketTypeRegistry {
                     }
                     if (newId == id) {
                         wasReplaced = true;
+                    }
+                }
+
+                // Special case: Multiple packets get merged into Spawn Object in 1.19, we want to drop those and
+                //               preserve the original type.
+                if (protocol instanceof Protocol1_19To1_18_2) {
+                    switch (packetType) {
+                        case SpawnPainting:
+                        case SpawnMob:
+                            continue packets;
+                        case SpawnObject:
+                            wasReplaced = false;
+                            id = 0;
+                            break;
                     }
                 }
 
