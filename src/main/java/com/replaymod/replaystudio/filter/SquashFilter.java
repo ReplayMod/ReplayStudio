@@ -526,8 +526,13 @@ public class SquashFilter implements StreamFilter {
 
     @Override
     public void onEnd(PacketStream stream, long timestamp) throws IOException {
+        boolean inBundle = false;
+
         // If we have any login-phase packets, those need to be sent before regular play-phase ones
         for (PacketData data : loginPhase) {
+            if (data.getPacket().getType() == PacketType.Bundle) {
+                inBundle = !inBundle;
+            }
             stream.insert(timestamp, data.getPacket());
         }
         loginPhase.clear();
@@ -648,8 +653,32 @@ public class SquashFilter implements StreamFilter {
         chunks.clear();
 
         result.sort(Comparator.comparingLong(PacketData::getTime));
+
+        PacketData pendingBundle = null;
         for (PacketData data : result) {
+            if (data.getPacket().getType() == PacketType.Bundle) {
+                if (inBundle) {
+                    inBundle = false;
+                } else {
+                    // If the bundle was just opened and is already being closed without any packets in it, drop it
+                    if (pendingBundle != null) {
+                        pendingBundle.release();
+                        data.release();
+                        continue;
+                    }
+                    pendingBundle = data;
+                    continue;
+                }
+            } else if (pendingBundle != null) {
+                add(stream, timestamp, pendingBundle.getPacket());
+                pendingBundle = null;
+                inBundle = true;
+            }
+
             add(stream, timestamp, data.getPacket());
+        }
+        if (pendingBundle != null) {
+            add(stream, timestamp, pendingBundle.getPacket());
         }
 
         for (Team team : teams.values()) {

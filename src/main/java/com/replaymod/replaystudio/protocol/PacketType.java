@@ -119,6 +119,8 @@ public enum PacketType {
 
 	Features(ProtocolVersion.v1_19_3, 0x67),
 	PlayerListEntryRemove(ProtocolVersion.v1_19_3, 0x35),
+
+	Bundle(ProtocolVersion.v1_19_4, 0x00),
 	;
 
     private final State state;

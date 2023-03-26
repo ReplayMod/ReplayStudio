@@ -166,7 +166,7 @@ public class WorldStateTree extends StateTree<World> {
                             if (packet.atLeast(ProtocolVersion.v1_9)) {
                                 out.writeVarInt(0); // teleport id
                             }
-                            if (packet.atLeast(ProtocolVersion.v1_17)) {
+                            if (packet.atLeast(ProtocolVersion.v1_17) && packet.atMost(ProtocolVersion.v1_19_3)) {
                                 out.writeBoolean(false); // dismount
                             }
                         }
