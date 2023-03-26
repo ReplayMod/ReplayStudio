@@ -132,11 +132,6 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
-    public boolean isAntiXRay() {
-        return false;
-    }
-
-    @Override
     public boolean isSendSupportedVersions() {
         return false;
     }
@@ -184,6 +179,11 @@ public class CustomViaConfig implements ViaVersionConfig {
     @Override
     public boolean is1_13TeamColourFix() {
         return true;
+    }
+
+    @Override
+    public boolean shouldRegisterUserConnectionOnJoin() {
+        return false;
     }
 
     @Override
@@ -332,5 +332,10 @@ public class CustomViaConfig implements ViaVersionConfig {
             case "chat.type.emote": return "* %s %s";
             default: return null;
         }
+    }
+
+    @Override
+    public boolean isArmorToggleFix() {
+        return false;
     }
 }

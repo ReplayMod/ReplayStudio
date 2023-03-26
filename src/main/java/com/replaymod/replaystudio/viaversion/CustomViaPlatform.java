@@ -59,6 +59,11 @@ public class CustomViaPlatform implements ViaPlatform<Void> {
     }
 
     @Override
+    public PlatformTask<?> runRepeatingAsync(Runnable runnable, long l) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public PlatformTask<?> runSync(Runnable runnable) {
         throw new UnsupportedOperationException();
     }

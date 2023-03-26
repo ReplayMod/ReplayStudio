@@ -28,6 +28,7 @@ import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaPlatform;
 import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaPlatformLoader;
 import com.replaymod.replaystudio.lib.viaversion.api.platform.providers.ViaProviders;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolManager;
+import com.replaymod.replaystudio.lib.viaversion.api.scheduler.Scheduler;
 import com.replaymod.replaystudio.lib.viaversion.debug.DebugHandlerImpl;
 import com.replaymod.replaystudio.lib.viaversion.protocol.ProtocolManagerImpl;
 
@@ -43,6 +44,8 @@ public class CustomViaManager implements ViaManager {
         CustomViaManager manager = new CustomViaManager();
         Via.init(manager);
         manager.protocolManager.registerProtocols();
+        manager.protocolManager.refreshVersions();
+        manager.initialized = true;
     }
 
     private final ProtocolManagerImpl protocolManager = new ProtocolManagerImpl();
@@ -52,6 +55,7 @@ public class CustomViaManager implements ViaManager {
     private final ViaInjector injector = new CustomViaInjector();
     private final Set<String> subPlatforms = new HashSet<>();
     private final DebugHandler debugHandler = new DebugHandlerImpl();
+    private boolean initialized;
 
     private CustomViaManager() {
     }
@@ -92,6 +96,11 @@ public class CustomViaManager implements ViaManager {
     }
 
     @Override
+    public Scheduler getScheduler() {
+        return null;
+    }
+
+    @Override
     public DebugHandler debugHandler() {
         return debugHandler;
     }
@@ -104,5 +113,10 @@ public class CustomViaManager implements ViaManager {
     @Override
     public void addEnableListener(Runnable runnable) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return initialized;
     }
 }

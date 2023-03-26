@@ -20,10 +20,16 @@ package com.replaymod.replaystudio.protocol;
 
 import com.replaymod.replaystudio.lib.guava.collect.Lists;
 import com.replaymod.replaystudio.lib.viaversion.api.Via;
+import com.replaymod.replaystudio.lib.viaversion.api.connection.UserConnection;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.AbstractProtocol;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolPathEntry;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.ClientboundPacketType;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.PacketWrapper;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.Protocol;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.mapping.PacketMapping;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.mapping.PacketMappings;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.provider.PacketTypeMap;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_14to1_13_2.Protocol1_14To1_13_2;
 import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_16to1_15_2.Protocol1_16To1_15_2;
@@ -209,23 +215,33 @@ public class PacketTypeRegistry {
         return version.getVersion() < protocolVersion.getVersion();
     }
 
-    @SuppressWarnings("unchecked")
     private static List<Pair<Integer, Integer>> getIdMappings(Protocol<?, ?, ?, ?> protocol, State state) {
         List<Pair<Integer, Integer>> result = new ArrayList<>();
         try {
             if (clientbound == null) {
-                clientbound = AbstractProtocol.class.getDeclaredField("clientbound");
+                clientbound = AbstractProtocol.class.getDeclaredField("clientboundMappings");
                 clientbound.setAccessible(true);
             }
-            for (Map.Entry<AbstractProtocol.Packet, AbstractProtocol.ProtocolPacket> entry : ((Map<AbstractProtocol.Packet, AbstractProtocol.ProtocolPacket>) clientbound.get(protocol)).entrySet()) {
-                if (entry.getKey().getState() != state) {
+            PacketMappings mappings = (PacketMappings) clientbound.get(protocol);
+
+            PacketTypeMap<? extends ClientboundPacketType> packetTypeMap =
+                    protocol.getPacketTypesProvider().unmappedClientboundPacketTypes().get(state);
+            if (packetTypeMap == null) {
+                return result;
+            }
+
+            PacketWrapper dummyPacketWrapper = PacketWrapper.create(null, (UserConnection) null);
+            for (ClientboundPacketType unmappedPacketType : packetTypeMap.types()) {
+                PacketMapping packetMapping = mappings.mappedPacket(state, unmappedPacketType.getId());
+                if (packetMapping == null) {
                     continue;
                 }
-                AbstractProtocol.ProtocolPacket mapping = entry.getValue();
-                com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.PacketType unmappedPacketType = mapping.getUnmappedPacketType();
-                com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.PacketType mappedPacketType = mapping.getMappedPacketType();
-                int oldId = unmappedPacketType != null ? unmappedPacketType.getId() : -1;
-                int newId = mappedPacketType != null ? mappedPacketType.getId() : -1;
+
+                dummyPacketWrapper.setPacketType(null);
+                packetMapping.applyType(dummyPacketWrapper);
+
+                int oldId = unmappedPacketType.getId();
+                int newId = dummyPacketWrapper.getId();
                 result.add(Pair.of(oldId, newId));
             }
         } catch (NoSuchFieldException | IllegalAccessException e) {
