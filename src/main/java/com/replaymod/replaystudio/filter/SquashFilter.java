@@ -663,6 +663,7 @@ public class SquashFilter implements StreamFilter {
                     // If the bundle was just opened and is already being closed without any packets in it, drop it
                     if (pendingBundle != null) {
                         pendingBundle.release();
+                        pendingBundle = null;
                         data.release();
                         continue;
                     }
