@@ -52,6 +52,7 @@ public class PacketJoinGame {
     public boolean debugWorld; // 1.16+
     public boolean flatWorld; // 1.16+
     public IGlobalPosition lastDeathPosition; // 1.19+
+    public int portalCooldown; // 1.20+
 
     public PacketJoinGame() {
     }
@@ -75,6 +76,7 @@ public class PacketJoinGame {
         this.debugWorld = other.debugWorld;
         this.flatWorld = other.flatWorld;
         this.lastDeathPosition = other.lastDeathPosition;
+        this.portalCooldown = other.portalCooldown;
     }
 
     public static PacketJoinGame read(Packet packet) throws IOException {
@@ -155,6 +157,9 @@ public class PacketJoinGame {
                 this.lastDeathPosition = in.readGlobalPosition();
             }
         }
+        if (packet.atLeast(ProtocolVersion.v1_20)) {
+            this.portalCooldown = in.readVarInt();
+        }
     }
 
     public Packet write(PacketTypeRegistry registry) throws IOException {
@@ -234,6 +239,9 @@ public class PacketJoinGame {
             } else {
                 out.writeBoolean(false);
             }
+        }
+        if (packet.atLeast(ProtocolVersion.v1_20)) {
+            out.writeVarInt(this.portalCooldown);
         }
     }
 

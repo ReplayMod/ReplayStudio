@@ -97,7 +97,7 @@ public class PacketUpdateLight {
     static Data readData(Packet packet, Packet.Reader in) throws IOException {
         Data data = new Data();
 
-        if (packet.atLeast(ProtocolVersion.v1_16)) {
+        if (packet.atLeast(ProtocolVersion.v1_16) && packet.olderThan(ProtocolVersion.v1_20)) {
             in.readBoolean(); // unknown
         }
 
@@ -159,7 +159,7 @@ public class PacketUpdateLight {
     }
 
     static void writeData(Packet packet, Packet.Writer out, Data data) throws IOException {
-        if (packet.atLeast(ProtocolVersion.v1_16)) {
+        if (packet.atLeast(ProtocolVersion.v1_16) && packet.olderThan(ProtocolVersion.v1_20)) {
             out.writeBoolean(true); // unknown, ViaVersion always writes true, so we'll do so as well
         }
 

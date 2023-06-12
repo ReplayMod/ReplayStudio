@@ -87,7 +87,9 @@ public class PacketBlockChange {
                 chunkX = (int)(coord >> 42);
                 chunkY = (int)(coord << 44 >> 44);
                 chunkZ = (int)(coord << 22 >> 42);
-                in.readBoolean(); // we don't care about "skip light updates"
+                if (packet.olderThan(ProtocolVersion.v1_20)) {
+                    in.readBoolean(); // we don't care about "skip light updates"
+                }
             } else {
                 chunkX = in.readInt();
                 chunkY = 0;

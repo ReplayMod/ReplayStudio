@@ -63,7 +63,11 @@ public class EntityId {
                 return Collections.emptyList();
             }
             case CombatEntityDead: try (Packet.Reader in = packet.reader()) {
-                return Arrays.asList(in.readVarInt(), in.readInt());
+                if (packet.atLeast(ProtocolVersion.v1_20)) {
+                    return Collections.singletonList(in.readVarInt());
+                } else {
+                    return Arrays.asList(in.readVarInt(), in.readInt());
+                }
             }
             default:
                 Integer entityId = getEntityId(packet);
@@ -124,7 +128,11 @@ public class EntityId {
             }
             case CombatEnd: try (Packet.Reader in = packet.reader()) {
                 in.readVarInt(); // duration
-                return in.readInt();
+                if (packet.atLeast(ProtocolVersion.v1_20)) {
+                    return null;
+                } else {
+                    return in.readInt();
+                }
             }
             default:
                 return null;

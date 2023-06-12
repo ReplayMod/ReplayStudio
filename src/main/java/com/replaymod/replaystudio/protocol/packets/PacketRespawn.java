@@ -42,6 +42,7 @@ public class PacketRespawn {
     public boolean keepPlayerAttributes; // 1.16+
     public boolean keepPlayerDataTracker; // 1.19.3+
     public IGlobalPosition lastDeathPosition; // 1.19+
+    public int portalCooldown; // 1.20+
 
     public static PacketRespawn read(Packet packet, CompoundTag registries) throws IOException {
         try (Packet.Reader in = packet.reader()) {
@@ -91,6 +92,9 @@ public class PacketRespawn {
             if (in.readBoolean()) {
                 this.lastDeathPosition = in.readGlobalPosition();
             }
+        }
+        if (packet.atLeast(ProtocolVersion.v1_20)) {
+            this.portalCooldown = in.readVarInt();
         }
     }
 
@@ -144,6 +148,9 @@ public class PacketRespawn {
             } else {
                 out.writeBoolean(false);
             }
+        }
+        if (packet.atLeast(ProtocolVersion.v1_20)) {
+            out.writeVarInt(this.portalCooldown);
         }
     }
 }
