@@ -366,7 +366,7 @@ public class SquashFilter implements StreamFilter {
                 entities.values().forEach(Entity::release);
                 entities.clear();
                 PacketJoinGame packetJoinGame = PacketJoinGame.read(packet);
-                registries = packetJoinGame.registry;
+                registries = packetJoinGame.registries;
                 dimension = packetJoinGame.dimension;
                 dimensionType = packetJoinGame.dimensionType;
                 forgeHandshake = false;

@@ -39,7 +39,7 @@ public class PacketJoinGame {
     public byte gameMode;
     public byte prevGameMode; // 1.16+
     public List<String> dimensions; // 1.16+
-    public CompoundTag registry; // 1.16+
+    public CompoundTag registries; // 1.16+
     public DimensionType dimensionType;
     public String dimension;
     public long seed; // 1.15+
@@ -63,7 +63,7 @@ public class PacketJoinGame {
         this.gameMode = other.gameMode;
         this.prevGameMode = other.prevGameMode;
         this.dimensions = other.dimensions;
-        this.registry = other.registry;
+        this.registries = other.registries;
         this.dimensionType = other.dimensionType;
         this.dimension = other.dimension;
         this.seed = other.seed;
@@ -104,9 +104,9 @@ public class PacketJoinGame {
             for (int i = 0; i < count; i++) {
                 this.dimensions.add(in.readString());
             }
-            this.registry = in.readNBT();
+            this.registries = in.readNBT();
             if (packet.atLeast(ProtocolVersion.v1_19)) {
-                this.dimensionType = getDimensionType(this.registry, in.readString());
+                this.dimensionType = getDimensionType(this.registries, in.readString());
             } else if (packet.atLeast(ProtocolVersion.v1_16_2)) {
                 this.dimensionType = new DimensionType(in.readNBT());
             } else {
@@ -184,7 +184,7 @@ public class PacketJoinGame {
             for (String dimension : this.dimensions) {
                 out.writeString(dimension);
             }
-            out.writeNBT(this.registry);
+            out.writeNBT(this.registries);
             if (packet.atLeast(ProtocolVersion.v1_19)) {
                 out.writeString(this.dimensionType.getName());
             } else if (packet.atLeast(ProtocolVersion.v1_16_2)) {

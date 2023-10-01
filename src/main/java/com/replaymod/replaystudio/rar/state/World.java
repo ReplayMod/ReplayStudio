@@ -132,7 +132,7 @@ public class World implements RandomAccessState {
 
     public static final class Info {
         public final List<String> dimensions; // 1.16+
-        public final CompoundTag registry; // 1.16+
+        public final CompoundTag registries; // 1.16+
         public final String dimension;
         public final DimensionType dimensionType;
         public final long seed; // 1.15+
@@ -140,9 +140,9 @@ public class World implements RandomAccessState {
         public final boolean debugWorld; // 1.16+
         public final boolean flatWorld; // 1.16+
 
-        public Info(List<String> dimensions, CompoundTag registry, String dimension, DimensionType dimensionType, long seed, int difficulty, boolean debugWorld, boolean flatWorld) {
+        public Info(List<String> dimensions, CompoundTag registries, String dimension, DimensionType dimensionType, long seed, int difficulty, boolean debugWorld, boolean flatWorld) {
             this.dimensions = dimensions;
-            this.registry = registry;
+            this.registries = registries;
             this.dimension = dimension;
             this.dimensionType = dimensionType;
             this.seed = seed;
@@ -152,15 +152,15 @@ public class World implements RandomAccessState {
         }
 
         public Info(PacketJoinGame packet) {
-            this(packet.dimensions, packet.registry, packet.dimension, packet.dimensionType, packet.seed, packet.difficulty, packet.debugWorld, packet.flatWorld);
+            this(packet.dimensions, packet.registries, packet.dimension, packet.dimensionType, packet.seed, packet.difficulty, packet.debugWorld, packet.flatWorld);
         }
 
-        public Info(List<String> dimensions, CompoundTag registry, PacketRespawn packet) {
-            this(dimensions, registry, packet.dimension, packet.dimensionType, packet.seed, packet.difficulty, packet.debugWorld, packet.flatWorld);
+        public Info(List<String> dimensions, CompoundTag registries, PacketRespawn packet) {
+            this(dimensions, registries, packet.dimension, packet.dimensionType, packet.seed, packet.difficulty, packet.debugWorld, packet.flatWorld);
         }
 
         public Info(Info info, PacketRespawn packet) {
-            this(info.dimensions, info.registry, packet);
+            this(info.dimensions, info.registries, packet);
         }
 
         public Info(PacketTypeRegistry registry, NetInput in) throws IOException {
@@ -179,7 +179,7 @@ public class World implements RandomAccessState {
         public void write(PacketTypeRegistry registry, NetOutput out) throws IOException {
             if (registry.atLeast(ProtocolVersion.v1_16)) {
                 Packet.Writer.writeList(registry, out, dimensions, out::writeString);
-                Packet.Writer.writeNBT(registry, out, this.registry);
+                Packet.Writer.writeNBT(registry, out, this.registries);
             }
             out.writeString(dimension);
             Packet.Writer.writeNBT(registry, out, dimensionType.getTag());
@@ -193,7 +193,7 @@ public class World implements RandomAccessState {
         public boolean isRespawnSufficient(Info other) {
             // We can get away with skipping the JoinGame packet if none of the relevant info changed
             return Objects.equals(this.dimensions, other.dimensions)
-                    && Objects.equals(this.registry, other.registry)
+                    && Objects.equals(this.registries, other.registries)
                     // but only if the dimension did change, otherwise a simple respawn is insufficient
                     && !this.dimension.equals(other.dimension);
         }
@@ -204,7 +204,7 @@ public class World implements RandomAccessState {
             joinGame.gameMode = 3; // Spectator
             joinGame.prevGameMode = 3; // Spectator
             joinGame.dimensions = dimensions;
-            joinGame.registry = registry;
+            joinGame.registries = registries;
             joinGame.dimensionType = dimensionType;
             joinGame.dimension = dimension;
             joinGame.seed = seed;
@@ -237,14 +237,14 @@ public class World implements RandomAccessState {
                     && debugWorld == info.debugWorld
                     && flatWorld == info.flatWorld
                     && Objects.equals(dimensions, info.dimensions)
-                    && Objects.equals(registry, info.registry)
+                    && Objects.equals(registries, info.registries)
                     && dimension.equals(info.dimension)
                     && dimensionType.equals(info.dimensionType);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(dimensions, registry, dimension, dimensionType, seed, difficulty, debugWorld, flatWorld);
+            return Objects.hash(dimensions, registries, dimension, dimensionType, seed, difficulty, debugWorld, flatWorld);
         }
     }
 }

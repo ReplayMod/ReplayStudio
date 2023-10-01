@@ -55,7 +55,7 @@ public class DimensionTracker implements StreamFilter {
             }
             case JoinGame: {
                 PacketJoinGame packetJoinGame = PacketJoinGame.read(packet);
-                registries = packetJoinGame.registry;
+                registries = packetJoinGame.registries;
                 dimension = packetJoinGame.dimension;
                 dimensionType = packetJoinGame.dimensionType;
                 break;
