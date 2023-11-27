@@ -230,6 +230,14 @@ public class PacketTypeRegistry {
         return version.getVersion() < protocolVersion.getVersion();
     }
 
+    public PacketTypeRegistry withState(State state) {
+        return PacketTypeRegistry.get(version, state);
+    }
+
+    public PacketTypeRegistry withLoginSuccess() {
+        return withState(atLeast(ProtocolVersion.v1_20_2) ? State.CONFIGURATION : State.PLAY);
+    }
+
     private static List<Pair<Integer, Integer>> getIdMappings(Protocol<?, ?, ?, ?> protocol, State state) {
         List<Pair<Integer, Integer>> result = new ArrayList<>();
         try {

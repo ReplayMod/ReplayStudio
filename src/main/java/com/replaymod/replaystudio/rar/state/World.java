@@ -151,8 +151,8 @@ public class World implements RandomAccessState {
             this.flatWorld = flatWorld;
         }
 
-        public Info(PacketJoinGame packet) {
-            this(packet.dimensions, packet.registries, packet.dimension, packet.dimensionType, packet.seed, packet.difficulty, packet.debugWorld, packet.flatWorld);
+        public Info(PacketJoinGame packet, CompoundTag registries) {
+            this(packet.dimensions, registries, packet.dimension, packet.dimensionType, packet.seed, packet.difficulty, packet.debugWorld, packet.flatWorld);
         }
 
         public Info(List<String> dimensions, CompoundTag registries, PacketRespawn packet) {

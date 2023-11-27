@@ -27,6 +27,7 @@ import com.github.steveice10.packetlib.io.stream.StreamNetInput;
 import com.github.steveice10.packetlib.io.stream.StreamNetOutput;
 import com.replaymod.replaystudio.lib.guava.base.Optional;
 import com.replaymod.replaystudio.io.ReplayInputStream;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.rar.analyse.ReplayAnalyzer;
@@ -61,7 +62,7 @@ import java.util.logging.Logger;
 public abstract class RandomAccessReplay {
     private static final String CACHE_ENTRY = "quickModeCache.bin";
     private static final String CACHE_INDEX_ENTRY = "quickModeCacheIndex.bin";
-    private static final int CACHE_VERSION = 7;
+    private static final int CACHE_VERSION = 8;
     private static final Logger LOGGER = Logger.getLogger(RandomAccessReplay.class.getName());
 
     private final ReplayFile replayFile;
@@ -74,7 +75,7 @@ public abstract class RandomAccessReplay {
 
     public RandomAccessReplay(ReplayFile replayFile, PacketTypeRegistry registry) {
         this.replayFile = replayFile;
-        this.registry = registry;
+        this.registry = registry.withState(State.PLAY);
     }
 
     protected abstract void dispatch(Packet packet);
@@ -141,7 +142,7 @@ public abstract class RandomAccessReplay {
 
     private void analyseReplay(Consumer<Double> progress) throws IOException {
         double sysTimeStart = System.currentTimeMillis();
-        try (ReplayInputStream in = replayFile.getPacketData(registry);
+        try (ReplayInputStream in = replayFile.getPacketData(registry.withLoginSuccess());
              OutputStream cacheOut = replayFile.writeCache(CACHE_ENTRY);
              OutputStream cacheIndexOut = replayFile.writeCache(CACHE_INDEX_ENTRY)) {
             NetOutput out = new StreamNetOutput(cacheOut);

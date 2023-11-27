@@ -24,31 +24,36 @@ import com.github.steveice10.netty.buffer.Unpooled;
 import com.github.steveice10.packetlib.io.NetInput;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.github.steveice10.packetlib.tcp.io.ByteBufNetOutput;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
+import com.replaymod.replaystudio.protocol.packets.PacketConfigRegistries;
 import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
 import com.replaymod.replaystudio.rar.PacketSink;
 import com.replaymod.replaystudio.rar.cache.ReadableCache;
 import com.replaymod.replaystudio.rar.cache.WriteableCache;
+import com.replaymod.replaystudio.rar.state.Replay;
 import com.replaymod.replaystudio.rar.state.World;
-import com.replaymod.replaystudio.util.IOBiConsumer;
 import com.replaymod.replaystudio.util.IPosition;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 public class WorldStateTree extends StateTree<World> {
     private final PacketTypeRegistry registry;
-    private final IOBiConsumer<PacketSink, Integer> restoreStateAfterJoinGame;
+    private final Replay replay;
     private ReadableCache cache;
     private World activeWorld;
 
-    public WorldStateTree(PacketTypeRegistry registry, IOBiConsumer<PacketSink, Integer> restoreStateAfterJoinGame, int index) {
+    public WorldStateTree(PacketTypeRegistry registry, Replay replay, int index) {
         super(index);
         this.registry = registry;
-        this.restoreStateAfterJoinGame = restoreStateAfterJoinGame;
+        this.replay = replay;
     }
 
     @Override
@@ -118,10 +123,56 @@ public class WorldStateTree extends StateTree<World> {
             activeWorld = targetWorld;
 
             if (targetWorld != null) {
-                if (previousWorld == null || !previousWorld.info.equals(targetWorld.info)) {
+                List<Packet> featuresChanged;
+                if (registry.atLeast(ProtocolVersion.v1_20_2)) {
+                    // Need to check if any features need changing between the previous world and the current one.
+                    // If so, we definitely need to go through the config phase.
+                    featuresChanged = new ArrayList<>();
+                    replay.features.playOrRewind(featuresChanged::add, previousEntry != null ? previousEntry.getKey() : -1, targetEntry.getKey());
+                } else {
+                    // Features do not yet need to be correlated with worlds.
+                    // They are sent from [Replay] instead.
+                    featuresChanged = Collections.emptyList();
+                }
+
+                if (previousWorld == null || !previousWorld.info.equals(targetWorld.info) || !featuresChanged.isEmpty()) {
+                    boolean isRespawnSufficient = previousWorld != null && previousWorld.info.isRespawnSufficient(targetWorld.info);
+
+                    if (registry.atLeast(ProtocolVersion.v1_20_2)) {
+                        // On first join or on certain changes that require it, we need to re-enter configuration phase
+                        boolean registriesChanged = previousWorld == null || !previousWorld.info.registries.equals(targetWorld.info.registries);
+                        if (registriesChanged || !featuresChanged.isEmpty()) {
+                            // Enter config phase
+                            PacketTypeRegistry configRegistry = registry.withState(State.CONFIGURATION);
+                            sink.accept(new Packet(registry, PacketType.Reconfigure));
+
+                            // Update game registries
+                            if (registriesChanged) {
+                                sink.accept(PacketConfigRegistries.write(configRegistry, targetWorld.info.registries));
+
+                                // Sending game registries resets any previously sent tags, so we need to re-send those.
+                                replay.tags.play(packet -> {
+                                    // We store tags as play-phase packets though, so we need to convert them if we want
+                                    // to send them in the config phase. Their encoding is identical.
+                                    assert packet.getType() == PacketType.Tags;
+                                    sink.accept(new Packet(configRegistry, PacketType.ConfigTags, packet.getBuf()));
+                                }, -1, targetTime);
+                            }
+
+                            // Update feature flags
+                            if (!featuresChanged.isEmpty()) {
+                                featuresChanged.forEach(sink);
+                            }
+
+                            // Leave config phase
+                            sink.accept(new Packet(configRegistry, PacketType.ConfigFinish));
+                            isRespawnSufficient = false;
+                        }
+                    }
+
                     // On first join or on significant changes, we need to send another full JoinGame packet
                     // which is more complicated than just a respawn packet.
-                    if (previousWorld == null || !previousWorld.info.isRespawnSufficient(targetWorld.info)) {
+                    if (!isRespawnSufficient) {
                         // We need to send a JoinGame packet to update the client. Followed by a player pos look packet
                         // to get rid of the Loading Terrain screen.
                         PacketJoinGame joinGame = targetWorld.info.toPacketJoinGame();
@@ -134,7 +185,9 @@ public class WorldStateTree extends StateTree<World> {
                         sink.accept(joinGame.write(registry));
 
                         // JoinGame resets various interdimensional game state, so we need to restore that
-                        restoreStateAfterJoinGame.accept(sink, targetTime);
+                        if (registry.olderThan(ProtocolVersion.v1_20_2)) {
+                            replay.tags.play(sink, -1, targetTime);
+                        }
 
                         // But on versions prior to 1.18.2, we also require `ClientPlayNetworkHandler.positionLookSetup`
                         // to be set to false before that arrives (only the first pos look packet closes the screen),

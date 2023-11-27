@@ -39,7 +39,7 @@ public class PacketJoinGame {
     public byte gameMode;
     public byte prevGameMode; // 1.16+
     public List<String> dimensions; // 1.16+
-    public CompoundTag registries; // 1.16+
+    public CompoundTag registries; // 1.16+, no longer transmitted as of 1.20.2 but still required for decoding
     public DimensionType dimensionType;
     public String dimension;
     public long seed; // 1.15+
@@ -49,6 +49,7 @@ public class PacketJoinGame {
     public int simulationDistance; // 1.18+
     public boolean reducedDebugInfo; // 1.8+
     public boolean respawnScreen; // 1.15+
+    public boolean limitedCrafting; // 1.22.2+
     public boolean debugWorld; // 1.16+
     public boolean flatWorld; // 1.16+
     public IGlobalPosition lastDeathPosition; // 1.19+
@@ -73,15 +74,17 @@ public class PacketJoinGame {
         this.simulationDistance = other.simulationDistance;
         this.reducedDebugInfo = other.reducedDebugInfo;
         this.respawnScreen = other.respawnScreen;
+        this.limitedCrafting = other.limitedCrafting;
         this.debugWorld = other.debugWorld;
         this.flatWorld = other.flatWorld;
         this.lastDeathPosition = other.lastDeathPosition;
         this.portalCooldown = other.portalCooldown;
     }
 
-    public static PacketJoinGame read(Packet packet) throws IOException {
+    public static PacketJoinGame read(Packet packet, /* 1.20.2+ */ CompoundTag registries) throws IOException {
         try (Packet.Reader in = packet.reader()) {
             PacketJoinGame joinGame = new PacketJoinGame();
+            joinGame.registries = registries;
             joinGame.read(packet, in);
             return joinGame;
         }
@@ -91,39 +94,47 @@ public class PacketJoinGame {
         this.entityId = in.readInt();
         if (packet.atLeast(ProtocolVersion.v1_16_2)) {
             this.hardcore = in.readBoolean();
-            this.gameMode = in.readByte();
+            if (packet.olderThan(ProtocolVersion.v1_20_2)) {
+                this.gameMode = in.readByte();
+            }
         } else {
             int flags = in.readByte();
             this.hardcore = (flags & 0x8) != 0;
             this.gameMode = (byte) (flags & ~0x8);
         }
         if (packet.atLeast(ProtocolVersion.v1_16)) {
-            this.prevGameMode = in.readByte();
+            if (packet.olderThan(ProtocolVersion.v1_20_2)) {
+                this.prevGameMode = in.readByte();
+            }
             int count = in.readVarInt();
             this.dimensions = new ArrayList<>(count);
             for (int i = 0; i < count; i++) {
                 this.dimensions.add(in.readString());
             }
-            this.registries = in.readNBT();
-            if (packet.atLeast(ProtocolVersion.v1_19)) {
-                this.dimensionType = getDimensionType(this.registries, in.readString());
-            } else if (packet.atLeast(ProtocolVersion.v1_16_2)) {
-                this.dimensionType = new DimensionType(in.readNBT());
-            } else {
-                this.dimensionType = new DimensionType(in.readString());
+            if (packet.olderThan(ProtocolVersion.v1_20_2)) {
+                this.registries = in.readNBT();
+                if (packet.atLeast(ProtocolVersion.v1_19)) {
+                    this.dimensionType = getDimensionType(this.registries, in.readString());
+                } else if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+                    this.dimensionType = new DimensionType(in.readNBT());
+                } else {
+                    this.dimensionType = new DimensionType(in.readString());
+                }
             }
         }
 
-        if (packet.atLeast(ProtocolVersion.v1_16)) {
-            this.dimension = in.readString();
-        } else if (packet.atLeast(ProtocolVersion.v1_9_1)) {
-            this.dimension = String.valueOf(in.readInt());
-        } else {
-            this.dimension = String.valueOf(in.readByte());
-        }
+        if (packet.olderThan(ProtocolVersion.v1_20_2)) {
+            if (packet.atLeast(ProtocolVersion.v1_16)) {
+                this.dimension = in.readString();
+            } else if (packet.atLeast(ProtocolVersion.v1_9_1)) {
+                this.dimension = String.valueOf(in.readInt());
+            } else {
+                this.dimension = String.valueOf(in.readByte());
+            }
 
-        if (packet.atLeast(ProtocolVersion.v1_15)) {
-            this.seed = in.readLong();
+            if (packet.atLeast(ProtocolVersion.v1_15)) {
+                this.seed = in.readLong();
+            }
         }
         if (packet.olderThan(ProtocolVersion.v1_14)) {
             this.difficulty = in.readByte();
@@ -147,6 +158,14 @@ public class PacketJoinGame {
         }
         if (packet.atLeast(ProtocolVersion.v1_15)) {
             this.respawnScreen = in.readBoolean();
+        }
+        if (packet.atLeast(ProtocolVersion.v1_20_2)) {
+            this.limitedCrafting = in.readBoolean();
+            this.dimensionType = getDimensionType(this.registries, in.readString());
+            this.dimension = in.readString();
+            this.seed = in.readLong();
+            this.gameMode = in.readByte();
+            this.prevGameMode = in.readByte();
         }
         if (packet.atLeast(ProtocolVersion.v1_16)) {
             this.debugWorld = in.readBoolean();
@@ -174,36 +193,44 @@ public class PacketJoinGame {
         out.writeInt(this.entityId);
         if (packet.atLeast(ProtocolVersion.v1_16_2)) {
             out.writeBoolean(this.hardcore);
-            out.writeByte(this.gameMode);
+            if (packet.olderThan(ProtocolVersion.v1_20_2)) {
+                out.writeByte(this.gameMode);
+            }
         } else {
             out.writeByte((this.hardcore ? 0x8 : 0) | this.gameMode);
         }
         if (packet.atLeast(ProtocolVersion.v1_16)) {
-            out.writeByte(this.prevGameMode);
+            if (packet.olderThan(ProtocolVersion.v1_20_2)) {
+                out.writeByte(this.prevGameMode);
+            }
             out.writeVarInt(this.dimensions.size());
             for (String dimension : this.dimensions) {
                 out.writeString(dimension);
             }
-            out.writeNBT(this.registries);
-            if (packet.atLeast(ProtocolVersion.v1_19)) {
-                out.writeString(this.dimensionType.getName());
-            } else if (packet.atLeast(ProtocolVersion.v1_16_2)) {
-                out.writeNBT(this.dimensionType.getTag());
-            } else {
-                out.writeString(this.dimensionType.getName());
+            if (packet.olderThan(ProtocolVersion.v1_20_2)) {
+                out.writeNBT(this.registries);
+                if (packet.atLeast(ProtocolVersion.v1_19)) {
+                    out.writeString(this.dimensionType.getName());
+                } else if (packet.atLeast(ProtocolVersion.v1_16_2)) {
+                    out.writeNBT(this.dimensionType.getTag());
+                } else {
+                    out.writeString(this.dimensionType.getName());
+                }
             }
         }
 
-        if (packet.atLeast(ProtocolVersion.v1_16)) {
-            out.writeString(this.dimension);
-        } else if (packet.atLeast(ProtocolVersion.v1_9_1)) {
-            out.writeInt(Integer.parseInt(this.dimension));
-        } else {
-            out.writeByte(Integer.parseInt(this.dimension));
-        }
+        if (packet.olderThan(ProtocolVersion.v1_20_2)) {
+            if (packet.atLeast(ProtocolVersion.v1_16)) {
+                out.writeString(this.dimension);
+            } else if (packet.atLeast(ProtocolVersion.v1_9_1)) {
+                out.writeInt(Integer.parseInt(this.dimension));
+            } else {
+                out.writeByte(Integer.parseInt(this.dimension));
+            }
 
-        if (packet.atLeast(ProtocolVersion.v1_15)) {
-            out.writeLong(this.seed);
+            if (packet.atLeast(ProtocolVersion.v1_15)) {
+                out.writeLong(this.seed);
+            }
         }
         if (packet.olderThan(ProtocolVersion.v1_14)) {
             out.writeByte(this.difficulty);
@@ -227,6 +254,14 @@ public class PacketJoinGame {
         }
         if (packet.atLeast(ProtocolVersion.v1_15)) {
             out.writeBoolean(this.respawnScreen);
+        }
+        if (packet.atLeast(ProtocolVersion.v1_20_2)) {
+            out.writeBoolean(this.limitedCrafting);
+            out.writeString(this.dimensionType.getName());
+            out.writeString(this.dimension);
+            out.writeLong(this.seed);
+            out.writeByte(this.gameMode);
+            out.writeByte(this.prevGameMode);
         }
         if (packet.atLeast(ProtocolVersion.v1_16)) {
             out.writeBoolean(this.debugWorld);

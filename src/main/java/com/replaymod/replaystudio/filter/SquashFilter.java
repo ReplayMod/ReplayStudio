@@ -27,18 +27,9 @@ import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVe
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
-import com.replaymod.replaystudio.protocol.packets.PacketBlockChange;
-import com.replaymod.replaystudio.protocol.packets.PacketChunkData;
+import com.replaymod.replaystudio.protocol.packets.*;
 import com.replaymod.replaystudio.protocol.packets.PacketChunkData.Chunk;
 import com.replaymod.replaystudio.protocol.packets.PacketChunkData.Column;
-import com.replaymod.replaystudio.protocol.packets.PacketDestroyEntities;
-import com.replaymod.replaystudio.protocol.packets.PacketEntityMovement;
-import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
-import com.replaymod.replaystudio.protocol.packets.PacketRespawn;
-import com.replaymod.replaystudio.protocol.packets.PacketSetSlot;
-import com.replaymod.replaystudio.protocol.packets.PacketTeam;
-import com.replaymod.replaystudio.protocol.packets.PacketUpdateLight;
-import com.replaymod.replaystudio.protocol.packets.PacketWindowItems;
 import com.replaymod.replaystudio.protocol.registry.DimensionType;
 import com.replaymod.replaystudio.stream.IteratorStream;
 import com.replaymod.replaystudio.stream.PacketStream;
@@ -151,6 +142,7 @@ public class SquashFilter implements StreamFilter {
      * So we still want to include those in the loginPhase list even though they're not technically login phase.
      */
     private boolean forgeHandshake;
+    private final List<PacketData> configurationPhase = new ArrayList<>();
     private final List<PacketData> loginPhase = new ArrayList<>();
     private final List<PacketData> unhandled = new ArrayList<>();
     private final Map<Integer, Entity> entities = new HashMap<>();
@@ -206,6 +198,7 @@ public class SquashFilter implements StreamFilter {
         copy.forgeHandshake = this.forgeHandshake;
         this.teams.forEach((key, value) -> copy.teams.put(key, value.copy()));
         this.entities.forEach((key, value) -> copy.entities.put(key, value.copy()));
+        this.configurationPhase.forEach(it -> copy.configurationPhase.add(it.copy()));
         this.loginPhase.forEach(it -> copy.loginPhase.add(it.copy()));
         this.unhandled.forEach(it -> copy.unhandled.add(it.copy()));
         this.mainInventoryChanges.forEach((key, value) -> copy.mainInventoryChanges.put(key, value.copy()));
@@ -237,6 +230,7 @@ public class SquashFilter implements StreamFilter {
     public void release() {
         teams.values().forEach(Team::release);
         entities.values().forEach(Entity::release);
+        configurationPhase.forEach(PacketData::release);
         loginPhase.forEach(PacketData::release);
         unhandled.forEach(PacketData::release);
         mainInventoryChanges.values().forEach(PacketData::release);
@@ -365,7 +359,7 @@ public class SquashFilter implements StreamFilter {
                 currentWindow.clear();
                 entities.values().forEach(Entity::release);
                 entities.clear();
-                PacketJoinGame packetJoinGame = PacketJoinGame.read(packet);
+                PacketJoinGame packetJoinGame = PacketJoinGame.read(packet, registries);
                 registries = packetJoinGame.registries;
                 dimension = packetJoinGame.dimension;
                 dimensionType = packetJoinGame.dimensionType;
@@ -513,8 +507,27 @@ public class SquashFilter implements StreamFilter {
             //
             // Misc
             //
+
+            case ConfigRegistries:
+                registries = PacketConfigRegistries.read(packet);
+                // fallthrough
+            case ConfigTags:
+            case ConfigFeatures:
+                configurationPhase.removeIf(old -> {
+                    if (old.getPacket().getType() == type) {
+                        old.release();
+                        return true;
+                    } else {
+                        return false;
+                    }
+                });
+                configurationPhase.add(data.retain());
+                break;
+
             default:
-                if (type.getState() == State.LOGIN || forgeHandshake) {
+                if (type.getState() == State.CONFIGURATION) {
+                    configurationPhase.add(data.retain());
+                } else if (type.getState() == State.LOGIN || forgeHandshake) {
                     loginPhase.add(data.retain());
                     forgeHandshake = true;
                 } else {
@@ -536,6 +549,14 @@ public class SquashFilter implements StreamFilter {
             stream.insert(timestamp, data.getPacket());
         }
         loginPhase.clear();
+
+        // If we have a configuration phase, that need to be sent before the regular play phase
+        if (!configurationPhase.isEmpty()) {
+            for (PacketData data : configurationPhase) {
+                stream.insert(timestamp, data.getPacket());
+            }
+            configurationPhase.clear();
+        }
 
         // Join/respawn packet must be the first packet
         PacketData join = latestOnly.remove(PacketType.JoinGame);

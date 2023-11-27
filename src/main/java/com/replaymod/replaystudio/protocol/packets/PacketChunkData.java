@@ -24,6 +24,7 @@ import com.github.steveice10.packetlib.io.NetOutput;
 import com.github.steveice10.packetlib.io.stream.StreamNetInput;
 import com.github.steveice10.packetlib.io.stream.StreamNetOutput;
 import com.replaymod.replaystudio.lib.viaversion.api.minecraft.chunks.PaletteType;
+import com.replaymod.replaystudio.lib.viaversion.api.minecraft.metadata.ChunkPosition;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
@@ -54,7 +55,7 @@ public class PacketChunkData {
         try (Packet.Reader reader = packet.reader()) {
             if (packet.atLeast(ProtocolVersion.v1_9)) {
                 if (packet.getType() == PacketType.UnloadChunk) {
-                    chunkData.readUnload(reader);
+                    chunkData.readUnload(packet, reader);
                 } else {
                     chunkData.readLoad(packet, reader, sections);
                 }
@@ -68,7 +69,7 @@ public class PacketChunkData {
     public static PacketChunkData readUnload(Packet packet) throws IOException {
         PacketChunkData chunkData = new PacketChunkData();
         try (Packet.Reader reader = packet.reader()) {
-            chunkData.readUnload(reader);
+            chunkData.readUnload(packet, reader);
         }
         return chunkData;
     }
@@ -88,7 +89,7 @@ public class PacketChunkData {
         try (Packet.Writer writer = packet.overwrite()) {
             if (atLeastV1_9) {
                 if (isUnload) {
-                    writeUnload(writer);
+                    writeUnload(packet, writer);
                 } else {
                     writeLoad(packet, writer);
                 }
@@ -250,15 +251,25 @@ public class PacketChunkData {
         return unloadZ;
     }
 
-    private void readUnload(NetInput in) throws IOException {
+    private void readUnload(Packet packet, NetInput in) throws IOException {
         this.isUnload = true;
-        this.unloadX = in.readInt();
-        this.unloadZ = in.readInt();
+        if (packet.atLeast(ProtocolVersion.v1_20_2)) {
+            this.unloadZ = in.readInt();
+            this.unloadX = in.readInt();
+        } else {
+            this.unloadX = in.readInt();
+            this.unloadZ = in.readInt();
+        }
     }
 
-    private void writeUnload(NetOutput out) throws IOException {
-        out.writeInt(this.unloadX);
-        out.writeInt(this.unloadZ);
+    private void writeUnload(Packet packet, Packet.Writer out) throws IOException {
+        if (packet.atLeast(ProtocolVersion.v1_20_2)) {
+            out.writeInt(this.unloadZ);
+            out.writeInt(this.unloadX);
+        } else {
+            out.writeInt(this.unloadX);
+            out.writeInt(this.unloadZ);
+        }
     }
 
     private void readLoad(Packet packet, Packet.Reader in, int sections) throws IOException {

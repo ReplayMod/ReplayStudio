@@ -78,7 +78,9 @@ public class PacketRespawn {
         if (packet.atLeast(ProtocolVersion.v1_16)) {
             this.debugWorld = in.readBoolean();
             this.flatWorld = in.readBoolean();
-            if (packet.atLeast(ProtocolVersion.v1_19_3)) {
+            if (packet.atLeast(ProtocolVersion.v1_20_2)) {
+                // Now at the end of the packet
+            } else if (packet.atLeast(ProtocolVersion.v1_19_3)) {
                 int flags = in.readByte();
                 this.keepPlayerAttributes = (flags & 0x01) != 0;
                 this.keepPlayerDataTracker = (flags & 0x02) != 0;
@@ -95,6 +97,11 @@ public class PacketRespawn {
         }
         if (packet.atLeast(ProtocolVersion.v1_20)) {
             this.portalCooldown = in.readVarInt();
+        }
+        if (packet.atLeast(ProtocolVersion.v1_20_2)) {
+            int flags = in.readByte();
+            this.keepPlayerAttributes = (flags & 0x01) != 0;
+            this.keepPlayerDataTracker = (flags & 0x02) != 0;
         }
     }
 
@@ -130,7 +137,9 @@ public class PacketRespawn {
             out.writeByte(this.prevGameMode);
             out.writeBoolean(this.debugWorld);
             out.writeBoolean(this.flatWorld);
-            if (packet.atLeast(ProtocolVersion.v1_19_3)) {
+            if (packet.atLeast(ProtocolVersion.v1_20_2)) {
+                // Now at the end of the packet
+            } else if (packet.atLeast(ProtocolVersion.v1_19_3)) {
                 int flags = 0;
                 if (this.keepPlayerAttributes) flags |= 0x01;
                 if (this.keepPlayerDataTracker) flags |= 0x02;
@@ -151,6 +160,12 @@ public class PacketRespawn {
         }
         if (packet.atLeast(ProtocolVersion.v1_20)) {
             out.writeVarInt(this.portalCooldown);
+        }
+        if (packet.atLeast(ProtocolVersion.v1_20_2)) {
+            int flags = 0;
+            if (this.keepPlayerAttributes) flags |= 0x01;
+            if (this.keepPlayerDataTracker) flags |= 0x02;
+            out.writeByte(flags);
         }
     }
 }

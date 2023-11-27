@@ -189,18 +189,20 @@ public class Packet {
 
         public static CompoundTag readNBT(PacketTypeRegistry registry, NetInput in) throws IOException {
             if (registry.atLeast(ProtocolVersion.v1_8)) {
-                byte b = in.readByte();
-                if (b == 0) {
+                byte type = in.readByte();
+                if (type == 0) {
                     return null;
                 } else {
                     return NBTIO.readTag(new InputStream() {
-                        private boolean first = true;
+                        private int read;
 
                         @Override
                         public int read() throws IOException {
-                            if (first) {
-                                first = false;
-                                return b;
+                            int index = read++;
+                            if (index == 0) {
+                                return type & 0xff;
+                            }  else if ((index == 1 || index == 2) && registry.atLeast(ProtocolVersion.v1_20_2)) {
+                                return 0; // length of empty name
                             } else {
                                 return in.readUnsignedByte();
                             }
@@ -299,9 +301,16 @@ public class Packet {
                     out.writeByte(0);
                 } else {
                     NBTIO.writeTag(new OutputStream() {
+                        private int written;
+
                         @Override
-                        public void write(int i) throws IOException {
-                            out.writeByte(i);
+                        public void write(int b) throws IOException {
+                            int index = written++;
+                            // Skip empty name
+                            if ((index == 1 || index == 2) && registry.atLeast(ProtocolVersion.v1_20_2)) {
+                                return;
+                            }
+                            out.writeByte(b);
                         }
                     }, tag);
                 }

@@ -21,14 +21,17 @@ package com.replaymod.replaystudio.io;
 import com.github.steveice10.netty.buffer.ByteBuf;
 import com.github.steveice10.netty.buffer.ByteBufAllocator;
 import com.github.steveice10.netty.buffer.PooledByteBufAllocator;
+import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.github.steveice10.packetlib.tcp.io.ByteBufNetInput;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
 import com.replaymod.replaystudio.protocol.packets.PacketLoginSuccess;
+import com.replaymod.replaystudio.protocol.packets.PacketConfigRegistries;
 import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.studio.StudioPacketStream;
@@ -55,6 +58,7 @@ public class ReplayInputStream extends InputStream {
 
     private PacketTypeRegistry rawRegistry;
     private PacketTypeRegistry registry;
+    private CompoundTag mcRegistries; // 1.20.2+
 
     /**
      * The actual input stream.
@@ -107,6 +111,10 @@ public class ReplayInputStream extends InputStream {
         this.in = in;
         this.viaVersionConverter = ViaVersionPacketConverter.createForFileVersion(fileFormatVersion, fileProtocol, registry.getVersion().getOriginalVersion());
         this.rawRegistry = PacketTypeRegistry.get(ReplayMetaData.getProtocolVersion(fileFormatVersion, fileProtocol), this.registry.getState());
+
+        if (rawRegistry.atLeast(ProtocolVersion.v1_20_2) && rawRegistry.getState() == State.PLAY) {
+            throw new IllegalArgumentException("Cannot go directly to PLAY phase on 1.20.2+, only LOGIN and CONFIGURATION are valid.");
+        }
     }
 
     @Override
@@ -155,22 +163,34 @@ public class ReplayInputStream extends InputStream {
 
             int rawPacketId = new ByteBufNetInput(buf).readVarInt();
             Packet rawPacket = new Packet(rawRegistry, rawPacketId, buf);
-            if (rawPacket.getType() == PacketType.JoinGame) {
-                PacketJoinGame joinGame = PacketJoinGame.read(rawPacket);
-                joinGame.entityId = -1789435; // arbitrary negative value
-                joinGame.gameMode = 3; // Spectator
-                try (Packet.Writer writer = rawPacket.overwrite()) {
-                    joinGame.write(rawPacket, writer);
-                }
-            } else if (rawPacket.getType() == PacketType.LoginSuccess) {
-                rawRegistry = PacketTypeRegistry.get(rawRegistry.getVersion(), State.PLAY);
+            switch (rawPacket.getType()) {
+                case LoginSuccess:
+                    rawRegistry = rawRegistry.withLoginSuccess();
+                    break;
+                case Reconfigure:
+                    rawRegistry = rawRegistry.withState(State.CONFIGURATION);
+                    break;
+                case ConfigRegistries:
+                    mcRegistries = PacketConfigRegistries.read(rawPacket);
+                    break;
+                case ConfigFinish:
+                    rawRegistry = rawRegistry.withState(State.PLAY);
+                    break;
+                case JoinGame:
+                    PacketJoinGame joinGame = PacketJoinGame.read(rawPacket, mcRegistries);
+                    joinGame.entityId = -1789435; // arbitrary negative value
+                    joinGame.gameMode = 3; // Spectator
+                    try (Packet.Writer writer = rawPacket.overwrite()) {
+                        joinGame.write(rawPacket, writer);
+                    }
+                    break;
             }
 
             buf.resetReaderIndex();
 
             List<Packet> decoded = new LinkedList<>();
             try {
-                for (ByteBuf packet : viaVersionConverter.convertPacket(buf, loginPhase ? State.LOGIN : State.PLAY)) {
+                for (ByteBuf packet : viaVersionConverter.convertPacket(buf, rawPacket.getType().getState())) {
                     int packetId = new ByteBufNetInput(packet).readVarInt();
                     decoded.add(new Packet(registry, packetId, registry.getType(packetId), packet));
                 }
@@ -188,11 +208,17 @@ public class ReplayInputStream extends InputStream {
 
                 if (type == PacketType.LoginSuccess) {
                     loginPhase = false;
-                    registry = PacketTypeRegistry.get(registry.getVersion(), State.PLAY);
+                    registry = registry.withLoginSuccess();
                 }
                 if ((loginPhase || type == PacketType.LoginSuccess) && !outputLoginPhase) {
                     packet.release();
                     continue;
+                }
+                if (type == PacketType.ConfigFinish) {
+                    registry = registry.withState(State.PLAY);
+                }
+                if (type == PacketType.Reconfigure) {
+                    registry = registry.withState(State.CONFIGURATION);
                 }
                 buffer.offer(new PacketData(next, packet));
             }

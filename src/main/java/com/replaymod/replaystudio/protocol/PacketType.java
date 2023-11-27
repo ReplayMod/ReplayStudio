@@ -24,8 +24,16 @@ import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVe
 // Note: Intentionally non-exhaustive (except 1.7.6 PLAY). Only contains what our filters need.
 public enum PacketType {
 	UnknownLogin(ProtocolVersion.v1_7_6, -1, State.LOGIN), // cause you can't switch over null
+	UnknownConfiguration(ProtocolVersion.v1_20_2, -1, State.CONFIGURATION), // cause you can't switch over null
 	UnknownPlay(ProtocolVersion.v1_7_6, -1), // cause you can't switch over null
 	LoginSuccess(ProtocolVersion.v1_7_6, 0x02, State.LOGIN),
+	ConfigDisconnect(ProtocolVersion.v1_20_2, 0x01, State.CONFIGURATION),
+	ConfigFinish(ProtocolVersion.v1_20_2, 0x02, State.CONFIGURATION),
+	ConfigKeepAlive(ProtocolVersion.v1_20_2, 0x03, State.CONFIGURATION),
+	ConfigPing(ProtocolVersion.v1_20_2, 0x04, State.CONFIGURATION),
+	ConfigRegistries(ProtocolVersion.v1_20_2, 0x05, State.CONFIGURATION),
+	ConfigFeatures(ProtocolVersion.v1_20_2, 0x07, State.CONFIGURATION),
+	ConfigTags(ProtocolVersion.v1_20_2, 0x08, State.CONFIGURATION),
     KeepAlive(ProtocolVersion.v1_7_6, 0x00),
 	JoinGame(ProtocolVersion.v1_7_6, 0x01),
 	Chat(ProtocolVersion.v1_7_6, 0x02),
@@ -38,10 +46,10 @@ public enum PacketType {
 	ChangeHeldItem(ProtocolVersion.v1_7_6, 0x09),
 	PlayerUseBed(ProtocolVersion.v1_7_6, 0x0a), // removed in 1.14
 	EntityAnimation(ProtocolVersion.v1_7_6, 0x0b),
-	SpawnPlayer(ProtocolVersion.v1_7_6, 0x0c),
+	SpawnPlayer(ProtocolVersion.v1_7_6, 0x0c), // removed in 1.20.2 in favor of SpawnObject
 	EntityCollectItem(ProtocolVersion.v1_7_6, 0x0d),
 	SpawnObject(ProtocolVersion.v1_7_6, 0x0e),
-	SpawnMob(ProtocolVersion.v1_7_6, 0x0f),
+	SpawnMob(ProtocolVersion.v1_7_6, 0x0f), // removed in 1.19 in favor of SpawnObject
 	SpawnPainting(ProtocolVersion.v1_7_6, 0x10),
 	SpawnExpOrb(ProtocolVersion.v1_7_6, 0x11),
 	EntityVelocity(ProtocolVersion.v1_7_6, 0x12),
@@ -117,10 +125,12 @@ public enum PacketType {
 
 	UpdateSimulationDistance(ProtocolVersion.v1_18, 0x57),
 
-	Features(ProtocolVersion.v1_19_3, 0x67),
+	Features(ProtocolVersion.v1_19_3, 0x67), // removed in 1.20.2 in favor of ConfigFeatures
 	PlayerListEntryRemove(ProtocolVersion.v1_19_3, 0x35),
 
 	Bundle(ProtocolVersion.v1_19_4, 0x00),
+
+	Reconfigure(ProtocolVersion.v1_20_2, 0x65),
 	;
 
     private final State state;

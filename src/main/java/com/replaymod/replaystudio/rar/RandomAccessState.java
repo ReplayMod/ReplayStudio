@@ -29,4 +29,12 @@ public interface RandomAccessState {
 
     void play(PacketSink sink, int currentTimeStamp, int targetTime) throws IOException;
     void rewind(PacketSink sink, int currentTimeStamp, int targetTime) throws IOException;
+
+    default void playOrRewind(PacketSink sink, int currentTimeStamp, int targetTime) throws IOException {
+        if (currentTimeStamp <= targetTime) {
+            play(sink, currentTimeStamp, targetTime);
+        } else {
+            rewind(sink, currentTimeStamp, targetTime);
+        }
+    }
 }

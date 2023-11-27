@@ -29,6 +29,7 @@ import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolPathEntry;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.Direction;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.PacketWrapper;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.lib.viaversion.connection.UserConnectionImpl;
 import com.replaymod.replaystudio.lib.viaversion.protocol.ProtocolPipelineImpl;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolPipeline;
@@ -96,7 +97,8 @@ public class ViaVersionPacketConverter {
             viaAPI = new CustomViaAPI(inputProtocol, user);
             pipeline = new ProtocolPipelineImpl(user);
             ProtocolInfo protocolInfo = user.getProtocolInfo();
-            protocolInfo.setState(State.PLAY);
+            protocolInfo.setClientState(outputProtocol >= ProtocolVersion.v1_20_2.getVersion() ? State.CONFIGURATION : State.PLAY);
+            protocolInfo.setServerState(inputProtocol >= ProtocolVersion.v1_20_2.getVersion() ? State.CONFIGURATION : State.PLAY);
             protocolInfo.setUsername("$Camera$");
             protocolInfo.setUuid(UUID.randomUUID());
             path.stream().map(ProtocolPathEntry::getProtocol).forEachOrdered(pipeline::add);

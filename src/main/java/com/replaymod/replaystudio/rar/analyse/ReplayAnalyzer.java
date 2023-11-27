@@ -19,23 +19,14 @@
 
 package com.replaymod.replaystudio.rar.analyse;
 
+import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.io.ReplayInputStream;
 import com.replaymod.replaystudio.protocol.Packet;
+import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
-import com.replaymod.replaystudio.protocol.packets.PacketBlockChange;
-import com.replaymod.replaystudio.protocol.packets.PacketChunkData;
-import com.replaymod.replaystudio.protocol.packets.PacketDestroyEntities;
-import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
-import com.replaymod.replaystudio.protocol.packets.PacketNotifyClient;
-import com.replaymod.replaystudio.protocol.packets.PacketPlayerListEntry;
-import com.replaymod.replaystudio.protocol.packets.PacketRespawn;
-import com.replaymod.replaystudio.protocol.packets.PacketSpawnPlayer;
-import com.replaymod.replaystudio.protocol.packets.PacketUpdateLight;
-import com.replaymod.replaystudio.protocol.packets.PacketUpdateSimulationDistance;
-import com.replaymod.replaystudio.protocol.packets.PacketUpdateViewDistance;
-import com.replaymod.replaystudio.protocol.packets.PacketUpdateViewPosition;
+import com.replaymod.replaystudio.protocol.packets.*;
 import com.replaymod.replaystudio.rar.cache.WriteableCache;
 import com.replaymod.replaystudio.rar.state.Chunk;
 import com.replaymod.replaystudio.rar.state.Entity;
@@ -70,6 +61,7 @@ public class ReplayAnalyzer {
     private int currentSimulationDistance = 0;
 
     private final Map<String, PacketPlayerListEntry> playerListEntries = new HashMap<>();
+    private CompoundTag lastRegistry = null;
     private Packet lastLightUpdate = null;
 
     public ReplayAnalyzer(PacketTypeRegistry registry, NetOutput out, WriteableCache cache) throws IOException {
@@ -86,20 +78,19 @@ public class ReplayAnalyzer {
             time = (int) packetData.getTime();
             progress.accept(time);
             Integer entityId = PacketUtils.getEntityId(packet);
-            switch (packet.getType()) {
+            PacketType type = packet.getType();
+            switch (type) {
+                case SpawnPlayer:
                 case SpawnMob:
                 case SpawnObject:
                 case SpawnPainting: {
                     Entity.Builder entity = replay.world.transientThings.newEntity(time, entityId);
-                    entity.addSpawnPacket(packet.retain());
-                    break;
-                }
-                case SpawnPlayer: {
-                    Entity.Builder entity = replay.world.transientThings.newEntity(time, entityId);
 
-                    PacketPlayerListEntry entry = playerListEntries.get(PacketSpawnPlayer.getPlayerListEntryId(packet));
-                    if (entry != null) {
-                        entity.addSpawnPacket(PacketPlayerListEntry.write(registry, PacketPlayerListEntry.Action.init(registry), entry));
+                    if (type == (packet.atLeast(ProtocolVersion.v1_20_2) ? PacketType.SpawnObject : PacketType.SpawnPlayer)) {
+                        PacketPlayerListEntry entry = playerListEntries.get(PacketSpawnPlayer.getPlayerListEntryId(packet));
+                        if (entry != null) {
+                            entity.addSpawnPacket(PacketPlayerListEntry.write(registry, PacketPlayerListEntry.Action.init(registry), entry));
+                        }
                     }
 
                     entity.addSpawnPacket(packet.retain());
@@ -214,8 +205,8 @@ public class ReplayAnalyzer {
                     break;
                 }
                 case JoinGame: {
-                    PacketJoinGame joinGame = PacketJoinGame.read(packet);
-                    replay.newWorld(time, new World.Info(joinGame));
+                    PacketJoinGame joinGame = PacketJoinGame.read(packet, lastRegistry);
+                    replay.newWorld(time, new World.Info(joinGame, joinGame.registries));
                     if (registry.atLeast(ProtocolVersion.v1_14)) {
                         currentViewChunkX = currentViewChunkZ = 0;
                         replay.world.viewPosition.put(time, PacketUpdateViewPosition.write(registry, 0, 0));
@@ -229,12 +220,23 @@ public class ReplayAnalyzer {
                     }
                     break;
                 }
+                case ConfigFeatures:
                 case Features: {
                     replay.features.put(time, packet.retain());
                     break;
                 }
+                case ConfigTags: {
+                    // As of 1.20.2, tags can also be sent in the config phase. For simplicity, we'll convert those to
+                    // play phase ones; their encoding is identical.
+                    replay.tags.put(time, new Packet(registry, PacketType.Tags, packet.getBuf().retain()));
+                    break;
+                }
                 case Tags: {
                     replay.tags.put(time, packet.retain());
+                    break;
+                }
+                case ConfigRegistries: {
+                    lastRegistry = PacketConfigRegistries.read(packet);
                     break;
                 }
                 case UpdateViewPosition: {

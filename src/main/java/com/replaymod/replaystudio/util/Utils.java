@@ -25,6 +25,7 @@ import com.github.steveice10.packetlib.io.NetInput;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.github.steveice10.packetlib.tcp.io.ByteBufNetInput;
 import com.github.steveice10.packetlib.tcp.io.ByteBufNetOutput;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 
@@ -219,8 +220,10 @@ public class Utils {
                 byteBuf = readRetainedSlice(in, len);
             }
 
-            int packetId = new ByteBufNetInput(byteBuf).readVarInt();
-            return new Packet(registry, packetId, registry.getType(packetId), byteBuf.retain());
+            int id = new ByteBufNetInput(byteBuf).readVarInt();
+            int stateId = id >> 24;
+            int packetId = id << 24 >> 24;
+            return new Packet(registry.withState(State.values()[4 - stateId]), packetId, byteBuf.retain());
         } catch (IOException e) {
             throw e;
         } catch (Exception e) {
@@ -233,7 +236,8 @@ public class Utils {
     public static void writeCompressedPacket(NetOutput out, Packet packet) throws IOException {
         ByteBuf byteBuf = Unpooled.buffer();
         try {
-            new ByteBufNetOutput(byteBuf).writeVarInt(packet.getId());
+            int stateId = 4 - packet.getType().getState().ordinal();
+            new ByteBufNetOutput(byteBuf).writeVarInt((stateId << 24) | packet.getId());
             byteBuf.writeBytes(packet.getBuf());
 
             int rawIndex = byteBuf.readerIndex();

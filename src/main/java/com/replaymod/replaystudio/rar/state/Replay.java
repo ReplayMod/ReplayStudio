@@ -21,6 +21,7 @@ package com.replaymod.replaystudio.rar.state;
 
 import com.github.steveice10.packetlib.io.NetInput;
 import com.github.steveice10.packetlib.io.NetOutput;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.rar.PacketSink;
 import com.replaymod.replaystudio.rar.RandomAccessState;
@@ -32,14 +33,16 @@ import com.replaymod.replaystudio.rar.containers.WorldStateTree;
 import java.io.IOException;
 
 public class Replay implements RandomAccessState {
-    private final PacketStateTree features;
-    private final PacketStateTree tags;
+    private final PacketTypeRegistry registry;
+    public final PacketStateTree features;
+    public final PacketStateTree tags;
     private final WorldStateTree world;
 
     public Replay(PacketTypeRegistry registry, NetInput in) throws IOException {
+        this.registry = registry;
         features = new PacketStateTree(registry, in.readVarInt());
         tags = new PacketStateTree(registry, in.readVarInt());
-        world = new WorldStateTree(registry, this::restoreStateAfterJoinGame, in.readVarInt());
+        world = new WorldStateTree(registry, this, in.readVarInt());
     }
 
     @Override
@@ -58,20 +61,22 @@ public class Replay implements RandomAccessState {
 
     @Override
     public void play(PacketSink sink, int currentTimeStamp, int targetTime) throws IOException {
-        features.play(sink, currentTimeStamp, targetTime);
+        // As of 1.20.2, features are exclusive to the config phase and will instead be sent on world change
+        if (registry.olderThan(ProtocolVersion.v1_20_2)) {
+            features.play(sink, currentTimeStamp, targetTime);
+        }
         tags.play(sink, currentTimeStamp, targetTime);
         world.play(sink, currentTimeStamp, targetTime);
     }
 
     @Override
     public void rewind(PacketSink sink, int currentTimeStamp, int targetTime) throws IOException {
-        features.rewind(sink, currentTimeStamp, targetTime);
+        // As of 1.20.2, features are exclusive to the config phase and will instead be sent on world change
+        if (registry.olderThan(ProtocolVersion.v1_20_2)) {
+            features.rewind(sink, currentTimeStamp, targetTime);
+        }
         tags.rewind(sink, currentTimeStamp, targetTime);
         world.rewind(sink, currentTimeStamp, targetTime);
-    }
-
-    private void restoreStateAfterJoinGame(PacketSink sink, int targetTime) throws IOException {
-        tags.play(sink, -1, targetTime);
     }
 
     public static class Builder {

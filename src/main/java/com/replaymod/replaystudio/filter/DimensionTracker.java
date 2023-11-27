@@ -25,6 +25,7 @@ import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
+import com.replaymod.replaystudio.protocol.packets.PacketConfigRegistries;
 import com.replaymod.replaystudio.protocol.packets.PacketRespawn;
 import com.replaymod.replaystudio.protocol.registry.DimensionType;
 import com.replaymod.replaystudio.stream.PacketStream;
@@ -47,6 +48,10 @@ public class DimensionTracker implements StreamFilter {
         PacketType type = packet.getType();
 
         switch (type) {
+            case ConfigRegistries: {
+                registries = PacketConfigRegistries.read(packet);
+                break;
+            }
             case Respawn: {
                 PacketRespawn packetRespawn = PacketRespawn.read(packet, registries);
                 dimension = packetRespawn.dimension;
@@ -54,7 +59,7 @@ public class DimensionTracker implements StreamFilter {
                 break;
             }
             case JoinGame: {
-                PacketJoinGame packetJoinGame = PacketJoinGame.read(packet);
+                PacketJoinGame packetJoinGame = PacketJoinGame.read(packet, registries);
                 registries = packetJoinGame.registries;
                 dimension = packetJoinGame.dimension;
                 dimensionType = packetJoinGame.dimensionType;
