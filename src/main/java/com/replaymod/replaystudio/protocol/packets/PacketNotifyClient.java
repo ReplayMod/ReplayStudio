@@ -55,7 +55,7 @@ public class PacketNotifyClient {
     }
 
     public static Packet write(PacketTypeRegistry registry, Action action, float value) throws IOException {
-        Packet packet = new Packet(registry, PacketType.PlayerListEntry);
+        Packet packet = new Packet(registry, PacketType.NotifyClient);
         try (Packet.Writer out = packet.overwrite()) {
             out.writeByte(action.ordinal());
             out.writeFloat(value);
