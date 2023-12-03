@@ -34,52 +34,23 @@ import com.replaymod.replaystudio.rar.containers.PacketStateTree;
 import java.io.IOException;
 
 public class Weather extends TransientThing implements RandomAccessState {
-    private final PacketStateTree rainStrengths;
 
     public Weather(PacketTypeRegistry registry, NetInput in) throws IOException {
         super(registry, in);
-        this.rainStrengths = new PacketStateTree(registry, in.readVarInt());
-    }
-
-    @Override
-    public void load(PacketSink sink, ReadableCache cache) throws IOException {
-        super.load(sink, cache);
-        rainStrengths.load(sink, cache);
-    }
-
-    @Override
-    public void unload(PacketSink sink, ReadableCache cache) throws IOException {
-        super.unload(sink, cache);
-        rainStrengths.unload(sink, cache);
     }
 
     @Override
     public void play(PacketSink sink, int currentTimeStamp, int targetTime) throws IOException {
-        rainStrengths.play(sink, currentTimeStamp, targetTime);
     }
 
     @Override
     public void rewind(PacketSink sink, int currentTimeStamp, int targetTime) throws IOException {
-        rainStrengths.rewind(sink, currentTimeStamp, targetTime);
     }
 
     public static class Builder extends TransientThing.Builder {
-        private final PacketStateTree.Builder rainStrengths = new PacketStateTree.Builder();
-
         public Builder(PacketTypeRegistry registry) throws IOException {
             addSpawnPacket(PacketNotifyClient.write(registry, PacketNotifyClient.Action.START_RAIN, 0));
             addDespawnPacket(PacketNotifyClient.write(registry, PacketNotifyClient.Action.STOP_RAIN, 0));
-        }
-
-        public void updateRainStrength(int time, Packet packet) {
-            rainStrengths.put(time, packet);
-        }
-
-        @Override
-        public void build(NetOutput out, WriteableCache cache) throws IOException {
-            super.build(out, cache);
-
-            out.writeVarInt(rainStrengths.build(cache));
         }
     }
 }

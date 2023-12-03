@@ -62,7 +62,7 @@ import java.util.logging.Logger;
 public abstract class RandomAccessReplay {
     private static final String CACHE_ENTRY = "quickModeCache.bin";
     private static final String CACHE_INDEX_ENTRY = "quickModeCacheIndex.bin";
-    private static final int CACHE_VERSION = 8;
+    private static final int CACHE_VERSION = 9;
     private static final Logger LOGGER = Logger.getLogger(RandomAccessReplay.class.getName());
 
     private final ReplayFile replayFile;

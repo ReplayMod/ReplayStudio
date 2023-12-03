@@ -273,10 +273,7 @@ public class ReplayAnalyzer {
                             replay.world.transientThings.removeWeather(time);
                             break;
                         case RAIN_STRENGTH:
-                            Weather.Builder weather = replay.world.transientThings.getWeather();
-                            if (weather != null) {
-                                weather.updateRainStrength(time, packet.retain());
-                            }
+                            replay.world.rainStrengths.put(time, packet.retain());
                             break;
                         case THUNDER_STRENGTH:
                             replay.world.thunderStrengths.put(time, packet.retain());

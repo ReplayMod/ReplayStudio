@@ -48,7 +48,13 @@ public class World implements RandomAccessState {
     private final PacketStateTree viewDistance; // 1.14+
     private final PacketStateTree simulationDistance; // 1.18+
     private final PacketStateTree worldTimes;
-    private final PacketStateTree thunderStrengths; // For some reason, this isn't tied to Weather
+    // These may look like they should be tied to weather, but they are actually independent.
+    // MC just sends a weather start/stop packet at 0.2 rain strength. That toggle packet also overwrites the rain
+    // strength on the client, but it's immediately reset by a followup strength packet... smells like legacy code.
+    // And now we have deal with that, but luckily it should be as simple as making sure we send strength packets
+    // after rain start/stop packets.
+    private final PacketStateTree rainStrengths;
+    private final PacketStateTree thunderStrengths;
 
     public World(PacketTypeRegistry registry, NetInput in) throws IOException {
         this.info = new Info(registry, in);
@@ -57,6 +63,7 @@ public class World implements RandomAccessState {
         this.viewDistance = new PacketStateTree(registry, in.readVarInt());
         this.simulationDistance = new PacketStateTree(registry, in.readVarInt());
         this.worldTimes = new PacketStateTree(registry, in.readVarInt());
+        this.rainStrengths = new PacketStateTree(registry, in.readVarInt());
         this.thunderStrengths = new PacketStateTree(registry, in.readVarInt());
     }
 
@@ -67,6 +74,7 @@ public class World implements RandomAccessState {
         simulationDistance.load(sink, cache);
         transientThings.load(sink, cache);
         worldTimes.load(sink, cache);
+        rainStrengths.load(sink, cache);
         thunderStrengths.load(sink, cache);
     }
 
@@ -77,6 +85,7 @@ public class World implements RandomAccessState {
         simulationDistance.unload(sink, cache);
         transientThings.unload(sink, cache);
         worldTimes.unload(sink, cache);
+        rainStrengths.unload(sink, cache);
         thunderStrengths.unload(sink, cache);
     }
 
@@ -87,6 +96,7 @@ public class World implements RandomAccessState {
         simulationDistance.play(sink, currentTimeStamp, targetTime);
         transientThings.play(sink, currentTimeStamp, targetTime);
         worldTimes.play(sink, currentTimeStamp, targetTime);
+        rainStrengths.play(sink, currentTimeStamp, targetTime);
         thunderStrengths.play(sink, currentTimeStamp, targetTime);
     }
 
@@ -97,6 +107,7 @@ public class World implements RandomAccessState {
         simulationDistance.rewind(sink, currentTimeStamp, targetTime);
         transientThings.rewind(sink, currentTimeStamp, targetTime);
         worldTimes.rewind(sink, currentTimeStamp, targetTime);
+        rainStrengths.rewind(sink, currentTimeStamp, targetTime);
         thunderStrengths.rewind(sink, currentTimeStamp, targetTime);
     }
 
@@ -110,6 +121,7 @@ public class World implements RandomAccessState {
         public final PacketStateTree.Builder viewDistance = new PacketStateTree.Builder();
         public final PacketStateTree.Builder simulationDistance = new PacketStateTree.Builder();
         public final PacketStateTree.Builder worldTimes = new PacketStateTree.Builder();
+        public final PacketStateTree.Builder rainStrengths = new PacketStateTree.Builder();
         public final PacketStateTree.Builder thunderStrengths = new PacketStateTree.Builder();
 
         public Builder(PacketTypeRegistry registry, WriteableCache cache, Info info) throws IOException {
@@ -126,6 +138,7 @@ public class World implements RandomAccessState {
             out.writeVarInt(viewDistance.build(cache));
             out.writeVarInt(simulationDistance.build(cache));
             out.writeVarInt(worldTimes.build(cache));
+            out.writeVarInt(rainStrengths.build(cache));
             out.writeVarInt(thunderStrengths.build(cache));
         }
     }
