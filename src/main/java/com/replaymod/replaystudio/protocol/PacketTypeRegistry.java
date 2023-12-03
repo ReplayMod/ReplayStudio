@@ -36,6 +36,7 @@ import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_16to1_15_2.
 import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_17_1to1_17.Protocol1_17_1To1_17;
 import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_17to1_16_4.Protocol1_17To1_16_4;
 import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_19to1_18_2.Protocol1_19To1_18_2;
+import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_20_3to1_20_2.Protocol1_20_3To1_20_2;
 import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_9to1_8.Protocol1_9To1_8;
 import com.replaymod.replaystudio.viaversion.CustomViaManager;
 import org.apache.commons.lang3.tuple.Pair;
@@ -173,6 +174,12 @@ public class PacketTypeRegistry {
                 //               logically distinct packets for us.
                 if (protocol instanceof Protocol1_17_1To1_17 && packetType == PacketType.DestroyEntity) {
                     wasReplaced = true;
+                }
+
+                // FIXME: ViaVersion doesn't yet use proper mapping for config-phase packets
+                //        https://github.com/ViaVersion/ViaVersion/blob/45d08e9066802e5ae478b9efe97df73443005f77/common/src/main/java/com/viaversion/viaversion/protocols/protocol1_20_3to1_20_2/Protocol1_20_3To1_20_2.java#L327
+                if (protocol instanceof Protocol1_20_3To1_20_2 && state == State.CONFIGURATION && id >= 7) {
+                    id++;
                 }
 
                 if (wasReplaced) {

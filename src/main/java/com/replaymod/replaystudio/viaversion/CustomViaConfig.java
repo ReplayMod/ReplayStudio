@@ -25,6 +25,9 @@ import com.replaymod.replaystudio.lib.viaversion.libs.fastutil.ints.IntSet;
 import com.replaymod.replaystudio.lib.viaversion.libs.gson.JsonElement;
 import com.replaymod.replaystudio.lib.viaversion.protocol.BlockedProtocolVersionsImpl;
 
+import java.util.Collections;
+import java.util.Map;
+
 // Configured as per recommendations at https://docs.viaversion.com/display/VIAVERSION/Configuration
 public class CustomViaConfig implements ViaVersionConfig {
     @Override
@@ -322,20 +325,24 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
-    public String chatTypeFormat(String key) {
-        // Based on default viaversion config (https://github.com/ViaVersion/ViaVersion/commit/322af00e803cc62808d34ea8b5046cd1049672ef#diff-9c1a0c4f6a44fb6cec261205c3b85e4f3073b0b80eb5983d9f374ed9e70cafa7)
-        switch (key) {
-            case "chat.type.text": return "<%s> %s";
-            case "chat.type.announcement": return "[%s] %s";
-            case "commands.message.display.incoming": return "%s whispers to you: %s";
-            case "chat.type.team.text": return "%s <%s> %s";
-            case "chat.type.emote": return "* %s %s";
-            default: return null;
-        }
+    public boolean isArmorToggleFix() {
+        return false;
     }
 
     @Override
-    public boolean isArmorToggleFix() {
-        return false;
+    public void reload() {
+    }
+
+    @Override
+    public void save() {
+    }
+
+    @Override
+    public void set(String s, Object o) {
+    }
+
+    @Override
+    public Map<String, Object> getValues() {
+        return Collections.emptyMap();
     }
 }

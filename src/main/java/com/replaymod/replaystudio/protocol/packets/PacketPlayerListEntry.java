@@ -22,6 +22,7 @@ import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
+import com.replaymod.replaystudio.protocol.data.StringOrNbtText;
 import com.replaymod.replaystudio.util.Property;
 
 import java.io.IOException;
@@ -94,7 +95,7 @@ public class PacketPlayerListEntry {
     private UUID uuid; // any action (1.8+)
     private String name; // only in ADD (or 1.7.10 REMOVE)
     private List<Property> properties; // only in ADD (1.8+)
-    private String displayName; // ADD (pre 1.19.3) or DISPLAY_NAME, nullable (1.8+)
+    private StringOrNbtText displayName; // ADD (pre 1.19.3) or DISPLAY_NAME, nullable (1.8+)
     private int gamemode; // ADD (pre 1.19.3) or GAMEMODE (1.8+)
     private boolean listed; // LISTED (1.19.3+)
     private int latency; // ADD (pre 1.19.3) or latency
@@ -124,7 +125,7 @@ public class PacketPlayerListEntry {
         return entry;
     }
 
-    public static PacketPlayerListEntry updateDisplayName(PacketPlayerListEntry entry, String displayName) {
+    public static PacketPlayerListEntry updateDisplayName(PacketPlayerListEntry entry, StringOrNbtText displayName) {
         entry = new PacketPlayerListEntry(entry);
         entry.displayName = displayName;
         return entry;
@@ -175,7 +176,7 @@ public class PacketPlayerListEntry {
                                     entry.gamemode = in.readVarInt();
                                     entry.latency = in.readVarInt();
                                     if (in.readBoolean()) {
-                                        entry.displayName = in.readString();
+                                        entry.displayName = in.readText();
                                     }
                                     if (packet.atLeast(ProtocolVersion.v1_19)) {
                                         if (in.readBoolean()) {
@@ -200,7 +201,7 @@ public class PacketPlayerListEntry {
                                 break;
                             case DISPLAY_NAME:
                                 if (in.readBoolean()) {
-                                    entry.displayName = in.readString();
+                                    entry.displayName = in.readText();
                                 }
                                 break;
                         }
@@ -262,7 +263,7 @@ public class PacketPlayerListEntry {
                                 out.writeVarInt(entry.latency);
                                 if (entry.displayName != null) {
                                     out.writeBoolean(true);
-                                    out.writeString(entry.displayName);
+                                    out.writeText(entry.displayName);
                                 } else {
                                     out.writeBoolean(false);
                                 }
@@ -296,7 +297,7 @@ public class PacketPlayerListEntry {
                         case DISPLAY_NAME:
                             if (entry.displayName != null) {
                                 out.writeBoolean(true);
-                                out.writeString(entry.displayName);
+                                out.writeText(entry.displayName);
                             } else {
                                 out.writeBoolean(false);
                             }
@@ -348,7 +349,7 @@ public class PacketPlayerListEntry {
         return properties;
     }
 
-    public String getDisplayName() {
+    public StringOrNbtText getDisplayName() {
         return displayName;
     }
 

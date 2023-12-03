@@ -38,6 +38,8 @@ public class PacketNotifyClient {
         AFFECTED_BY_PUFFERFISH,
         AFFECTED_BY_ELDER_GUARDIAN,
         IMMEDIATE_RESPAWN,
+        LIMITED_CRAFTING,
+        INITIAL_CHUNKS_COMING,
         ;
     }
 

@@ -60,7 +60,7 @@ public class PacketTeam {
             }
 
             if (action == Action.CREATE) {
-                in.readString(); // display name
+                in.readText(); // display name
                 if (!packet.atLeast(ProtocolVersion.v1_13)) {
                     in.readString(); // prefix
                     in.readString(); // suffix
@@ -73,8 +73,8 @@ public class PacketTeam {
                     }
                     if (packet.atLeast(ProtocolVersion.v1_13)) {
                         in.readVarInt(); // color
-                        in.readString(); // prefix
-                        in.readString(); // suffix
+                        in.readText(); // prefix
+                        in.readText(); // suffix
                     } else {
                         in.readByte(); // color
                     }

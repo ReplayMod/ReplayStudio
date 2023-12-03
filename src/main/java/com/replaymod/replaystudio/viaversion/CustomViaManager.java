@@ -21,6 +21,7 @@ package com.replaymod.replaystudio.viaversion;
 import com.replaymod.replaystudio.lib.viaversion.api.Via;
 import com.replaymod.replaystudio.lib.viaversion.api.ViaManager;
 import com.replaymod.replaystudio.lib.viaversion.api.command.ViaVersionCommand;
+import com.replaymod.replaystudio.lib.viaversion.api.configuration.ConfigurationProvider;
 import com.replaymod.replaystudio.lib.viaversion.api.connection.ConnectionManager;
 import com.replaymod.replaystudio.lib.viaversion.api.debug.DebugHandler;
 import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaInjector;
@@ -97,6 +98,11 @@ public class CustomViaManager implements ViaManager {
 
     @Override
     public Scheduler getScheduler() {
+        return null;
+    }
+
+    @Override
+    public ConfigurationProvider getConfigurationProvider() {
         return null;
     }
 

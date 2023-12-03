@@ -27,6 +27,7 @@ import com.github.steveice10.packetlib.io.NetOutput;
 import com.github.steveice10.packetlib.tcp.io.ByteBufNetInput;
 import com.github.steveice10.packetlib.tcp.io.ByteBufNetOutput;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
+import com.replaymod.replaystudio.protocol.data.StringOrNbtText;
 import com.replaymod.replaystudio.util.IGlobalPosition;
 import com.replaymod.replaystudio.util.IOConsumer;
 import com.replaymod.replaystudio.util.IOSupplier;
@@ -253,6 +254,14 @@ public class Packet {
             }
             return result;
         }
+
+        public StringOrNbtText readText() throws IOException {
+            if (packet.atLeast(ProtocolVersion.v1_20_3)) {
+                return new StringOrNbtText(readNBT());
+            } else {
+                return new StringOrNbtText(readString());
+            }
+        }
     }
 
     public static class Writer extends ByteBufNetOutput implements AutoCloseable {
@@ -361,6 +370,14 @@ public class Packet {
             out.writeVarInt(list.size());
             for (T entry : list) {
                 entryWriter.consume(entry);
+            }
+        }
+
+        public void writeText(StringOrNbtText value) throws IOException {
+            if (packet.atLeast(ProtocolVersion.v1_20_3)) {
+                writeNBT(value.nbt);
+            } else {
+                writeString(value.str);
             }
         }
     }
