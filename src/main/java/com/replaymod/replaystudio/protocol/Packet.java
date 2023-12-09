@@ -19,9 +19,14 @@
 package com.replaymod.replaystudio.protocol;
 
 import com.github.steveice10.netty.buffer.ByteBuf;
+import com.github.steveice10.netty.buffer.ByteBufInputStream;
+import com.github.steveice10.netty.buffer.ByteBufOutputStream;
 import com.github.steveice10.netty.buffer.Unpooled;
 import com.github.steveice10.opennbt.NBTIO;
+import com.github.steveice10.opennbt.tag.TagCreateException;
+import com.github.steveice10.opennbt.tag.TagRegistry;
 import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
+import com.github.steveice10.opennbt.tag.builtin.Tag;
 import com.github.steveice10.packetlib.io.NetInput;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.github.steveice10.packetlib.tcp.io.ByteBufNetInput;
@@ -33,11 +38,7 @@ import com.replaymod.replaystudio.util.IOConsumer;
 import com.replaymod.replaystudio.util.IOSupplier;
 import com.replaymod.replaystudio.util.IPosition;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
@@ -257,7 +258,19 @@ public class Packet {
 
         public StringOrNbtText readText() throws IOException {
             if (packet.atLeast(ProtocolVersion.v1_20_3)) {
-                return new StringOrNbtText(readNBT());
+                Tag tag;
+                    int id = readByte();
+                    if (id == 0) {
+                        tag = null;
+                    } else {
+                        try {
+                            tag = TagRegistry.createInstance(id);
+                        } catch (TagCreateException e) {
+                            throw new IOException("Failed to create tag.", e);
+                        }
+                        tag.read(new DataInputStream(new ByteBufInputStream(buf)));
+                    }
+                return new StringOrNbtText(tag);
             } else {
                 return new StringOrNbtText(readString());
             }
@@ -266,10 +279,12 @@ public class Packet {
 
     public static class Writer extends ByteBufNetOutput implements AutoCloseable {
         private final Packet packet;
+        private final ByteBuf buf;
 
         private Writer(Packet packet, ByteBuf buf) {
             super(buf);
             this.packet = packet;
+            this.buf = buf;
         }
 
         @Override
@@ -375,7 +390,12 @@ public class Packet {
 
         public void writeText(StringOrNbtText value) throws IOException {
             if (packet.atLeast(ProtocolVersion.v1_20_3)) {
-                writeNBT(value.nbt);
+                if (value.nbt == null) {
+                    writeByte(0);
+                } else {
+                    writeByte(value.nbt.getTagId());
+                    value.nbt.write(new DataOutputStream(new ByteBufOutputStream(buf)));
+                }
             } else {
                 writeString(value.str);
             }

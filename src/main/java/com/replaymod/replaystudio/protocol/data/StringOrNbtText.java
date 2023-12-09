@@ -19,17 +19,17 @@
 
 package com.replaymod.replaystudio.protocol.data;
 
-import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
+import com.github.steveice10.opennbt.tag.builtin.Tag;
 
 public class StringOrNbtText {
     public String str; // 1.20.2-
-    public CompoundTag nbt; // 1.20.3+
+    public Tag nbt; // 1.20.3+
 
     public StringOrNbtText(String str) {
         this.str = str;
     }
 
-    public StringOrNbtText(CompoundTag nbt) {
+    public StringOrNbtText(Tag nbt) {
         this.nbt = nbt;
     }
 }
