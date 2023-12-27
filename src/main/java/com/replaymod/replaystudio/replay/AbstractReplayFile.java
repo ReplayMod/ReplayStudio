@@ -218,6 +218,9 @@ public abstract class AbstractReplayFile implements ReplayFile {
         if (in.isPresent()) {
             try (Reader is = new InputStreamReader(in.get())) {
                 JsonArray json = new Gson().fromJson(is, JsonArray.class);
+                if (json == null) {
+                    return Optional.absent();
+                }
                 Set<Marker> markers = new HashSet<>();
                 for (JsonElement element : json) {
                     JsonObject obj = element.getAsJsonObject();
