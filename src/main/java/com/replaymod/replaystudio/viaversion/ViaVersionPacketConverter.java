@@ -117,6 +117,9 @@ public class ViaVersionPacketConverter {
         CustomViaAPI.INSTANCE.set(viaAPI);
         try {
             ConfigurationState configurationState = user.get(ConfigurationState.class);
+            if (configurationState == null) {
+                return;
+            }
             configurationState.setBridgePhase(ConfigurationState.BridgePhase.CONFIGURATION);
             configurationState.sendQueuedPackets(user);
         } catch (IOException e) {
@@ -135,6 +138,9 @@ public class ViaVersionPacketConverter {
         CustomViaAPI.INSTANCE.set(viaAPI);
         try {
             ConfigurationState configurationState = user.get(ConfigurationState.class);
+            if (configurationState == null) {
+                return;
+            }
             configurationState.setBridgePhase(ConfigurationState.BridgePhase.NONE);
             configurationState.sendQueuedPackets(user);
             configurationState.clear();
