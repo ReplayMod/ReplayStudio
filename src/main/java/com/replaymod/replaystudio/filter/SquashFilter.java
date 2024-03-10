@@ -553,6 +553,7 @@ public class SquashFilter implements StreamFilter {
         emitFirst.clear();
 
         // If we have any login-phase packets, those need to be sent before regular play-phase ones
+        boolean hadLoginPhase = !loginPhase.isEmpty();
         for (PacketData data : loginPhase) {
             if (data.getPacket().getType() == PacketType.Bundle) {
                 inBundle = !inBundle;
@@ -563,6 +564,12 @@ public class SquashFilter implements StreamFilter {
 
         // If we have a configuration phase, that need to be sent before the regular play phase
         if (!configurationPhase.isEmpty()) {
+            // If this is not preceded by a login phase, then it is preceded by a play phase and we need to re-enter
+            // the configuration phase before we can send configuration-phase packets
+            if (!hadLoginPhase) {
+                stream.insert(timestamp, new Packet(registry, PacketType.Reconfigure));
+            }
+
             for (PacketData data : configurationPhase) {
                 stream.insert(timestamp, data.getPacket());
             }
