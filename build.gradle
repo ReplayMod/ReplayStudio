@@ -70,7 +70,7 @@ repositories {
 }
 
 dependencies {
-    preshadow 'com.github.replaymod.viaversion:viaversion-common:fd4d6b1c8'
+    preshadow 'com.github.replaymod.viaversion:viaversion-common:67f4a39a2'
 
     preshadow 'com.google.guava:guava:17.0'
     implementation 'com.google.code.gson:gson:2.3.1'
