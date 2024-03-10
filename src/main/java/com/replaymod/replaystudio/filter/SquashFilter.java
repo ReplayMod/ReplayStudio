@@ -142,8 +142,8 @@ public class SquashFilter implements StreamFilter {
      * So we still want to include those in the loginPhase list even though they're not technically login phase.
      */
     private boolean forgeHandshake;
-    private final List<PacketData> configurationPhase = new ArrayList<>();
     private final List<PacketData> loginPhase = new ArrayList<>();
+    private final List<PacketData> configurationPhase = new ArrayList<>();
     private final List<PacketData> unhandled = new ArrayList<>();
     private final Map<Integer, Entity> entities = new HashMap<>();
     private final Map<String, Team> teams = new HashMap<>();
@@ -198,8 +198,8 @@ public class SquashFilter implements StreamFilter {
         copy.forgeHandshake = this.forgeHandshake;
         this.teams.forEach((key, value) -> copy.teams.put(key, value.copy()));
         this.entities.forEach((key, value) -> copy.entities.put(key, value.copy()));
-        this.configurationPhase.forEach(it -> copy.configurationPhase.add(it.copy()));
         this.loginPhase.forEach(it -> copy.loginPhase.add(it.copy()));
+        this.configurationPhase.forEach(it -> copy.configurationPhase.add(it.copy()));
         this.unhandled.forEach(it -> copy.unhandled.add(it.copy()));
         this.mainInventoryChanges.forEach((key, value) -> copy.mainInventoryChanges.put(key, value.copy()));
         this.maps.forEach((key, value) -> copy.maps.put(key, value.copy()));
@@ -230,8 +230,8 @@ public class SquashFilter implements StreamFilter {
     public void release() {
         teams.values().forEach(Team::release);
         entities.values().forEach(Entity::release);
-        configurationPhase.forEach(PacketData::release);
         loginPhase.forEach(PacketData::release);
+        configurationPhase.forEach(PacketData::release);
         unhandled.forEach(PacketData::release);
         mainInventoryChanges.values().forEach(PacketData::release);
         maps.values().forEach(Packet::release);
