@@ -139,12 +139,13 @@ public class SquashFilter implements StreamFilter {
 
     /**
      * Forge handshake takes place after login phase (i.e. after LoginSuccess) but before JoinGame.
-     * So we still want to include those in the loginPhase list even though they're not technically login phase.
+     * And we'll want to keep those before JoinGame.
      */
     private boolean forgeHandshake;
     private final List<PacketData> emitFirst = new ArrayList<>();
     private final List<PacketData> loginPhase = new ArrayList<>();
     private final List<PacketData> configurationPhase = new ArrayList<>();
+    private final List<PacketData> preJoinGame = new ArrayList<>();
     private final List<PacketData> unhandled = new ArrayList<>();
     private final Map<Integer, Entity> entities = new HashMap<>();
     private final Map<String, Team> teams = new HashMap<>();
@@ -202,6 +203,7 @@ public class SquashFilter implements StreamFilter {
         this.emitFirst.forEach(it -> copy.emitFirst.add(it.copy()));
         this.loginPhase.forEach(it -> copy.loginPhase.add(it.copy()));
         this.configurationPhase.forEach(it -> copy.configurationPhase.add(it.copy()));
+        this.preJoinGame.forEach(it -> copy.preJoinGame.add(it.copy()));
         this.unhandled.forEach(it -> copy.unhandled.add(it.copy()));
         this.mainInventoryChanges.forEach((key, value) -> copy.mainInventoryChanges.put(key, value.copy()));
         this.maps.forEach((key, value) -> copy.maps.put(key, value.copy()));
@@ -234,6 +236,7 @@ public class SquashFilter implements StreamFilter {
         emitFirst.forEach(PacketData::release);
         loginPhase.forEach(PacketData::release);
         configurationPhase.forEach(PacketData::release);
+        preJoinGame.forEach(PacketData::release);
         unhandled.forEach(PacketData::release);
         mainInventoryChanges.values().forEach(PacketData::release);
         maps.values().forEach(Packet::release);
@@ -529,9 +532,11 @@ public class SquashFilter implements StreamFilter {
             default:
                 if (type.getState() == State.CONFIGURATION) {
                     configurationPhase.add(data.retain());
-                } else if (type.getState() == State.LOGIN || forgeHandshake) {
+                } else if (type.getState() == State.LOGIN) {
                     loginPhase.add(data.retain());
                     forgeHandshake = true;
+                } else if (forgeHandshake) {
+                    preJoinGame.add(data.retain());
                 } else {
                     unhandled.add(data.retain());
                 }
@@ -575,6 +580,15 @@ public class SquashFilter implements StreamFilter {
             }
             configurationPhase.clear();
         }
+
+        // Pre-joinGame packets must be sent before JoinGame
+        for (PacketData data : preJoinGame) {
+            if (data.getPacket().getType() == PacketType.Bundle) {
+                inBundle = !inBundle;
+            }
+            stream.insert(timestamp, data.getPacket());
+        }
+        preJoinGame.clear();
 
         // Join/respawn packet must be the first packet
         PacketData join = latestOnly.remove(PacketType.JoinGame);
