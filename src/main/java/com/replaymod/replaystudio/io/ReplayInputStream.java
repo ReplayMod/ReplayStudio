@@ -209,6 +209,10 @@ public class ReplayInputStream extends InputStream {
                 if (type == PacketType.LoginSuccess) {
                     loginPhase = false;
                     registry = registry.withLoginSuccess();
+                    // ViaVersion must wait for the client to confirm the switch, we must simulate that acknowledgement
+                    if (registry.atLeast(ProtocolVersion.v1_20_2)) {
+                        viaVersionConverter.loginAcknowledged();
+                    }
                 }
                 if ((loginPhase || type == PacketType.LoginSuccess) && !outputLoginPhase) {
                     packet.release();
@@ -216,6 +220,10 @@ public class ReplayInputStream extends InputStream {
                 }
                 if (type == PacketType.ConfigFinish) {
                     registry = registry.withState(State.PLAY);
+                    // ViaVersion must wait for the client to confirm the switch, we must simulate that acknowledgement
+                    if (registry.atLeast(ProtocolVersion.v1_20_2)) {
+                        viaVersionConverter.finishConfiguration();
+                    }
                 }
                 if (type == PacketType.Reconfigure) {
                     registry = registry.withState(State.CONFIGURATION);

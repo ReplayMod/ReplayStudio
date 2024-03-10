@@ -34,6 +34,7 @@ import com.replaymod.replaystudio.lib.viaversion.connection.UserConnectionImpl;
 import com.replaymod.replaystudio.lib.viaversion.protocol.ProtocolPipelineImpl;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolPipeline;
 import com.replaymod.replaystudio.lib.viaversion.exception.CancelException;
+import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_20_2to1_20.storage.ConfigurationState;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -106,6 +107,43 @@ public class ViaVersionPacketConverter {
             user = null;
             viaAPI = null;
             pipeline = null;
+        }
+    }
+
+    public void loginAcknowledged() throws IOException {
+        if (user == null) {
+            return;
+        }
+        CustomViaAPI.INSTANCE.set(viaAPI);
+        try {
+            ConfigurationState configurationState = user.get(ConfigurationState.class);
+            configurationState.setBridgePhase(ConfigurationState.BridgePhase.CONFIGURATION);
+            configurationState.sendQueuedPackets(user);
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException("Exception during ViaVersion conversion:", e);
+        } finally {
+            CustomViaAPI.INSTANCE.remove();
+        }
+    }
+
+    public void finishConfiguration() throws IOException {
+        if (user == null) {
+            return;
+        }
+        CustomViaAPI.INSTANCE.set(viaAPI);
+        try {
+            ConfigurationState configurationState = user.get(ConfigurationState.class);
+            configurationState.setBridgePhase(ConfigurationState.BridgePhase.NONE);
+            configurationState.sendQueuedPackets(user);
+            configurationState.clear();
+        } catch (IOException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IOException("Exception during ViaVersion conversion:", e);
+        } finally {
+            CustomViaAPI.INSTANCE.remove();
         }
     }
 
