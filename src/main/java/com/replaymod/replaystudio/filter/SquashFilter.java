@@ -530,6 +530,9 @@ public class SquashFilter implements StreamFilter {
                 configurationPhase.add(data.retain());
                 break;
 
+            case Reconfigure:
+                break;
+
             default:
                 if (type.getState() == State.CONFIGURATION) {
                     configurationPhase.add(data.retain());
