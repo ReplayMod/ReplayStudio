@@ -142,6 +142,7 @@ public class SquashFilter implements StreamFilter {
      * So we still want to include those in the loginPhase list even though they're not technically login phase.
      */
     private boolean forgeHandshake;
+    private final List<PacketData> emitFirst = new ArrayList<>();
     private final List<PacketData> loginPhase = new ArrayList<>();
     private final List<PacketData> configurationPhase = new ArrayList<>();
     private final List<PacketData> unhandled = new ArrayList<>();
@@ -198,6 +199,7 @@ public class SquashFilter implements StreamFilter {
         copy.forgeHandshake = this.forgeHandshake;
         this.teams.forEach((key, value) -> copy.teams.put(key, value.copy()));
         this.entities.forEach((key, value) -> copy.entities.put(key, value.copy()));
+        this.emitFirst.forEach(it -> copy.emitFirst.add(it.copy()));
         this.loginPhase.forEach(it -> copy.loginPhase.add(it.copy()));
         this.configurationPhase.forEach(it -> copy.configurationPhase.add(it.copy()));
         this.unhandled.forEach(it -> copy.unhandled.add(it.copy()));
@@ -222,14 +224,14 @@ public class SquashFilter implements StreamFilter {
         List<PacketData> flushedPackets = new ArrayList<>();
         onEnd(new IteratorStream(flushedPackets.listIterator(), (PacketStream.FilterInfo) null), 0);
 
-        // Store the flushed packets in the login phase list
-        // They aren't technically login phase but like the login phase, they must be emitted first.
-        loginPhase.addAll(flushedPackets);
+        // Store the flushed packets in the emit-first list for later
+        emitFirst.addAll(flushedPackets);
     }
 
     public void release() {
         teams.values().forEach(Team::release);
         entities.values().forEach(Entity::release);
+        emitFirst.forEach(PacketData::release);
         loginPhase.forEach(PacketData::release);
         configurationPhase.forEach(PacketData::release);
         unhandled.forEach(PacketData::release);
@@ -540,6 +542,15 @@ public class SquashFilter implements StreamFilter {
     @Override
     public void onEnd(PacketStream stream, long timestamp) throws IOException {
         boolean inBundle = false;
+
+        // Always emit "emitFirst" packets first
+        for (PacketData data : emitFirst) {
+            if (data.getPacket().getType() == PacketType.Bundle) {
+                inBundle = !inBundle;
+            }
+            stream.insert(timestamp, data.getPacket());
+        }
+        emitFirst.clear();
 
         // If we have any login-phase packets, those need to be sent before regular play-phase ones
         for (PacketData data : loginPhase) {
