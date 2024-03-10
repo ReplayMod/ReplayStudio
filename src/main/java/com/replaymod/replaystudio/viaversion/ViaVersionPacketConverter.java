@@ -183,7 +183,7 @@ public class ViaVersionPacketConverter {
             ByteBuf result = buf.alloc().buffer();
             packetWrapper.writeToBuffer(result);
             if (!out.isEmpty()) {
-                out.add(0, result);
+                out.add(result);
                 return popOut();
             } else {
                 return Collections.singletonList(result);
