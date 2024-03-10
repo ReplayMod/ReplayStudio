@@ -31,6 +31,7 @@ import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.packets.PacketConfigRegistries;
 import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
+import com.replaymod.replaystudio.protocol.packets.PacketPlayerPositionRotation;
 import com.replaymod.replaystudio.rar.PacketSink;
 import com.replaymod.replaystudio.rar.cache.ReadableCache;
 import com.replaymod.replaystudio.rar.cache.WriteableCache;
@@ -208,21 +209,7 @@ public class WorldStateTree extends StateTree<World> {
                             out.writeFloat(0);
                         }
                     } else {
-                        packet = new Packet(registry, PacketType.PlayerPositionRotation);
-                        try (Packet.Writer out = packet.overwrite()) {
-                            out.writeDouble(0); // x
-                            out.writeDouble(0); // y
-                            out.writeDouble(0); // z
-                            out.writeFloat(0); // yaw
-                            out.writeFloat(0); // pitch
-                            out.writeByte(0); // flags
-                            if (packet.atLeast(ProtocolVersion.v1_9)) {
-                                out.writeVarInt(0); // teleport id
-                            }
-                            if (packet.atLeast(ProtocolVersion.v1_17) && packet.atMost(ProtocolVersion.v1_19_3)) {
-                                out.writeBoolean(false); // dismount
-                            }
-                        }
+                        packet = new PacketPlayerPositionRotation().write(registry);
                     }
                     sink.accept(packet);
                 }
