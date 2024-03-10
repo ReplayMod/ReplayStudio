@@ -178,7 +178,11 @@ public class ReplayInputStream extends InputStream {
                     break;
                 case JoinGame:
                     PacketJoinGame joinGame = PacketJoinGame.read(rawPacket, mcRegistries);
-                    joinGame.entityId = -1789435; // arbitrary negative value
+                    // Set entity id to an arbitrary negative value (which are invalid to use, so we know it's unused)
+                    // so ViaVersion doesn't try to fixup the 1.8.9 armor packets for the recording player (we already
+                    // record those properly).
+                    // Using the bitwise negation because we still want to be able to read the id later in SquashFilter.
+                    joinGame.entityId = ~joinGame.entityId;
                     joinGame.gameMode = 3; // Spectator
                     try (Packet.Writer writer = rawPacket.overwrite()) {
                         joinGame.write(rawPacket, writer);

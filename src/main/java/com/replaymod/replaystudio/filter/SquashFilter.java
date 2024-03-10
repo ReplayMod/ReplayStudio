@@ -33,10 +33,7 @@ import com.replaymod.replaystudio.protocol.packets.PacketChunkData.Column;
 import com.replaymod.replaystudio.protocol.registry.DimensionType;
 import com.replaymod.replaystudio.stream.IteratorStream;
 import com.replaymod.replaystudio.stream.PacketStream;
-import com.replaymod.replaystudio.util.DPosition;
-import com.replaymod.replaystudio.util.IPosition;
-import com.replaymod.replaystudio.util.PacketUtils;
-import com.replaymod.replaystudio.util.Utils;
+import com.replaymod.replaystudio.util.*;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
@@ -174,6 +171,19 @@ public class SquashFilter implements StreamFilter {
     private DimensionType dimensionType;
 
     /**
+     * If the squashed time includes the initial camera position packet, we'll re-write that packet to the actual entity
+     * position after all the movement which will be cut out.
+     * Otherwise, the camera may confusingly end up in the void.
+     */
+    private PacketPlayerPositionRotation cameraPositionRotation;
+
+    /**
+     * The entity id of the player which recorded the replay.
+     * Used for {@link #cameraPositionRotation}.
+     */
+    private Integer recordingPlayerEntityId;
+
+    /**
      * We rely on the timestamps to keep relative packet order. However, by default, two packets may have the same
      * timestamp, in which case their relative order may be affected by the place in which we store the packet, and that
      * change may break things (e.g. set block needs to be sent before the corresponding block entity data packet, but
@@ -213,6 +223,8 @@ public class SquashFilter implements StreamFilter {
         this.latestOnly.forEach((key, value) -> copy.latestOnly.put(key, value.copy()));
         this.chunks.forEach((key, value) -> copy.chunks.put(key, value.copy()));
         copy.unloadedChunks.putAll(this.unloadedChunks);
+        copy.cameraPositionRotation = this.cameraPositionRotation;
+        copy.recordingPlayerEntityId = this.recordingPlayerEntityId;
         copy.prevTimestamp = this.prevTimestamp;
         return copy;
     }
@@ -365,6 +377,7 @@ public class SquashFilter implements StreamFilter {
                 entities.values().forEach(Entity::release);
                 entities.clear();
                 PacketJoinGame packetJoinGame = PacketJoinGame.read(packet, registries);
+                recordingPlayerEntityId = ~packetJoinGame.entityId; // inverted, see ReplayInputStream
                 registries = packetJoinGame.registries;
                 dimension = packetJoinGame.dimension;
                 dimensionType = packetJoinGame.dimensionType;
@@ -410,6 +423,8 @@ public class SquashFilter implements StreamFilter {
                 }
                 break;
             case PlayerPositionRotation:
+                cameraPositionRotation = PacketPlayerPositionRotation.read(packet);
+                break;
             case BlockBreakAnim:
             case BlockValue:
             case Explosion:
@@ -630,6 +645,28 @@ public class SquashFilter implements StreamFilter {
         mainInventoryChanges.clear();
         latestOnly.clear();
 
+        // Update initial camera position before we flush entity data
+        if (cameraPositionRotation != null) {
+            Entity entity = entities.get(recordingPlayerEntityId);
+            if (entity != null) {
+                if (entity.teleport != null) {
+                    Location location = PacketEntityTeleport.getLocation(entity.teleport);
+                    cameraPositionRotation.x = location.getX();
+                    cameraPositionRotation.y = location.getY();
+                    cameraPositionRotation.z = location.getZ();
+                    cameraPositionRotation.yaw = location.getYaw();
+                    cameraPositionRotation.pitch = location.getPitch();
+                }
+                cameraPositionRotation.x += entity.dx;
+                cameraPositionRotation.y += entity.dy;
+                cameraPositionRotation.z += entity.dz;
+                if (entity.yaw != null && entity.pitch != null) {
+                    cameraPositionRotation.yaw = entity.yaw;
+                    cameraPositionRotation.pitch = entity.pitch;
+                }
+            }
+        }
+
         for (Map.Entry<Integer, Entity> e : entities.entrySet()) {
             Entity entity = e.getValue();
 
@@ -763,6 +800,10 @@ public class SquashFilter implements StreamFilter {
             add(stream, timestamp, packet);
         }
         maps.clear();
+
+        if (cameraPositionRotation != null) {
+            add(stream, timestamp, cameraPositionRotation.write(registry));
+        }
     }
 
     @Override
