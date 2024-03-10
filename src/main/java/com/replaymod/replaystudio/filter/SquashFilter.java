@@ -518,6 +518,7 @@ public class SquashFilter implements StreamFilter {
                 // fallthrough
             case ConfigTags:
             case ConfigFeatures:
+            case ConfigFinish:
                 configurationPhase.removeIf(old -> {
                     if (old.getPacket().getType() == type) {
                         old.release();
