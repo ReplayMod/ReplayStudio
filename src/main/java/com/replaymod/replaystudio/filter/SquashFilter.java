@@ -31,6 +31,7 @@ import com.replaymod.replaystudio.protocol.packets.*;
 import com.replaymod.replaystudio.protocol.packets.PacketChunkData.Chunk;
 import com.replaymod.replaystudio.protocol.packets.PacketChunkData.Column;
 import com.replaymod.replaystudio.protocol.registry.DimensionType;
+import com.replaymod.replaystudio.protocol.registry.Registries;
 import com.replaymod.replaystudio.stream.IteratorStream;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.util.*;
@@ -157,7 +158,7 @@ public class SquashFilter implements StreamFilter {
     private final Map<Long, ChunkData> chunks = new HashMap<>();
     private final Map<Long, Long> unloadedChunks = new HashMap<>();
 
-    private CompoundTag registries;
+    private Registries registries;
 
     /**
      * The behavior of the Respawn packet depends on the current world. While vanilla seems to never
@@ -194,18 +195,18 @@ public class SquashFilter implements StreamFilter {
      */
     private long prevTimestamp;
 
-    public SquashFilter(CompoundTag registries, String dimension, DimensionType dimensionType) {
-        this.registries = registries;
+    public SquashFilter(Registries registries, String dimension, DimensionType dimensionType) {
+        this.registries = registries != null ? registries : new Registries();
         this.dimension = dimension;
         this.dimensionType = dimensionType;
     }
 
     public SquashFilter(DimensionTracker dimensionTracker) {
-        this(dimensionTracker.registries, dimensionTracker.dimension, dimensionTracker.dimensionType);
+        this(dimensionTracker.registries.copy(), dimensionTracker.dimension, dimensionTracker.dimensionType);
     }
 
     public SquashFilter copy() {
-        SquashFilter copy = new SquashFilter(this.registries, this.dimension, this.dimensionType);
+        SquashFilter copy = new SquashFilter(this.registries.copy(), this.dimension, this.dimensionType);
         copy.registry = this.registry;
         copy.forgeHandshake = this.forgeHandshake;
         this.teams.forEach((key, value) -> copy.teams.put(key, value.copy()));

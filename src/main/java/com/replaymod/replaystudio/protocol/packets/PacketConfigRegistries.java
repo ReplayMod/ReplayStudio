@@ -19,24 +19,24 @@
 
 package com.replaymod.replaystudio.protocol.packets;
 
-import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
+import com.replaymod.replaystudio.protocol.registry.Registries;
 
 import java.io.IOException;
 
 public class PacketConfigRegistries {
-    public static CompoundTag read(Packet packet) throws IOException {
+    public static Registries read(Packet packet) throws IOException {
         try (Packet.Reader in = packet.reader()) {
-            return in.readNBT();
+            return new Registries(in.readNBT());
         }
     }
 
-    public static Packet write(PacketTypeRegistry registry, CompoundTag registries) throws IOException {
+    public static Packet write(PacketTypeRegistry registry, Registries registries) throws IOException {
         Packet packet = new Packet(registry, PacketType.ConfigRegistries);
         try (Packet.Writer writer = packet.overwrite()) {
-            writer.writeNBT(registries);
+            writer.writeNBT(registries.registriesTag);
         }
         return packet;
     }

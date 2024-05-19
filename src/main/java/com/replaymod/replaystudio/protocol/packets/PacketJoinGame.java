@@ -18,15 +18,12 @@
  */
 package com.replaymod.replaystudio.protocol.packets;
 
-import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
-import com.github.steveice10.opennbt.tag.builtin.ListTag;
-import com.github.steveice10.opennbt.tag.builtin.StringTag;
-import com.github.steveice10.opennbt.tag.builtin.Tag;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.registry.DimensionType;
+import com.replaymod.replaystudio.protocol.registry.Registries;
 import com.replaymod.replaystudio.util.IGlobalPosition;
 
 import java.io.IOException;
@@ -39,7 +36,7 @@ public class PacketJoinGame {
     public byte gameMode;
     public byte prevGameMode; // 1.16+
     public List<String> dimensions; // 1.16+
-    public CompoundTag registries; // 1.16+, no longer transmitted as of 1.20.2 but still required for decoding
+    public Registries registries; // 1.16+, no longer transmitted as of 1.20.2 but still required for decoding
     public DimensionType dimensionType;
     public String dimension;
     public long seed; // 1.15+
@@ -81,7 +78,7 @@ public class PacketJoinGame {
         this.portalCooldown = other.portalCooldown;
     }
 
-    public static PacketJoinGame read(Packet packet, /* 1.20.2+ */ CompoundTag registries) throws IOException {
+    public static PacketJoinGame read(Packet packet, /* 1.20.2+ */ Registries registries) throws IOException {
         try (Packet.Reader in = packet.reader()) {
             PacketJoinGame joinGame = new PacketJoinGame();
             joinGame.registries = registries;
@@ -112,9 +109,9 @@ public class PacketJoinGame {
                 this.dimensions.add(in.readString());
             }
             if (packet.olderThan(ProtocolVersion.v1_20_2)) {
-                this.registries = in.readNBT();
+                this.registries = new Registries(in.readNBT());
                 if (packet.atLeast(ProtocolVersion.v1_19)) {
-                    this.dimensionType = getDimensionType(this.registries, in.readString());
+                    this.dimensionType = DimensionType.fromRegistry(this.registries, in.readString());
                 } else if (packet.atLeast(ProtocolVersion.v1_16_2)) {
                     this.dimensionType = new DimensionType(in.readNBT());
                 } else {
@@ -161,7 +158,7 @@ public class PacketJoinGame {
         }
         if (packet.atLeast(ProtocolVersion.v1_20_2)) {
             this.limitedCrafting = in.readBoolean();
-            this.dimensionType = getDimensionType(this.registries, in.readString());
+            this.dimensionType = DimensionType.fromRegistry(this.registries, in.readString());
             this.dimension = in.readString();
             this.seed = in.readLong();
             this.gameMode = in.readByte();
@@ -208,7 +205,7 @@ public class PacketJoinGame {
                 out.writeString(dimension);
             }
             if (packet.olderThan(ProtocolVersion.v1_20_2)) {
-                out.writeNBT(this.registries);
+                out.writeNBT(this.registries.registriesTag);
                 if (packet.atLeast(ProtocolVersion.v1_19)) {
                     out.writeString(this.dimensionType.getName());
                 } else if (packet.atLeast(ProtocolVersion.v1_16_2)) {
@@ -278,36 +275,5 @@ public class PacketJoinGame {
         if (packet.atLeast(ProtocolVersion.v1_20)) {
             out.writeVarInt(this.portalCooldown);
         }
-    }
-
-    public static ListTag getRegistry(CompoundTag registries, String id) {
-        if (registries == null) {
-            return null;
-        }
-        CompoundTag entry = registries.get(id);
-        if (entry == null) {
-            return null;
-        }
-        return entry.get("value");
-    }
-
-    public static CompoundTag getRegistryEntry(CompoundTag registries, String registryId, String entryId) {
-        ListTag entries = getRegistry(registries, registryId);
-        if (entries == null) return null;
-        for (Tag entry : entries) {
-            StringTag name = ((CompoundTag) entry).get("name");
-            if (name != null && name.getValue().equals(entryId)) {
-                return ((CompoundTag) entry).get("element");
-            }
-        }
-        return null;
-    }
-
-    public static DimensionType getDimensionType(CompoundTag registries, String id) {
-        CompoundTag tag = getRegistryEntry(registries, "minecraft:dimension_type", id);
-        if (tag == null) {
-            tag = new CompoundTag();
-        }
-        return new DimensionType(tag, id);
     }
 }

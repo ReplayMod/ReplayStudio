@@ -98,4 +98,19 @@ public class DimensionType {
     public int hashCode() {
         return Objects.hash(tag, name);
     }
+
+    public static DimensionType fromRegistry(Registries registries, String name) {
+        if (registries == null) {
+            return new DimensionType(name);
+        }
+        Registries.Entry entry = registries.getEntry("minecraft:dimension_type", name);
+        if (entry == null) {
+            return new DimensionType(name);
+        }
+        return DimensionType.fromRegistry(entry);
+    }
+
+    public static DimensionType fromRegistry(Registries.Entry entry) {
+        return new DimensionType(entry.asCompoundOrEmpty(), entry.name);
+    }
 }

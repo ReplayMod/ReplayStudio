@@ -19,7 +19,6 @@
 
 package com.replaymod.replaystudio.rar.analyse;
 
-import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.io.ReplayInputStream;
@@ -27,6 +26,7 @@ import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.packets.*;
+import com.replaymod.replaystudio.protocol.registry.Registries;
 import com.replaymod.replaystudio.rar.cache.WriteableCache;
 import com.replaymod.replaystudio.rar.state.Chunk;
 import com.replaymod.replaystudio.rar.state.Entity;
@@ -61,7 +61,7 @@ public class ReplayAnalyzer {
     private int currentSimulationDistance = 0;
 
     private final Map<String, PacketPlayerListEntry> playerListEntries = new HashMap<>();
-    private CompoundTag lastRegistry = null;
+    private Registries lastRegistry = new Registries();
     private Packet lastLightUpdate = null;
 
     public ReplayAnalyzer(PacketTypeRegistry registry, NetOutput out, WriteableCache cache) throws IOException {

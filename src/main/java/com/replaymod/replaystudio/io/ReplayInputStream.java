@@ -21,7 +21,6 @@ package com.replaymod.replaystudio.io;
 import com.github.steveice10.netty.buffer.ByteBuf;
 import com.github.steveice10.netty.buffer.ByteBufAllocator;
 import com.github.steveice10.netty.buffer.PooledByteBufAllocator;
-import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.github.steveice10.packetlib.tcp.io.ByteBufNetInput;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State;
@@ -32,6 +31,7 @@ import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
 import com.replaymod.replaystudio.protocol.packets.PacketLoginSuccess;
 import com.replaymod.replaystudio.protocol.packets.PacketConfigRegistries;
+import com.replaymod.replaystudio.protocol.registry.Registries;
 import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.studio.StudioPacketStream;
@@ -58,7 +58,7 @@ public class ReplayInputStream extends InputStream {
 
     private PacketTypeRegistry rawRegistry;
     private PacketTypeRegistry registry;
-    private CompoundTag mcRegistries; // 1.20.2+
+    private Registries mcRegistries; // 1.20.2+
 
     /**
      * The actual input stream.

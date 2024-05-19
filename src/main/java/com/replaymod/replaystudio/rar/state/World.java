@@ -19,7 +19,6 @@
 
 package com.replaymod.replaystudio.rar.state;
 
-import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.github.steveice10.packetlib.io.NetInput;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
@@ -28,6 +27,7 @@ import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
 import com.replaymod.replaystudio.protocol.packets.PacketRespawn;
 import com.replaymod.replaystudio.protocol.registry.DimensionType;
+import com.replaymod.replaystudio.protocol.registry.Registries;
 import com.replaymod.replaystudio.rar.PacketSink;
 import com.replaymod.replaystudio.rar.RandomAccessState;
 import com.replaymod.replaystudio.rar.cache.ReadableCache;
@@ -145,7 +145,7 @@ public class World implements RandomAccessState {
 
     public static final class Info {
         public final List<String> dimensions; // 1.16+
-        public final CompoundTag registries; // 1.16+
+        public final Registries registries; // 1.16+
         public final String dimension;
         public final DimensionType dimensionType;
         public final long seed; // 1.15+
@@ -153,7 +153,7 @@ public class World implements RandomAccessState {
         public final boolean debugWorld; // 1.16+
         public final boolean flatWorld; // 1.16+
 
-        public Info(List<String> dimensions, CompoundTag registries, String dimension, DimensionType dimensionType, long seed, int difficulty, boolean debugWorld, boolean flatWorld) {
+        public Info(List<String> dimensions, Registries registries, String dimension, DimensionType dimensionType, long seed, int difficulty, boolean debugWorld, boolean flatWorld) {
             this.dimensions = dimensions;
             this.registries = registries;
             this.dimension = dimension;
@@ -164,11 +164,11 @@ public class World implements RandomAccessState {
             this.flatWorld = flatWorld;
         }
 
-        public Info(PacketJoinGame packet, CompoundTag registries) {
+        public Info(PacketJoinGame packet, Registries registries) {
             this(packet.dimensions, registries, packet.dimension, packet.dimensionType, packet.seed, packet.difficulty, packet.debugWorld, packet.flatWorld);
         }
 
-        public Info(List<String> dimensions, CompoundTag registries, PacketRespawn packet) {
+        public Info(List<String> dimensions, Registries registries, PacketRespawn packet) {
             this(dimensions, registries, packet.dimension, packet.dimensionType, packet.seed, packet.difficulty, packet.debugWorld, packet.flatWorld);
         }
 
@@ -179,7 +179,7 @@ public class World implements RandomAccessState {
         public Info(PacketTypeRegistry registry, NetInput in) throws IOException {
             this(
                     registry.atLeast(ProtocolVersion.v1_16) ? Packet.Reader.readList(registry, in, in::readString) : null,
-                    registry.atLeast(ProtocolVersion.v1_16) ? Packet.Reader.readNBT(registry, in) : null,
+                    registry.atLeast(ProtocolVersion.v1_16) ? new Registries(Packet.Reader.readNBT(registry, in)) : new Registries(),
                     in.readString(),
                     new DimensionType(requireNonNull(Packet.Reader.readNBT(registry, in)), in.readString()),
                     in.readLong(),
@@ -192,7 +192,7 @@ public class World implements RandomAccessState {
         public void write(PacketTypeRegistry registry, NetOutput out) throws IOException {
             if (registry.atLeast(ProtocolVersion.v1_16)) {
                 Packet.Writer.writeList(registry, out, dimensions, out::writeString);
-                Packet.Writer.writeNBT(registry, out, this.registries);
+                Packet.Writer.writeNBT(registry, out, this.registries.registriesTag);
             }
             out.writeString(dimension);
             Packet.Writer.writeNBT(registry, out, dimensionType.getTag());

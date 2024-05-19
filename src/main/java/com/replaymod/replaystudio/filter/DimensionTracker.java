@@ -18,7 +18,6 @@
  */
 package com.replaymod.replaystudio.filter;
 
-import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.google.gson.JsonObject;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
@@ -28,13 +27,14 @@ import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
 import com.replaymod.replaystudio.protocol.packets.PacketConfigRegistries;
 import com.replaymod.replaystudio.protocol.packets.PacketRespawn;
 import com.replaymod.replaystudio.protocol.registry.DimensionType;
+import com.replaymod.replaystudio.protocol.registry.Registries;
 import com.replaymod.replaystudio.stream.PacketStream;
 
 import java.io.IOException;
 
 public class DimensionTracker implements StreamFilter {
 
-    public CompoundTag registries;
+    public Registries registries = new Registries();
     public String dimension;
     public DimensionType dimensionType;
 
