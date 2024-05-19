@@ -22,8 +22,8 @@ import com.github.steveice10.netty.buffer.ByteBuf;
 import com.replaymod.replaystudio.lib.viaversion.ViaAPIBase;
 import com.replaymod.replaystudio.lib.viaversion.api.Via;
 import com.replaymod.replaystudio.lib.viaversion.api.connection.UserConnection;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 
-import java.util.SortedSet;
 import java.util.UUID;
 
 class CustomViaAPI extends ViaAPIBase<Void> {
@@ -44,6 +44,11 @@ class CustomViaAPI extends ViaAPIBase<Void> {
     @Override
     public int getPlayerVersion(Void aVoid) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ProtocolVersion getPlayerProtocolVersion(Void unused) {
+        return ProtocolVersion.getProtocol(sourceVersion);
     }
 
     @Override
@@ -76,10 +81,5 @@ class CustomViaAPI extends ViaAPIBase<Void> {
             return;
         }
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public SortedSet<Integer> getSupportedVersions() {
-        return Via.getManager().getProtocolManager().getSupportedVersions();
     }
 }

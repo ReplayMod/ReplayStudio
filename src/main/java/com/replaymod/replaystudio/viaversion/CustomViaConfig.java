@@ -21,6 +21,7 @@ package com.replaymod.replaystudio.viaversion;
 import com.replaymod.replaystudio.lib.viaversion.api.configuration.ViaVersionConfig;
 import com.replaymod.replaystudio.lib.viaversion.api.minecraft.WorldIdentifiers;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.BlockedProtocolVersions;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.lib.viaversion.libs.fastutil.ints.IntSet;
 import com.replaymod.replaystudio.lib.viaversion.libs.gson.JsonElement;
 import com.replaymod.replaystudio.lib.viaversion.protocol.BlockedProtocolVersionsImpl;
@@ -170,11 +171,6 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
-    public boolean isForceJsonTransform() {
-        return false;
-    }
-
-    @Override
     public boolean is1_12NBTArrayFix() {
         return true;
     }
@@ -196,7 +192,7 @@ public class CustomViaConfig implements ViaVersionConfig {
 
     @Override
     public BlockedProtocolVersions blockedProtocolVersions() {
-        return new BlockedProtocolVersionsImpl(IntSet.of(), 0, 0);
+        return new BlockedProtocolVersionsImpl(Collections.emptySet(), ProtocolVersion.unknown, ProtocolVersion.unknown);
     }
 
     @Override
@@ -326,6 +322,16 @@ public class CustomViaConfig implements ViaVersionConfig {
 
     @Override
     public boolean isArmorToggleFix() {
+        return false;
+    }
+
+    @Override
+    public boolean translateOcelotToCat() {
+        return false;
+    }
+
+    @Override
+    public boolean enforceSecureChat() {
         return false;
     }
 

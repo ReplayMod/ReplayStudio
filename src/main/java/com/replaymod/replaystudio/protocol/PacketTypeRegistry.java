@@ -105,7 +105,7 @@ public class PacketTypeRegistry {
 
             int id = packetType.getInitialId();
             for (ProtocolPathEntry entry : Lists.reverse(protocolPath)) {
-                Protocol<?, ?, ?, ?> protocol = entry.getProtocol();
+                Protocol<?, ?, ?, ?> protocol = entry.protocol();
                 boolean wasReplaced = false;
                 for (Pair<Integer, Integer> idMapping : getIdMappings(protocol, state)) {
                     int oldId = idMapping.getKey();

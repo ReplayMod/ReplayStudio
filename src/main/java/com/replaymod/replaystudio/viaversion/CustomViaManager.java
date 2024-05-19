@@ -23,6 +23,7 @@ import com.replaymod.replaystudio.lib.viaversion.api.ViaManager;
 import com.replaymod.replaystudio.lib.viaversion.api.command.ViaVersionCommand;
 import com.replaymod.replaystudio.lib.viaversion.api.configuration.ConfigurationProvider;
 import com.replaymod.replaystudio.lib.viaversion.api.connection.ConnectionManager;
+import com.replaymod.replaystudio.lib.viaversion.api.data.MappingDataLoader;
 import com.replaymod.replaystudio.lib.viaversion.api.debug.DebugHandler;
 import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaInjector;
 import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaPlatform;
@@ -44,6 +45,7 @@ public class CustomViaManager implements ViaManager {
     static {
         CustomViaManager manager = new CustomViaManager();
         Via.init(manager);
+        MappingDataLoader.loadGlobalIdentifiers();
         manager.protocolManager.registerProtocols();
         manager.protocolManager.refreshVersions();
         manager.initialized = true;

@@ -102,7 +102,7 @@ public class ViaVersionPacketConverter {
             protocolInfo.setServerState(inputProtocol >= ProtocolVersion.v1_20_2.getVersion() ? State.CONFIGURATION : State.PLAY);
             protocolInfo.setUsername("$Camera$");
             protocolInfo.setUuid(UUID.randomUUID());
-            path.stream().map(ProtocolPathEntry::getProtocol).forEachOrdered(pipeline::add);
+            path.stream().map(ProtocolPathEntry::protocol).forEachOrdered(pipeline::add);
         } else {
             user = null;
             viaAPI = null;
