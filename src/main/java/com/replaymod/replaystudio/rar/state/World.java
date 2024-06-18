@@ -179,9 +179,9 @@ public class World implements RandomAccessState {
         public Info(PacketTypeRegistry registry, NetInput in) throws IOException {
             this(
                     registry.atLeast(ProtocolVersion.v1_16) ? Packet.Reader.readList(registry, in, in::readString) : null,
-                    registry.atLeast(ProtocolVersion.v1_16) ? new Registries(Packet.Reader.readNBT(registry, in)) : new Registries(),
+                    registry.atLeast(ProtocolVersion.v1_16) ? Registries.readInternal(registry, in) : new Registries(),
                     in.readString(),
-                    new DimensionType(requireNonNull(Packet.Reader.readNBT(registry, in)), in.readString()),
+                    new DimensionType(requireNonNull(Packet.Reader.readNBT(registry, in)), in.readString(), in.readVarInt()),
                     in.readLong(),
                     in.readByte(),
                     in.readBoolean(),
@@ -192,11 +192,12 @@ public class World implements RandomAccessState {
         public void write(PacketTypeRegistry registry, NetOutput out) throws IOException {
             if (registry.atLeast(ProtocolVersion.v1_16)) {
                 Packet.Writer.writeList(registry, out, dimensions, out::writeString);
-                Packet.Writer.writeNBT(registry, out, this.registries.registriesTag);
+                registries.writeInternal(registry, out);
             }
             out.writeString(dimension);
             Packet.Writer.writeNBT(registry, out, dimensionType.getTag());
             out.writeString(dimensionType.getName());
+            out.writeVarInt(dimensionType.getId());
             out.writeLong(seed);
             out.writeByte(difficulty);
             out.writeBoolean(debugWorld);

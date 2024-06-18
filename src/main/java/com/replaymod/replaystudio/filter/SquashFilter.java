@@ -32,6 +32,7 @@ import com.replaymod.replaystudio.protocol.packets.PacketChunkData.Chunk;
 import com.replaymod.replaystudio.protocol.packets.PacketChunkData.Column;
 import com.replaymod.replaystudio.protocol.registry.DimensionType;
 import com.replaymod.replaystudio.protocol.registry.Registries;
+import com.replaymod.replaystudio.protocol.registry.RegistriesBuilder;
 import com.replaymod.replaystudio.stream.IteratorStream;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.util.*;
@@ -159,6 +160,7 @@ public class SquashFilter implements StreamFilter {
     private final Map<Long, Long> unloadedChunks = new HashMap<>();
 
     private Registries registries;
+    private final RegistriesBuilder registriesBuilder = new RegistriesBuilder();
 
     /**
      * The behavior of the Respawn packet depends on the current world. While vanilla seems to never
@@ -224,6 +226,7 @@ public class SquashFilter implements StreamFilter {
         this.latestOnly.forEach((key, value) -> copy.latestOnly.put(key, value.copy()));
         this.chunks.forEach((key, value) -> copy.chunks.put(key, value.copy()));
         copy.unloadedChunks.putAll(this.unloadedChunks);
+        copy.registriesBuilder.copyFrom(this.registriesBuilder);
         copy.cameraPositionRotation = this.cameraPositionRotation;
         copy.recordingPlayerEntityId = this.recordingPlayerEntityId;
         copy.prevTimestamp = this.prevTimestamp;
@@ -529,20 +532,47 @@ public class SquashFilter implements StreamFilter {
             // Misc
             //
 
+            case ConfigCustomPayload:
+                switch (PacketCustomPayload.getId(packet)) {
+                    case PacketEnabledPacksData.ID:
+                        registriesBuilder.readEnabledPacksDataPacket(packet);
+                        break;
+                }
+                break;
             case ConfigRegistries:
-                registries = PacketConfigRegistries.read(packet);
-                // fallthrough
+                registriesBuilder.readRegistriesPacket(packet);
+
+                if (registry.atLeast(ProtocolVersion.v1_20_5)) {
+                    // 1.20.5 resets all registries from before the current config phase iff any are sent
+                    boolean previousPhase = false;
+                    for (int i = configurationPhase.size() - 1; i >= 0; i--) {
+                        PacketType oldType = configurationPhase.get(i).getPacket().getType();
+                        if (oldType == PacketType.ConfigFinish) {
+                            previousPhase = true;
+                        } else if (oldType == PacketType.ConfigRegistries && previousPhase) {
+                            configurationPhase.remove(i).release();
+                        }
+                    }
+                } else {
+                    // Pre-1.20.5 sends all registry entries in a single packet
+                    dropConfigPhasePacketsOfType(type);
+                }
+                configurationPhase.add(data.retain());
+                break;
+            case ConfigSelectKnownPacks:
+                registriesBuilder.readKnownPacksPacket(packet);
+                dropConfigPhasePacketsOfType(type);
+                configurationPhase.add(data.retain());
+                break;
+            case ConfigFinish:
+                registries = registriesBuilder.finish(registries);
+                dropConfigPhasePacketsOfType(type);
+                configurationPhase.add(data.retain());
+                break;
+
             case ConfigTags:
             case ConfigFeatures:
-            case ConfigFinish:
-                configurationPhase.removeIf(old -> {
-                    if (old.getPacket().getType() == type) {
-                        old.release();
-                        return true;
-                    } else {
-                        return false;
-                    }
-                });
+                dropConfigPhasePacketsOfType(type);
                 configurationPhase.add(data.retain());
                 break;
 
@@ -562,6 +592,17 @@ public class SquashFilter implements StreamFilter {
                 }
         }
         return false;
+    }
+
+    private void dropConfigPhasePacketsOfType(PacketType type) {
+        configurationPhase.removeIf(old -> {
+            if (old.getPacket().getType() == type) {
+                old.release();
+                return true;
+            } else {
+                return false;
+            }
+        });
     }
 
     @Override

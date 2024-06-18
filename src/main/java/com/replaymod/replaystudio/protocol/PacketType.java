@@ -27,6 +27,7 @@ public enum PacketType {
 	UnknownConfiguration(ProtocolVersion.v1_20_2, -1, State.CONFIGURATION), // cause you can't switch over null
 	UnknownPlay(ProtocolVersion.v1_7_6, -1), // cause you can't switch over null
 	LoginSuccess(ProtocolVersion.v1_7_6, 0x02, State.LOGIN),
+	ConfigCustomPayload(ProtocolVersion.v1_20_2, 0x00, State.CONFIGURATION),
 	ConfigDisconnect(ProtocolVersion.v1_20_2, 0x01, State.CONFIGURATION),
 	ConfigFinish(ProtocolVersion.v1_20_2, 0x02, State.CONFIGURATION),
 	ConfigKeepAlive(ProtocolVersion.v1_20_2, 0x03, State.CONFIGURATION),
@@ -34,6 +35,7 @@ public enum PacketType {
 	ConfigRegistries(ProtocolVersion.v1_20_2, 0x05, State.CONFIGURATION),
 	ConfigFeatures(ProtocolVersion.v1_20_2, 0x07, State.CONFIGURATION),
 	ConfigTags(ProtocolVersion.v1_20_2, 0x08, State.CONFIGURATION),
+	ConfigSelectKnownPacks(ProtocolVersion.v1_20_5, 0x0e, State.CONFIGURATION),
     KeepAlive(ProtocolVersion.v1_7_6, 0x00),
 	JoinGame(ProtocolVersion.v1_7_6, 0x01),
 	Chat(ProtocolVersion.v1_7_6, 0x02),

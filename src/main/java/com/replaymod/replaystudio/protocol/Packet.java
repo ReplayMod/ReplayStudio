@@ -315,39 +315,40 @@ public class Packet {
             writePosition(registry, out, pos.getPosition());
         }
 
-        public void writeNBT(CompoundTag tag) throws IOException {
+        public void writeNBT(Tag tag) throws IOException {
             writeNBT(packet.registry, this, tag);
         }
 
-        public static void writeNBT(PacketTypeRegistry registry, NetOutput out, CompoundTag tag) throws IOException {
+        public static void writeNBT(PacketTypeRegistry registry, NetOutput out, Tag tag) throws IOException {
             if (registry.atLeast(ProtocolVersion.v1_8)) {
                 if(tag == null) {
                     out.writeByte(0);
                 } else {
-                    NBTIO.writeTag(new OutputStream() {
-                        private int written;
-
+                    writeNbtInner(registry, new DataOutputStream(new OutputStream() {
                         @Override
                         public void write(int b) throws IOException {
-                            int index = written++;
-                            // Skip empty name
-                            if ((index == 1 || index == 2) && registry.atLeast(ProtocolVersion.v1_20_2)) {
-                                return;
-                            }
                             out.writeByte(b);
                         }
-                    }, tag);
+                    }), tag);
                 }
             } else {
                 ByteArrayOutputStream output = new ByteArrayOutputStream();
                 GZIPOutputStream gzip = new GZIPOutputStream(output);
-                NBTIO.writeTag(gzip, tag);
+                writeNbtInner(registry, new DataOutputStream(gzip), tag);
                 gzip.close();
                 output.close();
                 byte[] bytes = output.toByteArray();
                 out.writeShort(bytes.length);
                 out.writeBytes(bytes);
             }
+        }
+
+        private static void writeNbtInner(PacketTypeRegistry registry, DataOutputStream out, Tag tag) throws IOException {
+            out.writeByte(tag.getTagId());
+            if (registry.olderThan(ProtocolVersion.v1_20_2)) {
+                out.writeUTF(""); // empty name
+            }
+            tag.write(out);
         }
 
         public void writeBitSet(BitSet bitSet) throws IOException {

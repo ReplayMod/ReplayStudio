@@ -24,16 +24,17 @@ import com.replaymod.replaystudio.Studio;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
-import com.replaymod.replaystudio.protocol.packets.PacketConfigRegistries;
 import com.replaymod.replaystudio.protocol.packets.PacketRespawn;
 import com.replaymod.replaystudio.protocol.registry.DimensionType;
 import com.replaymod.replaystudio.protocol.registry.Registries;
+import com.replaymod.replaystudio.protocol.registry.RegistriesBuilder;
 import com.replaymod.replaystudio.stream.PacketStream;
 
 import java.io.IOException;
 
 public class DimensionTracker implements StreamFilter {
 
+    private final RegistriesBuilder registriesBuilder = new RegistriesBuilder();
     public Registries registries = new Registries();
     public String dimension;
     public DimensionType dimensionType;
@@ -48,8 +49,11 @@ public class DimensionTracker implements StreamFilter {
         PacketType type = packet.getType();
 
         switch (type) {
-            case ConfigRegistries: {
-                registries = PacketConfigRegistries.read(packet);
+            case ConfigCustomPayload:
+            case ConfigSelectKnownPacks:
+            case ConfigRegistries:
+            case ConfigFinish: {
+                registries = registriesBuilder.update(packet, registries);
                 break;
             }
             case Respawn: {

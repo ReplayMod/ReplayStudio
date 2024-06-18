@@ -30,6 +30,7 @@ import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.packets.PacketConfigRegistries;
+import com.replaymod.replaystudio.protocol.packets.PacketConfigSelectKnownPacks;
 import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
 import com.replaymod.replaystudio.protocol.packets.PacketPlayerPositionRotation;
 import com.replaymod.replaystudio.rar.PacketSink;
@@ -149,7 +150,11 @@ public class WorldStateTree extends StateTree<World> {
 
                             // Update game registries
                             if (registriesChanged) {
-                                sink.accept(PacketConfigRegistries.write(configRegistry, targetWorld.info.registries));
+                                if (configRegistry.atLeast(ProtocolVersion.v1_20_5)) {
+                                    sink.accept(PacketConfigSelectKnownPacks.write(configRegistry, targetWorld.info.registries.enabledPacks));
+                                }
+
+                                PacketConfigRegistries.write(configRegistry, targetWorld.info.registries).forEach(sink);
 
                                 // Sending game registries resets any previously sent tags, so we need to re-send those.
                                 replay.tags.play(packet -> {

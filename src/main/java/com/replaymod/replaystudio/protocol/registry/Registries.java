@@ -20,11 +20,21 @@
 package com.replaymod.replaystudio.protocol.registry;
 
 import com.github.steveice10.opennbt.tag.builtin.*;
+import com.github.steveice10.packetlib.io.NetInput;
+import com.github.steveice10.packetlib.io.NetOutput;
+import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
+import com.replaymod.replaystudio.protocol.Packet;
+import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
+import com.replaymod.replaystudio.protocol.data.VersionedIdentifier;
+import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.Objects;
+import java.io.IOException;
+import java.util.*;
 
 public class Registries {
-    public CompoundTag registriesTag;
+    public CompoundTag registriesTag; // pre 1.20.5
+    public Map<String, List<Pair<String, Tag>>> registriesMap; // 1.20.5+
+    public List<VersionedIdentifier> enabledPacks; // 1.20.5+
 
     public Registries() {
     }
@@ -36,6 +46,8 @@ public class Registries {
     public Registries copy() {
         Registries copy = new Registries();
         copy.registriesTag = this.registriesTag != null ? this.registriesTag.clone() : null;
+        copy.registriesMap = this.registriesMap != null ? new HashMap<>(this.registriesMap) : null;
+        copy.enabledPacks = this.enabledPacks != null ? new ArrayList<>(this.enabledPacks) : null;
         return copy;
     }
 
@@ -54,6 +66,43 @@ public class Registries {
                 }
             }
             return null;
+        } else if (registriesMap != null) {
+            List<Pair<String, Tag>> registry = registriesMap.get(registryName);
+            if (registry == null) return null;
+            int id = 0;
+            for (Pair<String, Tag> entry : registry) {
+                if (entry.getKey().equals(entryName)) {
+                    return new Entry(id, entry.getKey(), entry.getValue());
+                }
+                id++;
+            }
+            return null;
+        } else {
+            return null;
+        }
+    }
+
+    public Entry getEntry(String registryName, int entryId) {
+        if (registriesTag != null) {
+            CompoundTag registry = registriesTag.get(registryName);
+            if (registry == null) return null;
+            ListTag entries = registry.get("value");
+            if (entries == null) return null;
+            for (Tag entry : entries) {
+                NumberTag id = ((CompoundTag) entry).get("id");
+                if (id != null && id.asInt() == entryId) {
+                    StringTag name = ((CompoundTag) entry).get("name");
+                    Tag value = ((CompoundTag) entry).get("element");
+                    return new Entry(id.asInt(), name != null ? name.getValue() : "", value);
+                }
+            }
+            return null;
+        } else if (registriesMap != null) {
+            List<Pair<String, Tag>> registry = registriesMap.get(registryName);
+            if (registry == null) return null;
+            if (entryId < 0 || entryId >= registry.size()) return null;
+            Pair<String, Tag> entry = registry.get(entryId);
+            return new Entry(entryId, entry.getKey(), entry.getValue());
         } else {
             return null;
         }
@@ -64,12 +113,64 @@ public class Registries {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Registries that = (Registries) o;
-        return Objects.equals(registriesTag, that.registriesTag);
+        return Objects.equals(registriesTag, that.registriesTag)
+                && Objects.equals(registriesMap, that.registriesMap)
+                && Objects.equals(enabledPacks, that.enabledPacks);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(registriesTag);
+        return Objects.hash(registriesTag, registriesMap, enabledPacks);
+    }
+
+    public void writeInternal(PacketTypeRegistry registry, NetOutput out) throws IOException {
+        if (registry.atLeast(ProtocolVersion.v1_20_5)) {
+            Map<String, List<Pair<String, Tag>>> registriesMap = this.registriesMap;
+            if (registriesMap == null) {
+                registriesMap = Collections.emptyMap();
+            }
+            List<VersionedIdentifier> enabledPacks = this.enabledPacks;
+            if (enabledPacks == null) {
+                enabledPacks = Collections.emptyList();
+            }
+            Packet.Writer.writeList(registry, out, new ArrayList<>(registriesMap.entrySet()), registryEntry -> {
+                out.writeString(registryEntry.getKey());
+                Packet.Writer.writeList(registry, out, registryEntry.getValue(), entry -> {
+                    out.writeString(entry.getKey());
+                    Tag value = entry.getValue();
+                    if (value != null) {
+                        out.writeBoolean(true);
+                        Packet.Writer.writeNBT(registry, out, value);
+                    } else {
+                        out.writeBoolean(false);
+                    }
+                });
+            });
+            Packet.Writer.writeList(registry, out, enabledPacks, entry -> entry.write(out));
+        } else {
+            Packet.Writer.writeNBT(registry, out, registriesTag);
+        }
+    }
+
+    public static Registries readInternal(PacketTypeRegistry registry, NetInput in) throws IOException {
+        if (registry.atLeast(ProtocolVersion.v1_20_5)) {
+            Registries registries = new Registries();
+            registries.registriesMap = new HashMap<>();
+            Packet.Reader.readList(registry, in, () -> {
+                String registryName = in.readString();
+                List<Pair<String, Tag>> registryEntries = Packet.Reader.readList(registry, in, () -> {
+                    String key = in.readString();
+                    Tag value = in.readBoolean() ? Packet.Reader.readNBT(registry, in) : null;
+                    return Pair.of(key, value);
+                });
+                registries.registriesMap.put(registryName, registryEntries);
+                return null;
+            });
+            registries.enabledPacks = Packet.Reader.readList(registry, in, () -> VersionedIdentifier.read(in));
+            return registries;
+        } else {
+            return new Registries(Packet.Reader.readNBT(registry, in));
+        }
     }
 
     public static class Entry {

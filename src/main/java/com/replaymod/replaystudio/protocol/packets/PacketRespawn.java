@@ -52,7 +52,9 @@ public class PacketRespawn {
 
     public void read(Packet packet, Packet.Reader in, Registries registries) throws IOException {
         if (packet.atLeast(ProtocolVersion.v1_16)) {
-            if (packet.atLeast(ProtocolVersion.v1_19)) {
+            if (packet.atLeast(ProtocolVersion.v1_20_5)) {
+                this.dimensionType = DimensionType.fromRegistry(registries, in.readVarInt());
+            } else if (packet.atLeast(ProtocolVersion.v1_19)) {
                 this.dimensionType = DimensionType.fromRegistry(registries, in.readString());
             } else if (packet.atLeast(ProtocolVersion.v1_16_2)) {
                 this.dimensionType = new DimensionType(in.readNBT());
@@ -113,7 +115,9 @@ public class PacketRespawn {
 
     public void write(Packet packet, Packet.Writer out) throws IOException {
         if (packet.atLeast(ProtocolVersion.v1_16)) {
-            if (packet.atLeast(ProtocolVersion.v1_19)) {
+            if (packet.atLeast(ProtocolVersion.v1_20_5)) {
+                out.writeVarInt(this.dimensionType.getId());
+            } else if (packet.atLeast(ProtocolVersion.v1_19)) {
                 out.writeString(this.dimensionType.getName());
             } else if (packet.atLeast(ProtocolVersion.v1_16_2)) {
                 out.writeNBT(this.dimensionType.getTag());

@@ -27,6 +27,7 @@ import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.packets.*;
 import com.replaymod.replaystudio.protocol.registry.Registries;
+import com.replaymod.replaystudio.protocol.registry.RegistriesBuilder;
 import com.replaymod.replaystudio.rar.cache.WriteableCache;
 import com.replaymod.replaystudio.rar.state.Chunk;
 import com.replaymod.replaystudio.rar.state.Entity;
@@ -61,7 +62,8 @@ public class ReplayAnalyzer {
     private int currentSimulationDistance = 0;
 
     private final Map<String, PacketPlayerListEntry> playerListEntries = new HashMap<>();
-    private Registries lastRegistry = new Registries();
+    private Registries registries = new Registries();
+    private final RegistriesBuilder registriesBuilder = new RegistriesBuilder();
     private Packet lastLightUpdate = null;
 
     public ReplayAnalyzer(PacketTypeRegistry registry, NetOutput out, WriteableCache cache) throws IOException {
@@ -205,7 +207,7 @@ public class ReplayAnalyzer {
                     break;
                 }
                 case JoinGame: {
-                    PacketJoinGame joinGame = PacketJoinGame.read(packet, lastRegistry);
+                    PacketJoinGame joinGame = PacketJoinGame.read(packet, registries);
                     replay.newWorld(time, new World.Info(joinGame, joinGame.registries));
                     if (registry.atLeast(ProtocolVersion.v1_14)) {
                         currentViewChunkX = currentViewChunkZ = 0;
@@ -235,8 +237,11 @@ public class ReplayAnalyzer {
                     replay.tags.put(time, packet.retain());
                     break;
                 }
-                case ConfigRegistries: {
-                    lastRegistry = PacketConfigRegistries.read(packet);
+                case ConfigCustomPayload:
+                case ConfigSelectKnownPacks:
+                case ConfigRegistries:
+                case ConfigFinish: {
+                    registries = registriesBuilder.update(packet, registries);
                     break;
                 }
                 case UpdateViewPosition: {

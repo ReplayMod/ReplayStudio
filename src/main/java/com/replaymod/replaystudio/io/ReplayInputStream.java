@@ -30,8 +30,8 @@ import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry;
 import com.replaymod.replaystudio.protocol.packets.PacketJoinGame;
 import com.replaymod.replaystudio.protocol.packets.PacketLoginSuccess;
-import com.replaymod.replaystudio.protocol.packets.PacketConfigRegistries;
 import com.replaymod.replaystudio.protocol.registry.Registries;
+import com.replaymod.replaystudio.protocol.registry.RegistriesBuilder;
 import com.replaymod.replaystudio.replay.ReplayMetaData;
 import com.replaymod.replaystudio.stream.PacketStream;
 import com.replaymod.replaystudio.studio.StudioPacketStream;
@@ -59,6 +59,7 @@ public class ReplayInputStream extends InputStream {
     private PacketTypeRegistry rawRegistry;
     private PacketTypeRegistry registry;
     private Registries mcRegistries; // 1.20.2+
+    private final RegistriesBuilder mcRegistriesBuilder = new RegistriesBuilder(); // 1.20.2+
 
     /**
      * The actual input stream.
@@ -103,7 +104,7 @@ public class ReplayInputStream extends InputStream {
         this.outputLoginPhase = registry.getState() == State.LOGIN;
         if (!includeLoginPhase && outputLoginPhase) {
             // For Replays older than version 14, immediately end the Login phase to enter Play phase where the replay starts
-            buffer.offer(new PacketData(0, new PacketLoginSuccess(UUID.nameUUIDFromBytes(new byte[0]), "Player", Collections.emptyList()).write(registry)));
+            buffer.offer(new PacketData(0, new PacketLoginSuccess(UUID.nameUUIDFromBytes(new byte[0]), "Player", Collections.emptyList(), false).write(registry)));
             this.registry = PacketTypeRegistry.get(registry.getVersion(), State.PLAY);
         } else if (includeLoginPhase && !outputLoginPhase) {
             this.registry = PacketTypeRegistry.get(registry.getVersion(), State.LOGIN);
@@ -170,11 +171,14 @@ public class ReplayInputStream extends InputStream {
                 case Reconfigure:
                     rawRegistry = rawRegistry.withState(State.CONFIGURATION);
                     break;
+                case ConfigCustomPayload:
+                case ConfigSelectKnownPacks:
                 case ConfigRegistries:
-                    mcRegistries = PacketConfigRegistries.read(rawPacket);
+                    mcRegistries = mcRegistriesBuilder.update(rawPacket, mcRegistries);
                     break;
                 case ConfigFinish:
                     rawRegistry = rawRegistry.withState(State.PLAY);
+                    mcRegistries = mcRegistriesBuilder.finish(mcRegistries);
                     break;
                 case JoinGame:
                     PacketJoinGame joinGame = PacketJoinGame.read(rawPacket, mcRegistries);

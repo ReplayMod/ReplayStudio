@@ -51,6 +51,7 @@ public class PacketJoinGame {
     public boolean flatWorld; // 1.16+
     public IGlobalPosition lastDeathPosition; // 1.19+
     public int portalCooldown; // 1.20+
+    public boolean enforcesSecureChat; // 1.20.5+
 
     public PacketJoinGame() {
     }
@@ -76,6 +77,7 @@ public class PacketJoinGame {
         this.flatWorld = other.flatWorld;
         this.lastDeathPosition = other.lastDeathPosition;
         this.portalCooldown = other.portalCooldown;
+        this.enforcesSecureChat = other.enforcesSecureChat;
     }
 
     public static PacketJoinGame read(Packet packet, /* 1.20.2+ */ Registries registries) throws IOException {
@@ -158,7 +160,11 @@ public class PacketJoinGame {
         }
         if (packet.atLeast(ProtocolVersion.v1_20_2)) {
             this.limitedCrafting = in.readBoolean();
-            this.dimensionType = DimensionType.fromRegistry(this.registries, in.readString());
+            if (packet.atLeast(ProtocolVersion.v1_20_5)) {
+                this.dimensionType = DimensionType.fromRegistry(this.registries, in.readVarInt());
+            } else {
+                this.dimensionType = DimensionType.fromRegistry(this.registries, in.readString());
+            }
             this.dimension = in.readString();
             this.seed = in.readLong();
             this.gameMode = in.readByte();
@@ -175,6 +181,9 @@ public class PacketJoinGame {
         }
         if (packet.atLeast(ProtocolVersion.v1_20)) {
             this.portalCooldown = in.readVarInt();
+        }
+        if (packet.atLeast(ProtocolVersion.v1_20_5)) {
+            this.enforcesSecureChat = in.readBoolean();
         }
     }
 
@@ -254,7 +263,11 @@ public class PacketJoinGame {
         }
         if (packet.atLeast(ProtocolVersion.v1_20_2)) {
             out.writeBoolean(this.limitedCrafting);
-            out.writeString(this.dimensionType.getName());
+            if (packet.atLeast(ProtocolVersion.v1_20_5)) {
+                out.writeVarInt(this.dimensionType.getId());
+            } else {
+                out.writeString(this.dimensionType.getName());
+            }
             out.writeString(this.dimension);
             out.writeLong(this.seed);
             out.writeByte(this.gameMode);
@@ -274,6 +287,9 @@ public class PacketJoinGame {
         }
         if (packet.atLeast(ProtocolVersion.v1_20)) {
             out.writeVarInt(this.portalCooldown);
+        }
+        if (packet.atLeast(ProtocolVersion.v1_20_5)) {
+            out.writeBoolean(this.enforcesSecureChat);
         }
     }
 }

@@ -28,23 +28,25 @@ import java.util.Objects;
 public class DimensionType {
     private final CompoundTag tag;
     private final String name;
+    private final int id;
     private final int minY;
     private final int height;
 
     // pre 1.16.2
     public DimensionType(String name) {
-        this(new CompoundTag(), name);
+        this(new CompoundTag(), name, 0);
     }
 
     // 1.16.2+ pre 1.19
     public DimensionType(CompoundTag tag) {
-        this(tag, "");
+        this(tag, "", 0);
     }
 
     // 1.19+ (and internally all versions)
-    public DimensionType(CompoundTag tag, String name) {
+    public DimensionType(CompoundTag tag, String name, int id) {
         this.tag = tag;
         this.name = name;
+        this.id = id;
 
         Tag minY = tag.get("min_y");
         this.minY = minY instanceof NumberTag ? ((NumberTag) minY).asInt() : 0;
@@ -60,6 +62,11 @@ public class DimensionType {
     // 1.16.2+
     public CompoundTag getTag() {
         return this.tag;
+    }
+
+    // 1.20.5+
+    public int getId() {
+        return this.id;
     }
 
     public int getMinY() {
@@ -110,7 +117,15 @@ public class DimensionType {
         return DimensionType.fromRegistry(entry);
     }
 
+    public static DimensionType fromRegistry(Registries registries, int id) {
+        Registries.Entry entry = registries.getEntry("minecraft:dimension_type", id);
+        if (entry == null) {
+            return new DimensionType(new CompoundTag(), "", id);
+        }
+        return DimensionType.fromRegistry(entry);
+    }
+
     public static DimensionType fromRegistry(Registries.Entry entry) {
-        return new DimensionType(entry.asCompoundOrEmpty(), entry.name);
+        return new DimensionType(entry.asCompoundOrEmpty(), entry.name, entry.id);
     }
 }
