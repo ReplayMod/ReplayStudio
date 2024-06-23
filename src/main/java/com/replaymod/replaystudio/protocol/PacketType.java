@@ -46,17 +46,17 @@ public enum PacketType {
 	Respawn(ProtocolVersion.v1_7_6, 0x07),
 	PlayerPositionRotation(ProtocolVersion.v1_7_6, 0x08),
 	ChangeHeldItem(ProtocolVersion.v1_7_6, 0x09),
-	PlayerUseBed(ProtocolVersion.v1_7_6, 0x0a), // removed in 1.14
+	PlayerUseBed(ProtocolVersion.v1_7_6, 0x0a, ProtocolVersion.v1_14),
 	EntityAnimation(ProtocolVersion.v1_7_6, 0x0b),
-	SpawnPlayer(ProtocolVersion.v1_7_6, 0x0c), // removed in 1.20.2 in favor of SpawnObject
+	SpawnPlayer(ProtocolVersion.v1_7_6, 0x0c, ProtocolVersion.v1_20_2), // merged into SpawnObject
 	EntityCollectItem(ProtocolVersion.v1_7_6, 0x0d),
 	SpawnObject(ProtocolVersion.v1_7_6, 0x0e),
-	SpawnMob(ProtocolVersion.v1_7_6, 0x0f), // removed in 1.19 in favor of SpawnObject
+	SpawnMob(ProtocolVersion.v1_7_6, 0x0f, ProtocolVersion.v1_19), // merged into SpawnObject
 	SpawnPainting(ProtocolVersion.v1_7_6, 0x10),
 	SpawnExpOrb(ProtocolVersion.v1_7_6, 0x11),
 	EntityVelocity(ProtocolVersion.v1_7_6, 0x12),
 	DestroyEntities(ProtocolVersion.v1_7_6, 0x13), // removed in 1.17, re-added in 1.17.1
-	EntityMovement(ProtocolVersion.v1_7_6, 0x14), // removed in 1.17
+	EntityMovement(ProtocolVersion.v1_7_6, 0x14, ProtocolVersion.v1_17),
 	EntityPosition(ProtocolVersion.v1_7_6, 0x15),
 	EntityRotation(ProtocolVersion.v1_7_6, 0x16),
 	EntityPositionRotation(ProtocolVersion.v1_7_6, 0x17),
@@ -80,7 +80,7 @@ public enum PacketType {
 	PlaySound(ProtocolVersion.v1_7_6, 0x29),
 	SpawnParticle(ProtocolVersion.v1_7_6, 0x2a),
 	NotifyClient(ProtocolVersion.v1_7_6, 0x2b),
-	SpawnGlobalEntity(ProtocolVersion.v1_7_6, 0x2c),
+	SpawnGlobalEntity(ProtocolVersion.v1_7_6, 0x2c, ProtocolVersion.v1_16),
 	OpenWindow(ProtocolVersion.v1_7_6, 0x2d),
 	CloseWindow(ProtocolVersion.v1_7_6, 0x2e),
 	SetSlot(ProtocolVersion.v1_7_6, 0x2f),
@@ -103,10 +103,10 @@ public enum PacketType {
 	Disconnect(ProtocolVersion.v1_7_6, 0x40),
 
 	Difficulty(ProtocolVersion.v1_8, 0x41),
-	Combat(ProtocolVersion.v1_8, 0x42), // removed in 1.17
+	Combat(ProtocolVersion.v1_8, 0x42, ProtocolVersion.v1_17),
 	SwitchCamera(ProtocolVersion.v1_8, 0x43),
 	WorldBorder(ProtocolVersion.v1_8, 0x44),
-	EntityNBTUpdate(ProtocolVersion.v1_8, 0x49), // removed in 1.9
+	EntityNBTUpdate(ProtocolVersion.v1_8, 0x49, ProtocolVersion.v1_9),
 
 	UnloadChunk(ProtocolVersion.v1_9, 0x1d),
 	SetPassengers(ProtocolVersion.v1_9, 0x40),
@@ -123,11 +123,11 @@ public enum PacketType {
     CombatEnd(ProtocolVersion.v1_17, 0x33),
     CombatEnter(ProtocolVersion.v1_17, 0x34),
     CombatEntityDead(ProtocolVersion.v1_17, 0x35),
-	DestroyEntity(ProtocolVersion.v1_17, 0x3a), // removed in 1.17.1, that didn't last long
+	DestroyEntity(ProtocolVersion.v1_17, 0x3a, ProtocolVersion.v1_17_1),
 
 	UpdateSimulationDistance(ProtocolVersion.v1_18, 0x57),
 
-	Features(ProtocolVersion.v1_19_3, 0x67), // removed in 1.20.2 in favor of ConfigFeatures
+	Features(ProtocolVersion.v1_19_3, 0x67, ProtocolVersion.v1_20_2), // removed in favor of ConfigFeatures
 	PlayerListEntryRemove(ProtocolVersion.v1_19_3, 0x35),
 
 	Bundle(ProtocolVersion.v1_19_4, 0x00),
@@ -137,15 +137,25 @@ public enum PacketType {
 
     private final State state;
     private final ProtocolVersion initialVersion;
+	private final ProtocolVersion removedVersion;
     private final int initialId;
 
 	PacketType(ProtocolVersion initialVersion, int initialId) {
-		this(initialVersion, initialId, State.PLAY);
+		this(initialVersion, initialId, null, State.PLAY);
+	}
+
+	PacketType(ProtocolVersion initialVersion, int initialId, ProtocolVersion removedVersion) {
+		this(initialVersion, initialId, removedVersion, State.PLAY);
     }
 
 	PacketType(ProtocolVersion initialVersion, int initialId, State state) {
+		this(initialVersion, initialId, null, state);
+	}
+
+	PacketType(ProtocolVersion initialVersion, int initialId, ProtocolVersion removedVersion, State state) {
 		this.state = state;
         this.initialVersion = initialVersion;
+		this.removedVersion = removedVersion;
         this.initialId = initialId;
     }
 
@@ -156,6 +166,10 @@ public enum PacketType {
 	public ProtocolVersion getInitialVersion() {
         return initialVersion;
     }
+
+	public ProtocolVersion getRemovedVersion() {
+		return removedVersion;
+	}
 
     public int getInitialId() {
         return initialId;

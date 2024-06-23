@@ -99,8 +99,18 @@ public class PacketTypeRegistry {
                 continue; // no path from packet version to current version (current version is not supported)
             }
 
+            protocolPath = Lists.reverse(protocolPath);
+
+            List<ProtocolVersion> inputProtocols = new ArrayList<>();
+            for (ProtocolPathEntry entry : protocolPath) {
+                inputProtocols.add(entry.outputProtocolVersion());
+            }
+            inputProtocols.add(version);
+            inputProtocols.remove(0);
+
             int id = packetType.getInitialId();
-            for (ProtocolPathEntry entry : Lists.reverse(protocolPath)) {
+            for (int i = 0; i < protocolPath.size(); i++) {
+                ProtocolPathEntry entry = protocolPath.get(i);
                 Protocol<?, ?, ?, ?> protocol = entry.protocol();
                 boolean wasReplaced = false;
                 for (Pair<Integer, Integer> idMapping : getIdMappings(protocol, state)) {
@@ -172,9 +182,32 @@ public class PacketTypeRegistry {
                     wasReplaced = true;
                 }
 
+                // Special case: Spawn Player is finally merged into Spawn Object
+                if (protocol instanceof Protocol1_20To1_20_2 && packetType == PacketType.SpawnPlayer) {
+                    wasReplaced = true;
+                }
+
                 if (wasReplaced) {
+                    ProtocolVersion expected = packetType.getRemovedVersion();
+                    ProtocolVersion actual = inputProtocols.get(i);
+                    if (expected == null) {
+                        throw new RuntimeException("Packet " + packetType + " unexpectedly removed in " + version);
+                    }
+                    if (!expected.equalTo(actual)) {
+                        throw new RuntimeException("Packet " + packetType + " unexpectedly removed in " + actual + " should have been removed in " + expected);
+                    }
                     continue packets; // packet no longer exists in this version
                 }
+            }
+
+            ProtocolVersion expectedRemoval = packetType.getRemovedVersion();
+            if (expectedRemoval != null && expectedRemoval.olderThanOrEqualTo(version)) {
+                throw new RuntimeException("Packet " + packetType + " unexpectedly still present in " + version);
+            }
+
+            PacketType existingType = typeForId.get(id);
+            if (existingType != null) {
+                throw new RuntimeException("Id " + id + " in " + version + " to be assigned to " + packetType + " but already assigned to " + existingType);
             }
 
             typeForId.put(id, packetType);
