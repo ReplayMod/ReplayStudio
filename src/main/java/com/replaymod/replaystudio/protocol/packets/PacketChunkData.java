@@ -462,11 +462,11 @@ public class PacketChunkData {
             if (!packet.atLeast(ProtocolVersion.v1_9)) {
                 if (packet.atLeast(ProtocolVersion.v1_8)) {
                     for (Chunk chunk : chunks) {
-                        if (chunk != null) chunk.blocks.storage = FlexibleStorage.from(packet.getRegistry(), 0, 4096, in.readLongs(1024));
+                        if (chunk != null) chunk.blocks.storage = FlexibleStorage.from(packet.getRegistry(), 16, 4096, in.readLongs(1024));
                     }
                 } else {
                     for (Chunk chunk : chunks) {
-                        if (chunk != null) chunk.blocks.storage = FlexibleStorage.from(packet.getRegistry(), 0, 4096, in.readLongs(512));
+                        if (chunk != null) chunk.blocks.storage = FlexibleStorage.from(packet.getRegistry(), 8, 4096, in.readLongs(512));
                     }
                     for (Chunk chunk : chunks) {
                         if (chunk != null) chunk.blocks.metadata = in.readLongs(256);
@@ -743,7 +743,7 @@ public class PacketChunkData {
         PalettedStorage(PaletteType type, Packet packet) {
             this.type = type;
             this.registry = packet.getRegistry();
-            this.bitsPerEntry = type.highestBitsPerValue() + 1; // these versions never use a local palette
+            this.bitsPerEntry = packet.atLeast(ProtocolVersion.v1_8) ? 16 : 8; // these versions never use a local palette
         }
 
         // 1.9+
@@ -900,16 +900,20 @@ public class PacketChunkData {
         static FlexibleStorage empty(PacketTypeRegistry registry, int bitsPerEntry, int entries) {
             if (registry.atLeast(ProtocolVersion.v1_16)) {
                 return new PaddedFlexibleStorage(bitsPerEntry, entries);
-            } else {
+            } else if (registry.atLeast(ProtocolVersion.v1_9)) {
                 return new CompactFlexibleStorage(bitsPerEntry, entries);
+            } else {
+                return new LegacyStorage(bitsPerEntry, entries);
             }
         }
 
         static FlexibleStorage from(PacketTypeRegistry registry, int bitsPerEntry, int entries, long[] data) {
             if (registry.atLeast(ProtocolVersion.v1_16)) {
                 return new PaddedFlexibleStorage(bitsPerEntry, entries, data);
-            } else {
+            } else if (registry.atLeast(ProtocolVersion.v1_9)) {
                 return new CompactFlexibleStorage(bitsPerEntry, entries, data);
+            } else {
+                return new LegacyStorage(bitsPerEntry, entries, data);
             }
         }
     }
@@ -1030,6 +1034,54 @@ public class PacketChunkData {
                 int endBitSubIndex = 64 - startBitSubIndex;
                 this.data[endIndex] = this.data[endIndex] >>> endBitSubIndex << endBitSubIndex | ((long) value & this.maxEntryValue) >> endBitSubIndex;
             }
+        }
+    }
+
+    private static class LegacyStorage extends FlexibleStorage {
+        protected LegacyStorage(int bitsPerEntry, int entries) {
+            this(bitsPerEntry, entries, new long[entries * bitsPerEntry / 64]);
+        }
+
+        protected LegacyStorage(int bitsPerEntry, int entries, long[] data) {
+            super(data, bitsPerEntry, entries);
+        }
+
+        @Override
+        public int get(int index) {
+            if (index < 0 || index > this.entries - 1) {
+                throw new IndexOutOfBoundsException();
+            }
+            int bitIndex = index * this.bitsPerEntry;
+            int longIndex = bitIndex / 64;
+            int subIndex = bitIndex % 64;
+            short value = (short) (this.data[longIndex] >>> subIndex & this.maxEntryValue);
+            if (bitsPerEntry == 16) {
+                return Short.reverseBytes(value);
+            } else if (bitsPerEntry == 8) {
+                return value;
+            } else {
+                throw new AssertionError("LegacyStorage can only be 8 or 16 bits per entry.");
+            }
+        }
+
+        @Override
+        public void set(int index, int value) {
+            if (index < 0 || index > this.entries - 1) {
+                throw new IndexOutOfBoundsException();
+            }
+
+            if (value < 0 || value > this.maxEntryValue) {
+                throw new IllegalArgumentException("Value cannot be outside of accepted range.");
+            }
+
+            if (bitsPerEntry == 16) {
+                value = Short.reverseBytes((short) value);
+            }
+
+            int bitIndex = index * this.bitsPerEntry;
+            int longIndex = bitIndex / 64;
+            int subIndex = bitIndex % 64;
+            this.data[longIndex] = this.data[longIndex] & ~(this.maxEntryValue << subIndex) | ((long) value & this.maxEntryValue) << subIndex;
         }
     }
 
