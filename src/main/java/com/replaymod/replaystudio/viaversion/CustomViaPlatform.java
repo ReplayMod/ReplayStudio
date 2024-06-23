@@ -109,11 +109,6 @@ public class CustomViaPlatform implements ViaPlatform<Void> {
     }
 
     @Override
-    public ConfigurationProvider getConfigurationProvider() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public File getDataFolder() {
         return null;
     }
@@ -124,11 +119,6 @@ public class CustomViaPlatform implements ViaPlatform<Void> {
     @Override
     public JsonObject getDump() {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean isOldClientsAllowed() {
-        return false;
     }
 
     @Override

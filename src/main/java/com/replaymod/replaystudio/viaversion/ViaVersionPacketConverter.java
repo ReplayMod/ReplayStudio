@@ -34,7 +34,7 @@ import com.replaymod.replaystudio.lib.viaversion.connection.UserConnectionImpl;
 import com.replaymod.replaystudio.lib.viaversion.protocol.ProtocolPipelineImpl;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.ProtocolPipeline;
 import com.replaymod.replaystudio.lib.viaversion.exception.CancelException;
-import com.replaymod.replaystudio.lib.viaversion.protocols.protocol1_20_2to1_20.storage.ConfigurationState;
+import com.replaymod.replaystudio.lib.viaversion.protocols.v1_20to1_20_2.storage.ConfigurationState;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -122,8 +122,6 @@ public class ViaVersionPacketConverter {
             }
             configurationState.setBridgePhase(ConfigurationState.BridgePhase.CONFIGURATION);
             configurationState.sendQueuedPackets(user);
-        } catch (IOException e) {
-            throw e;
         } catch (Exception e) {
             throw new IOException("Exception during ViaVersion conversion:", e);
         } finally {
@@ -144,8 +142,6 @@ public class ViaVersionPacketConverter {
             configurationState.setBridgePhase(ConfigurationState.BridgePhase.NONE);
             configurationState.sendQueuedPackets(user);
             configurationState.clear();
-        } catch (IOException e) {
-            throw e;
         } catch (Exception e) {
             throw new IOException("Exception during ViaVersion conversion:", e);
         } finally {

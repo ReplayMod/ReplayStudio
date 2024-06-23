@@ -11,7 +11,7 @@ group = "com.github.ReplayMod"
 description = "ReplayStudio"
 version = "master-SNAPSHOT"
 
-java.toolchain.languageVersion.set(JavaLanguageVersion.of(8))
+java.toolchain.languageVersion.set(JavaLanguageVersion.of(17))
 
 repositories {
     mavenCentral()
@@ -33,7 +33,7 @@ val viaVersion by configurations.creating {
 }
 
 dependencies {
-    viaVersion("com.github.replaymod.viaversion:viaversion-common:652644631")
+    viaVersion("com.github.replaymod.viaversion:viaversion-common:ff0976978")
 
     viaVersion("com.google.guava:guava:17.0")
     implementation("com.google.code.gson:gson:2.3.1")
@@ -49,7 +49,7 @@ dependencies {
 
     implementation(prebundle(viaVersion))
 
-    compileOnly(annotationProcessor("org.projectlombok:lombok:1.16.6")!!)
+    compileOnly(annotationProcessor("org.projectlombok:lombok:1.18.32")!!)
     testImplementation("junit:junit:4.11")
     testImplementation("com.google.guava:guava-testlib:18.0")
     testImplementation("pl.pragmatists:JUnitParams:1.0.4")

@@ -24,7 +24,6 @@ import com.github.steveice10.packetlib.io.NetOutput;
 import com.github.steveice10.packetlib.io.stream.StreamNetInput;
 import com.github.steveice10.packetlib.io.stream.StreamNetOutput;
 import com.replaymod.replaystudio.lib.viaversion.api.minecraft.chunks.PaletteType;
-import com.replaymod.replaystudio.lib.viaversion.api.minecraft.metadata.ChunkPosition;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
@@ -76,7 +75,7 @@ public class PacketChunkData {
 
     public Packet write(PacketTypeRegistry registry) throws IOException {
         PacketType packetType;
-        boolean atLeastV1_9 = ProtocolVersion.getIndex(registry.getVersion()) >= ProtocolVersion.getIndex(ProtocolVersion.v1_9);
+        boolean atLeastV1_9 = registry.atLeast(ProtocolVersion.v1_9);
         if (atLeastV1_9) {
             packetType = isUnload ? PacketType.UnloadChunk : PacketType.ChunkData;
         } else {

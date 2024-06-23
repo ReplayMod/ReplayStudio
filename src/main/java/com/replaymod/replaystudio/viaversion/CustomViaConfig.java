@@ -336,6 +336,11 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
+    public boolean handleInvalidItemCount() {
+        return true;
+    }
+
+    @Override
     public void reload() {
     }
 
