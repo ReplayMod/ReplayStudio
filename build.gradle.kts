@@ -42,7 +42,9 @@ dependencies {
     implementation("it.unimi.dsi:fastutil:8.3.1") // this is the version MC ships with 1.14.4, upgrade with care
 
     implementation("com.github.viaversion:opennbt:0a02214") // 2.0-SNAPSHOT (ViaVersion Edition)
-    viaVersion("com.github.steveice10:packetlib:614d56cdc0") // 1.3
+    viaVersion("com.github.steveice10:packetlib:614d56cdc0" /* 1.3 */) {
+        exclude("org.slf4j")
+    }
 
     implementation("org.apache.commons:commons-lang3:3.3.2")
     implementation("org.apache.commons:commons-collections4:4.0")
