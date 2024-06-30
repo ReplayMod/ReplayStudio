@@ -12,7 +12,7 @@ group = "com.github.ReplayMod"
 description = "ReplayStudio"
 version = "master-SNAPSHOT"
 
-java.toolchain.languageVersion.set(JavaLanguageVersion.of(17))
+java.toolchain.languageVersion.set(JavaLanguageVersion.of(8))
 
 repositories {
     mavenCentral()
@@ -31,6 +31,7 @@ val relocated = registerRelocationAttribute("viaversion-relocated") {
 
 val viaVersion by configurations.creating {
     attributes { attribute(relocated, true) }
+    jvmdg.dg(this)
 }
 
 dependencies {
@@ -63,42 +64,6 @@ tasks.jar {
 }
 
 jvmdg.shadePath.set { "com/replaymod/replaystudio/lib" }
-val downgradedApiElements by configurations.creating {
-    extendsFrom(configurations.apiElements.get())
-    isCanBeConsumed = true
-    isCanBeResolved = false
-    attributes {
-        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
-        attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
-        attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 8)
-        attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.JAR))
-        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_API))
-    }
-}
-val downgradedRuntimeElements by configurations.creating {
-    extendsFrom(configurations.runtimeElements.get())
-    isCanBeConsumed = true
-    isCanBeResolved = false
-    attributes {
-        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
-        attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
-        attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 8)
-        attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.JAR))
-        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
-    }
-}
-artifacts {
-    add(downgradedApiElements.name, tasks.shadeDowngradedApi)
-    add(downgradedRuntimeElements.name, tasks.shadeDowngradedApi)
-}
-
-val javaComponent = components["java"] as AdhocComponentWithVariants
-javaComponent.addVariantsFromConfiguration(downgradedApiElements) {
-    mapToMavenScope("compile")
-}
-javaComponent.addVariantsFromConfiguration(downgradedRuntimeElements) {
-    mapToMavenScope("runtime")
-}
 
 publishing {
     publications {
