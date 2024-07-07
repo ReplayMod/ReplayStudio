@@ -538,6 +538,7 @@ public class SquashFilter implements StreamFilter {
                         registriesBuilder.readEnabledPacksDataPacket(packet);
                         break;
                 }
+                configurationPhase.add(data.retain());
                 break;
             case ConfigRegistries:
                 registriesBuilder.readRegistriesPacket(packet);
