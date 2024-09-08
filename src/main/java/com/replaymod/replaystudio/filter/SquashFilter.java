@@ -700,9 +700,9 @@ public class SquashFilter implements StreamFilter {
                     cameraPositionRotation.yaw = location.getYaw();
                     cameraPositionRotation.pitch = location.getPitch();
                 }
-                cameraPositionRotation.x += entity.dx;
-                cameraPositionRotation.y += entity.dy;
-                cameraPositionRotation.z += entity.dz;
+                cameraPositionRotation.x += entity.dx / 32.0;
+                cameraPositionRotation.y += entity.dy / 32.0;
+                cameraPositionRotation.z += entity.dz / 32.0;
                 if (entity.yaw != null && entity.pitch != null) {
                     cameraPositionRotation.yaw = entity.yaw;
                     cameraPositionRotation.pitch = entity.pitch;
