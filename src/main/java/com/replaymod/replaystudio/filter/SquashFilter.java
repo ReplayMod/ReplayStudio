@@ -151,7 +151,13 @@ public class SquashFilter implements StreamFilter {
     private final Map<Integer, PacketData> mainInventoryChanges = new HashMap<>();
     private final Map<Integer, Packet> maps = new HashMap<>();
 
+    // Packets affecting state which is cleared only when switching to configuration phase
+    private final List<PacketData> currentPlayPhase = new ArrayList<>();
+    // Packets affecting state which is cleared on JoinGame (and above)
+    private final List<PacketData> currentJoinGame = new ArrayList<>();
+    // Packets affecting state of the world which is cleared by Respawn (provided it's a different world) (and above)
     private final List<PacketData> currentWorld = new ArrayList<>();
+    // Packets affecting state of the currently opened window
     private final List<PacketData> currentWindow = new ArrayList<>();
     private final List<PacketData> closeWindows = new ArrayList<>();
     private final Map<PacketType, PacketData> latestOnly = new HashMap<>();
@@ -220,6 +226,8 @@ public class SquashFilter implements StreamFilter {
         this.unhandled.forEach(it -> copy.unhandled.add(it.copy()));
         this.mainInventoryChanges.forEach((key, value) -> copy.mainInventoryChanges.put(key, value.copy()));
         this.maps.forEach((key, value) -> copy.maps.put(key, value.copy()));
+        this.currentPlayPhase.forEach(it -> copy.currentPlayPhase.add(it.copy()));
+        this.currentJoinGame.forEach(it -> copy.currentJoinGame.add(it.copy()));
         this.currentWorld.forEach(it -> copy.currentWorld.add(it.copy()));
         this.currentWindow.forEach(it -> copy.currentWindow.add(it.copy()));
         this.closeWindows.forEach(it -> copy.closeWindows.add(it.copy()));
@@ -256,6 +264,8 @@ public class SquashFilter implements StreamFilter {
         unhandled.forEach(PacketData::release);
         mainInventoryChanges.values().forEach(PacketData::release);
         maps.values().forEach(Packet::release);
+        currentPlayPhase.forEach(PacketData::release);
+        currentJoinGame.forEach(PacketData::release);
         currentWorld.forEach(PacketData::release);
         currentWindow.forEach(PacketData::release);
         closeWindows.forEach(PacketData::release);
@@ -353,14 +363,7 @@ public class SquashFilter implements StreamFilter {
                     // gained knowledge (so this will only happen once).
                     flush();
                 } else if (!dimension.equals(newDimension)) {
-                    currentWorld.forEach(PacketData::release);
-                    currentWorld.clear();
-                    chunks.clear();
-                    unloadedChunks.clear();
-                    currentWindow.forEach(PacketData::release);
-                    currentWindow.clear();
-                    entities.values().forEach(Entity::release);
-                    entities.clear();
+                    clearStateAtRespawn();
                 }
                 dimension = newDimension;
                 dimensionType = packetRespawn.dimensionType;
@@ -372,14 +375,7 @@ public class SquashFilter implements StreamFilter {
                 break;
             }
             case JoinGame:
-                currentWorld.forEach(PacketData::release);
-                currentWorld.clear();
-                chunks.clear();
-                unloadedChunks.clear();
-                currentWindow.forEach(PacketData::release);
-                currentWindow.clear();
-                entities.values().forEach(Entity::release);
-                entities.clear();
+                clearStateAtJoinGame();
                 PacketJoinGame packetJoinGame = PacketJoinGame.read(packet, registries);
                 recordingPlayerEntityId = ~packetJoinGame.entityId; // inverted, see ReplayInputStream
                 registries = packetJoinGame.registries;
@@ -443,6 +439,21 @@ public class SquashFilter implements StreamFilter {
             case NotifyClient:
             case MapData:
                 currentWorld.add(data.retain());
+                break;
+
+            case ScoreboardObjective:
+            case UpdateScore:
+            case DisplayScoreboard:
+            case ResetScore:
+                if (registry.atLeast(ProtocolVersion.v1_20_5)) {
+                    // As of 1.20.5 the scoreboard is part of the ClientPlayNetHandler which only gets reset when switching
+                    // away from the play phase.
+                    currentPlayPhase.add(data.retain());
+                } else {
+                    // On older versions it used to be part of the world and was manually copied over in Respawn but
+                    // not in JoinGame.
+                    currentJoinGame.add(data.retain());
+                }
                 break;
 
             //
@@ -578,6 +589,7 @@ public class SquashFilter implements StreamFilter {
                 break;
 
             case Reconfigure:
+                clearStateAtPhaseSwitch();
                 break;
 
             default:
@@ -604,6 +616,31 @@ public class SquashFilter implements StreamFilter {
                 return false;
             }
         });
+    }
+
+    private void clearStateAtPhaseSwitch() {
+        currentPlayPhase.forEach(PacketData::release);
+        currentPlayPhase.clear();
+
+        clearStateAtJoinGame();
+    }
+
+    private void clearStateAtJoinGame() {
+        currentJoinGame.forEach(PacketData::release);
+        currentJoinGame.clear();
+
+        clearStateAtRespawn();
+    }
+
+    private void clearStateAtRespawn() {
+        currentWorld.forEach(PacketData::release);
+        currentWorld.clear();
+        chunks.clear();
+        unloadedChunks.clear();
+        currentWindow.forEach(PacketData::release);
+        currentWindow.clear();
+        entities.values().forEach(Entity::release);
+        entities.clear();
     }
 
     @Override
@@ -676,6 +713,8 @@ public class SquashFilter implements StreamFilter {
         List<PacketData> result = new ArrayList<>();
 
         result.addAll(unhandled);
+        result.addAll(currentPlayPhase);
+        result.addAll(currentJoinGame);
         result.addAll(currentWorld);
         result.addAll(currentWindow);
         result.addAll(closeWindows);

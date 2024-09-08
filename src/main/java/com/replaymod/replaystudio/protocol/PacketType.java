@@ -133,6 +133,8 @@ public enum PacketType {
 	Bundle(ProtocolVersion.v1_19_4, 0x00),
 
 	Reconfigure(ProtocolVersion.v1_20_2, 0x65),
+
+	ResetScore(ProtocolVersion.v1_20_3, 0x42),
 	;
 
     private final State state;
