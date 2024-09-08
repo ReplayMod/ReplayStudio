@@ -505,6 +505,19 @@ public class SquashFilter implements StreamFilter {
                             team.create.release();
                         }
                         team.create = packet.retain();
+                    case ADD_PLAYER:
+                        for (String player : PacketTeam.getPlayers(packet)) {
+                            if (!team.removed.remove(player)) {
+                                team.added.add(player);
+                            }
+                            // Adding a player to one team implicitly removes them from all other teams
+                            for (Team otherTeam : teams.values()) {
+                                if (otherTeam != team) {
+                                    otherTeam.added.remove(player);
+                                    otherTeam.removed.remove(player);
+                                }
+                            }
+                        }
                         break;
                     case UPDATE:
                         if (team.update != null) {
@@ -522,19 +535,12 @@ public class SquashFilter implements StreamFilter {
                             teams.remove(team.name);
                         }
                         break;
-                    case ADD_PLAYER:
-                        for (String player : PacketTeam.getPlayers(packet)) {
-                            if (!team.removed.remove(player)) {
-                                team.added.add(player);
-                            }
-                        }
-                        break;
                     case REMOVE_PLAYER:
-                        for (String player : PacketTeam.getPlayers(packet)) {
-                            if (!team.added.remove(player)) {
-                                team.removed.add(player);
-                            }
-                        }
+                        // Note: We cannot assume that `added` and `removed` cancels out because an add-action is an
+                        // implicit remove-from-all-others action, and we cannot know for sure if the latter implicit
+                        // one is being relied on here, so we must retain the add-action (and by extension the
+                        // remove-action).
+                        team.removed.addAll(PacketTeam.getPlayers(packet));
                         break;
                 }
                 break;
@@ -874,7 +880,8 @@ public class SquashFilter implements StreamFilter {
 
         for (Team team : teams.values()) {
             if (team.create != null) {
-                add(stream, timestamp, team.create);
+                add(stream, timestamp, PacketTeam.createTeam(team.create, team.added));
+                team.added.clear();
             }
             if (team.update != null) {
                 add(stream, timestamp, team.update);

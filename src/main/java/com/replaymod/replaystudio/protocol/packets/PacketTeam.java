@@ -60,25 +60,7 @@ public class PacketTeam {
             }
 
             if (action == Action.CREATE) {
-                in.readText(); // display name
-                if (!packet.atLeast(ProtocolVersion.v1_13)) {
-                    in.readString(); // prefix
-                    in.readString(); // suffix
-                }
-                in.readByte(); // flags
-                if (packet.atLeast(ProtocolVersion.v1_8)) {
-                    in.readString(); // name tag visibility
-                    if (packet.atLeast(ProtocolVersion.v1_9)) {
-                        in.readString(); // collision rule
-                    }
-                    if (packet.atLeast(ProtocolVersion.v1_13)) {
-                        in.readVarInt(); // color
-                        in.readText(); // prefix
-                        in.readText(); // suffix
-                    } else {
-                        in.readByte(); // color
-                    }
-                }
+                skipTeamInfo(packet, in);
             }
 
             int count;
@@ -93,6 +75,53 @@ public class PacketTeam {
             }
             return result;
         }
+    }
+
+    private static void skipTeamInfo(Packet packet, Packet.Reader in) throws IOException {
+        in.readText(); // display name
+        if (!packet.atLeast(ProtocolVersion.v1_13)) {
+            in.readString(); // prefix
+            in.readString(); // suffix
+        }
+        in.readByte(); // flags
+        if (packet.atLeast(ProtocolVersion.v1_8)) {
+            in.readString(); // name tag visibility
+            if (packet.atLeast(ProtocolVersion.v1_9)) {
+                in.readString(); // collision rule
+            }
+            if (packet.atLeast(ProtocolVersion.v1_13)) {
+                in.readVarInt(); // color
+                in.readText(); // prefix
+                in.readText(); // suffix
+            } else {
+                in.readByte(); // color
+            }
+        }
+    }
+
+    public static Packet createTeam(Packet template, Collection<String> players) throws IOException {
+        Packet packet = new Packet(template.getRegistry(), PacketType.Team);
+        try (Packet.Writer out = packet.overwrite()) {
+            int templateLength;
+            try (Packet.Reader in = template.reader()) {
+                in.readString(); // name
+                in.readByte(); // action
+                skipTeamInfo(packet, in);
+                templateLength = in.pos();
+            }
+
+            packet.getBuf().writeBytes(template.getBuf(), template.getBuf().readerIndex(), templateLength);
+
+            if (packet.atLeast(ProtocolVersion.v1_8)) {
+                out.writeVarInt(players.size());
+            } else {
+                out.writeShort(players.size());
+            }
+            for (String player : players) {
+                out.writeString(player);
+            }
+        }
+        return packet;
     }
 
     public static Packet addPlayers(PacketTypeRegistry registry, String name, Collection<String> players) throws IOException {

@@ -152,6 +152,10 @@ public class Packet {
             this.orgReaderIndex = buf.readerIndex();
         }
 
+        public int pos() {
+            return buf.readerIndex() - orgReaderIndex;
+        }
+
         @Override
         public void close() {
             buf.readerIndex(orgReaderIndex);
