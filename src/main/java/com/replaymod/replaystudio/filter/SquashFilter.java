@@ -622,12 +622,26 @@ public class SquashFilter implements StreamFilter {
         currentPlayPhase.forEach(PacketData::release);
         currentPlayPhase.clear();
 
+        // As of 1.20.5, the scoreboard and teams are part of the ClientPlayNetHandler which only gets reset
+        // when switching away from the play phase.
+        if (registry.atLeast(ProtocolVersion.v1_20_5)) {
+            teams.values().forEach(Team::release);
+            teams.clear();
+        }
+
         clearStateAtJoinGame();
     }
 
     private void clearStateAtJoinGame() {
         currentJoinGame.forEach(PacketData::release);
         currentJoinGame.clear();
+
+        // Prior to 1.20.5, the scoreboard and teams were part of the world and were manually copied over in Respawn but
+        // not in JoinGame.
+        if (registry.olderThan(ProtocolVersion.v1_20_5)) {
+            teams.values().forEach(Team::release);
+            teams.clear();
+        }
 
         clearStateAtRespawn();
     }
