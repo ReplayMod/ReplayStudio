@@ -41,6 +41,7 @@ public class PacketRespawn {
     public boolean keepPlayerDataTracker; // 1.19.3+
     public IGlobalPosition lastDeathPosition; // 1.19+
     public int portalCooldown; // 1.20+
+    public int seaLevel; // 1.21.2+
 
     public static PacketRespawn read(Packet packet, Registries registries) throws IOException {
         try (Packet.Reader in = packet.reader()) {
@@ -102,6 +103,9 @@ public class PacketRespawn {
             int flags = in.readByte();
             this.keepPlayerAttributes = (flags & 0x01) != 0;
             this.keepPlayerDataTracker = (flags & 0x02) != 0;
+        }
+        if (packet.atLeast(ProtocolVersion.v1_21_2)) {
+            this.seaLevel = in.readVarInt();
         }
     }
 
@@ -168,6 +172,9 @@ public class PacketRespawn {
             if (this.keepPlayerAttributes) flags |= 0x01;
             if (this.keepPlayerDataTracker) flags |= 0x02;
             out.writeByte(flags);
+        }
+        if (packet.atLeast(ProtocolVersion.v1_21_2)) {
+            out.writeVarInt(this.seaLevel);
         }
     }
 }

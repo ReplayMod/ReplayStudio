@@ -124,6 +124,11 @@ public class CustomViaManager implements ViaManager {
     }
 
     @Override
+    public void addPostEnableListener(Runnable runnable) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public boolean isInitialized() {
         return initialized;
     }

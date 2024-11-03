@@ -30,6 +30,9 @@ public class PacketPlayerPositionRotation {
     public double x;
     public double y;
     public double z;
+    public double dx; // 1.21.2+
+    public double dy; // 1.21.2+
+    public double dz; // 1.21.2+
     public float yaw;
     public float pitch;
     public int flags;
@@ -45,13 +48,25 @@ public class PacketPlayerPositionRotation {
     }
 
     private void read(Packet packet, Packet.Reader in) throws IOException {
+        if (packet.atLeast(ProtocolVersion.v1_21_2)) {
+            teleportId = in.readVarInt();
+        }
         x = in.readDouble();
         y = in.readDouble();
         z = in.readDouble();
+        if (packet.atLeast(ProtocolVersion.v1_21_2)) {
+            dx = in.readDouble();
+            dy = in.readDouble();
+            dz = in.readDouble();
+        }
         yaw = in.readFloat();
         pitch = in.readFloat();
-        flags = in.readByte();
-        if (packet.atLeast(ProtocolVersion.v1_9)) {
+        if (packet.atLeast(ProtocolVersion.v1_21_2)) {
+            flags = in.readInt();
+        } else {
+            flags = in.readByte();
+        }
+        if (packet.atLeast(ProtocolVersion.v1_9) && packet.olderThan(ProtocolVersion.v1_21_2)) {
             teleportId = in.readVarInt();
         }
         if (packet.atLeast(ProtocolVersion.v1_17) && packet.atMost(ProtocolVersion.v1_19_3)) {
@@ -62,13 +77,25 @@ public class PacketPlayerPositionRotation {
     public Packet write(PacketTypeRegistry registry) throws IOException {
         Packet packet = new Packet(registry, PacketType.PlayerPositionRotation);
         try (Packet.Writer out = packet.overwrite()) {
+            if (packet.atLeast(ProtocolVersion.v1_21_2)) {
+                out.writeVarInt(teleportId);
+            }
             out.writeDouble(x);
             out.writeDouble(y);
             out.writeDouble(z);
+            if (packet.atLeast(ProtocolVersion.v1_21_2)) {
+                out.writeDouble(dx);
+                out.writeDouble(dy);
+                out.writeDouble(dz);
+            }
             out.writeFloat(yaw);
             out.writeFloat(pitch);
-            out.writeByte(flags);
-            if (packet.atLeast(ProtocolVersion.v1_9)) {
+            if (packet.atLeast(ProtocolVersion.v1_21_2)) {
+                out.writeInt(flags);
+            } else {
+                out.writeByte(flags);
+            }
+            if (packet.atLeast(ProtocolVersion.v1_9) && packet.olderThan(ProtocolVersion.v1_21_2)) {
                 out.writeVarInt(teleportId);
             }
             if (packet.atLeast(ProtocolVersion.v1_17) && packet.atMost(ProtocolVersion.v1_19_3)) {

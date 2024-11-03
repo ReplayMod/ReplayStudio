@@ -32,7 +32,7 @@ public class PacketLoginSuccess {
     private final UUID id;
     private final String name;
     private final List<Property> properties; // 1.19+
-    private final boolean strictErrorHandling; // 1.20.5+
+    private final boolean strictErrorHandling; // 1.20.5 - 1.21.1
 
     public PacketLoginSuccess(UUID id, String name, List<Property> properties, boolean strictErrorHandling) {
         this.id = id;
@@ -55,7 +55,7 @@ public class PacketLoginSuccess {
                 properties = in.readList(() -> Property.read(in));
             }
             boolean strictErrorHandling = false;
-            if (packet.atLeast(ProtocolVersion.v1_20_5)) {
+            if (packet.atLeast(ProtocolVersion.v1_20_5) && packet.olderThan(ProtocolVersion.v1_21_2)) {
                 strictErrorHandling = in.readBoolean();
             }
             return new PacketLoginSuccess(id, name, properties, strictErrorHandling);
@@ -74,7 +74,7 @@ public class PacketLoginSuccess {
             if (packet.atLeast(ProtocolVersion.v1_19)) {
                 out.writeList(properties, it -> it.write(out));
             }
-            if (packet.atLeast(ProtocolVersion.v1_20_5)) {
+            if (packet.atLeast(ProtocolVersion.v1_20_5) && packet.olderThan(ProtocolVersion.v1_21_2)) {
                 out.writeBoolean(strictErrorHandling);
             }
         }

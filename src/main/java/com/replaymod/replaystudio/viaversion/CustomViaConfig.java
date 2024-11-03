@@ -216,11 +216,6 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
-    public boolean isMinimizeCooldown() {
-        return true;
-    }
-
-    @Override
     public boolean isServersideBlockConnections() {
         return true;
     }
@@ -338,6 +333,21 @@ public class CustomViaConfig implements ViaVersionConfig {
     @Override
     public boolean handleInvalidItemCount() {
         return true;
+    }
+
+    @Override
+    public boolean cancelBlockSounds() {
+        return true;
+    }
+
+    @Override
+    public boolean hideScoreboardNumbers() {
+        return false;
+    }
+
+    @Override
+    public boolean fix1_21PlacementRotation() {
+        return false;
     }
 
     @Override

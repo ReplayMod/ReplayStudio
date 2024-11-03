@@ -34,7 +34,19 @@ public class PacketEntityTeleport {
             } else {
                 in.readInt(); // entity id
             }
-            return SpawnEntity.readXYZYaPi(packet, in, false);
+            if (packet.atLeast(ProtocolVersion.v1_21_2)) {
+                double x = in.readDouble();
+                double y = in.readDouble();
+                double z = in.readDouble();
+                in.readDouble(); // unused
+                in.readDouble(); // unused
+                in.readDouble(); // unused
+                float yaw = in.readFloat();
+                float pitch = in.readFloat();
+                return new Location(x, y, z, yaw, pitch);
+            } else {
+                return SpawnEntity.readXYZYaPi(packet, in, false);
+            }
         }
     }
 
@@ -46,7 +58,18 @@ public class PacketEntityTeleport {
             } else {
                 out.writeInt(entityId);
             }
-            SpawnEntity.writeXYZYaPi(packet, out, location);
+            if (packet.atLeast(ProtocolVersion.v1_21_2)) {
+                out.writeDouble(location.getX());
+                out.writeDouble(location.getY());
+                out.writeDouble(location.getZ());
+                out.writeDouble(0); // unused
+                out.writeDouble(0); // unused
+                out.writeDouble(0); // unused
+                out.writeFloat(location.getYaw());
+                out.writeFloat(location.getPitch());
+            } else {
+                SpawnEntity.writeXYZYaPi(packet, out, location);
+            }
             if (packet.atLeast(ProtocolVersion.v1_8)) {
                 out.writeBoolean(onGround);
             }
