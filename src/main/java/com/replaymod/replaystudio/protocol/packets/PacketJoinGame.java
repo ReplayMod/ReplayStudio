@@ -184,11 +184,11 @@ public class PacketJoinGame {
         if (packet.atLeast(ProtocolVersion.v1_20)) {
             this.portalCooldown = in.readVarInt();
         }
-        if (packet.atLeast(ProtocolVersion.v1_20_5)) {
-            this.enforcesSecureChat = in.readBoolean();
-        }
         if (packet.atLeast(ProtocolVersion.v1_21_2)) {
             this.seaLevel = in.readVarInt();
+        }
+        if (packet.atLeast(ProtocolVersion.v1_20_5)) {
+            this.enforcesSecureChat = in.readBoolean();
         }
     }
 
@@ -293,11 +293,11 @@ public class PacketJoinGame {
         if (packet.atLeast(ProtocolVersion.v1_20)) {
             out.writeVarInt(this.portalCooldown);
         }
-        if (packet.atLeast(ProtocolVersion.v1_20_5)) {
-            out.writeBoolean(this.enforcesSecureChat);
-        }
         if (packet.atLeast(ProtocolVersion.v1_21_2)) {
             out.writeVarInt(this.seaLevel);
+        }
+        if (packet.atLeast(ProtocolVersion.v1_20_5)) {
+            out.writeBoolean(this.enforcesSecureChat);
         }
     }
 }

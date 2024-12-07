@@ -99,13 +99,13 @@ public class PacketRespawn {
         if (packet.atLeast(ProtocolVersion.v1_20)) {
             this.portalCooldown = in.readVarInt();
         }
+        if (packet.atLeast(ProtocolVersion.v1_21_2)) {
+            this.seaLevel = in.readVarInt();
+        }
         if (packet.atLeast(ProtocolVersion.v1_20_2)) {
             int flags = in.readByte();
             this.keepPlayerAttributes = (flags & 0x01) != 0;
             this.keepPlayerDataTracker = (flags & 0x02) != 0;
-        }
-        if (packet.atLeast(ProtocolVersion.v1_21_2)) {
-            this.seaLevel = in.readVarInt();
         }
     }
 
@@ -167,14 +167,14 @@ public class PacketRespawn {
         if (packet.atLeast(ProtocolVersion.v1_20)) {
             out.writeVarInt(this.portalCooldown);
         }
+        if (packet.atLeast(ProtocolVersion.v1_21_2)) {
+            out.writeVarInt(this.seaLevel);
+        }
         if (packet.atLeast(ProtocolVersion.v1_20_2)) {
             int flags = 0;
             if (this.keepPlayerAttributes) flags |= 0x01;
             if (this.keepPlayerDataTracker) flags |= 0x02;
             out.writeByte(flags);
-        }
-        if (packet.atLeast(ProtocolVersion.v1_21_2)) {
-            out.writeVarInt(this.seaLevel);
         }
     }
 }
