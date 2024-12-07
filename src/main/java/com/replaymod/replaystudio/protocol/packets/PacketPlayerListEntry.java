@@ -43,23 +43,27 @@ public class PacketPlayerListEntry {
         LISTED, // 1.19.3+
         LATENCY, // 1.8+
         DISPLAY_NAME, // 1.8+
+        LIST_ORDER, // 1.21.2+
         REMOVE,
         ;
 
+        private static final List<Action> VALUES_1_21_2 = Arrays.asList(ADD, CHAT_KEY, GAMEMODE, LISTED, LATENCY, DISPLAY_NAME, LIST_ORDER);
         private static final List<Action> VALUES_1_19_3 = Arrays.asList(ADD, CHAT_KEY, GAMEMODE, LISTED, LATENCY, DISPLAY_NAME);
         private static final List<Action> VALUES_1_8 = Arrays.asList(ADD, GAMEMODE, LATENCY, DISPLAY_NAME, REMOVE);
         private static final List<Action> VALUES_1_7 = Arrays.asList(ADD, REMOVE);
 
         public static Set<Action> init(PacketTypeRegistry registry) {
             if (registry.atLeast(ProtocolVersion.v1_19_3)) {
-                return EnumSet.copyOf(VALUES_1_19_3);
+                return EnumSet.copyOf(values(registry));
             } else {
                 return EnumSet.of(ADD);
             }
         }
 
         public static List<Action> values(PacketTypeRegistry registry) {
-            if (registry.atLeast(ProtocolVersion.v1_19_3)) {
+            if (registry.atLeast(ProtocolVersion.v1_21_2)) {
+                return VALUES_1_21_2;
+            } else if (registry.atLeast(ProtocolVersion.v1_19_3)) {
                 return VALUES_1_19_3;
             } else if (registry.atLeast(ProtocolVersion.v1_8)) {
                 return VALUES_1_8;
@@ -99,6 +103,7 @@ public class PacketPlayerListEntry {
     private int gamemode; // ADD (pre 1.19.3) or GAMEMODE (1.8+)
     private boolean listed; // LISTED (1.19.3+)
     private int latency; // ADD (pre 1.19.3) or latency
+    private int listOrder; // LIST_ORDER (1.21.2+)
     private SigData sigData; // ADD (1.19+; pre 1.19.3) or CHAT_KEY (1.19.3+)
 
     public static PacketPlayerListEntry updateChatKey(PacketPlayerListEntry entry, SigData sigData) {
@@ -131,13 +136,19 @@ public class PacketPlayerListEntry {
         return entry;
     }
 
+    public static PacketPlayerListEntry updateListOrder(PacketPlayerListEntry entry, int listOrder) {
+        entry = new PacketPlayerListEntry(entry);
+        entry.listOrder = listOrder;
+        return entry;
+    }
+
     public static Set<Action> getActions(Packet packet) throws IOException {
         try (Packet.Reader in = packet.reader()) {
             if (packet.atLeast(ProtocolVersion.v1_19_3)) {
                 if (packet.getType() == PacketType.PlayerListEntryRemove) {
                     return Collections.singleton(Action.REMOVE);
                 }
-                return Action.readSet(in, Action.VALUES_1_19_3);
+                return Action.readSet(in, Action.values(packet.getRegistry()));
             } else if (packet.atLeast(ProtocolVersion.v1_8)) {
                 return Collections.singleton(Action.VALUES_1_8.get(in.readVarInt()));
             } else {
@@ -158,7 +169,7 @@ public class PacketPlayerListEntry {
                 if (packet.getType() == PacketType.PlayerListEntryRemove) {
                     actions = Collections.singleton(Action.REMOVE);
                 } else if (packet.atLeast(ProtocolVersion.v1_19_3)) {
-                    actions = Action.readSet(in, Action.VALUES_1_19_3);
+                    actions = Action.readSet(in, Action.values(packet.getRegistry()));
                 } else {
                     actions = Collections.singleton(Action.VALUES_1_8.get(in.readVarInt()));
                 }
@@ -204,6 +215,9 @@ public class PacketPlayerListEntry {
                                     entry.displayName = in.readText();
                                 }
                                 break;
+                            case LIST_ORDER:
+                                entry.listOrder = in.readVarInt();
+                                break;
                         }
                     }
                     result.add(entry);
@@ -246,7 +260,7 @@ public class PacketPlayerListEntry {
         Packet packet = new Packet(registry, PacketType.PlayerListEntry);
         try (Packet.Writer out = packet.overwrite()) {
             if (packet.atLeast(ProtocolVersion.v1_19_3)) {
-                Action.writeSet(out, actions, Action.VALUES_1_19_3);
+                Action.writeSet(out, actions, Action.values(registry));
             } else {
                 out.writeVarInt(Action.VALUES_1_8.indexOf(actions.iterator().next()));
             }
@@ -302,6 +316,9 @@ public class PacketPlayerListEntry {
                                 out.writeBoolean(false);
                             }
                             break;
+                        case LIST_ORDER:
+                            out.writeVarInt(entry.listOrder);
+                            break;
                     }
                 }
             }
@@ -334,6 +351,7 @@ public class PacketPlayerListEntry {
         this.gamemode = from.gamemode;
         this.listed = from.listed;
         this.latency = from.latency;
+        this.listOrder = from.listOrder;
         this.sigData = from.sigData;
     }
 
@@ -363,6 +381,10 @@ public class PacketPlayerListEntry {
 
     public int getLatency() {
         return latency;
+    }
+
+    public int getListOrder() {
+        return listOrder;
     }
 
     public SigData getSigData() {

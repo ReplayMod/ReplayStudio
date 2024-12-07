@@ -183,6 +183,10 @@ public class ReplayAnalyzer {
                                     playerListEntries.computeIfPresent(entry.getId(), (key, it) ->
                                             PacketPlayerListEntry.updateDisplayName(it, entry.getDisplayName()));
                                     break;
+                                case LIST_ORDER:
+                                    playerListEntries.computeIfPresent(entry.getId(), (key, it) ->
+                                            PacketPlayerListEntry.updateListOrder(it, entry.getListOrder()));
+                                    break;
                                 case REMOVE:
                                     playerListEntries.remove(entry.getId());
                             }
