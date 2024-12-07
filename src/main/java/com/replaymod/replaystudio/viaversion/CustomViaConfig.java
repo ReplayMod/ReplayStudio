@@ -351,6 +351,11 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
+    public boolean swordBlockingViaConsumable() {
+        return true;
+    }
+
+    @Override
     public void reload() {
     }
 

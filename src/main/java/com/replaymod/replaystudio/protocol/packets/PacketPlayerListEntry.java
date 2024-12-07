@@ -44,9 +44,11 @@ public class PacketPlayerListEntry {
         LATENCY, // 1.8+
         DISPLAY_NAME, // 1.8+
         LIST_ORDER, // 1.21.2+
+        SHOW_HAT, // 1.21.4+
         REMOVE,
         ;
 
+        private static final List<Action> VALUES_1_21_4 = Arrays.asList(ADD, CHAT_KEY, GAMEMODE, LISTED, LATENCY, DISPLAY_NAME, LIST_ORDER, SHOW_HAT);
         private static final List<Action> VALUES_1_21_2 = Arrays.asList(ADD, CHAT_KEY, GAMEMODE, LISTED, LATENCY, DISPLAY_NAME, LIST_ORDER);
         private static final List<Action> VALUES_1_19_3 = Arrays.asList(ADD, CHAT_KEY, GAMEMODE, LISTED, LATENCY, DISPLAY_NAME);
         private static final List<Action> VALUES_1_8 = Arrays.asList(ADD, GAMEMODE, LATENCY, DISPLAY_NAME, REMOVE);
@@ -61,7 +63,9 @@ public class PacketPlayerListEntry {
         }
 
         public static List<Action> values(PacketTypeRegistry registry) {
-            if (registry.atLeast(ProtocolVersion.v1_21_2)) {
+            if (registry.atLeast(ProtocolVersion.v1_21_4)) {
+                return VALUES_1_21_4;
+            } else if (registry.atLeast(ProtocolVersion.v1_21_2)) {
                 return VALUES_1_21_2;
             } else if (registry.atLeast(ProtocolVersion.v1_19_3)) {
                 return VALUES_1_19_3;
@@ -104,6 +108,7 @@ public class PacketPlayerListEntry {
     private boolean listed; // LISTED (1.19.3+)
     private int latency; // ADD (pre 1.19.3) or latency
     private int listOrder; // LIST_ORDER (1.21.2+)
+    private boolean showHat; // SHOW_HAT (1.21.4+)
     private SigData sigData; // ADD (1.19+; pre 1.19.3) or CHAT_KEY (1.19.3+)
 
     public static PacketPlayerListEntry updateChatKey(PacketPlayerListEntry entry, SigData sigData) {
@@ -139,6 +144,12 @@ public class PacketPlayerListEntry {
     public static PacketPlayerListEntry updateListOrder(PacketPlayerListEntry entry, int listOrder) {
         entry = new PacketPlayerListEntry(entry);
         entry.listOrder = listOrder;
+        return entry;
+    }
+
+    public static PacketPlayerListEntry updateShowHat(PacketPlayerListEntry entry, boolean showHat) {
+        entry = new PacketPlayerListEntry(entry);
+        entry.showHat = showHat;
         return entry;
     }
 
@@ -217,6 +228,9 @@ public class PacketPlayerListEntry {
                                 break;
                             case LIST_ORDER:
                                 entry.listOrder = in.readVarInt();
+                                break;
+                            case SHOW_HAT:
+                                entry.showHat = in.readBoolean();
                                 break;
                         }
                     }
@@ -319,6 +333,9 @@ public class PacketPlayerListEntry {
                         case LIST_ORDER:
                             out.writeVarInt(entry.listOrder);
                             break;
+                        case SHOW_HAT:
+                            out.writeBoolean(entry.showHat);
+                            break;
                     }
                 }
             }
@@ -352,6 +369,7 @@ public class PacketPlayerListEntry {
         this.listed = from.listed;
         this.latency = from.latency;
         this.listOrder = from.listOrder;
+        this.showHat = from.showHat;
         this.sigData = from.sigData;
     }
 
@@ -385,6 +403,10 @@ public class PacketPlayerListEntry {
 
     public int getListOrder() {
         return listOrder;
+    }
+
+    public boolean getShowHat() {
+        return showHat;
     }
 
     public SigData getSigData() {
