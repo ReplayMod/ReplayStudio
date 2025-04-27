@@ -18,7 +18,6 @@
  */
 package com.replaymod.replaystudio.filter;
 
-import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.google.gson.JsonObject;
 import com.replaymod.replaystudio.PacketData;
 import com.replaymod.replaystudio.Studio;
@@ -947,7 +946,7 @@ public class SquashFilter implements StreamFilter {
                 column.chunks,
                 column.biomeData,
                 column.tileEntities,
-                column.heightMaps,
+                column.heightmaps,
                 column.biomes,
                 column.useExistingLightData
         );
@@ -971,7 +970,7 @@ public class SquashFilter implements StreamFilter {
         // 1.9+
         private PacketChunkData.TileEntity[] tileEntities;
         // 1.14+
-        private CompoundTag heightmaps;
+        private PacketChunkData.Heightmaps heightmaps;
         private byte[][] skyLight = new byte[0][];
         private byte[][] blockLight = new byte[0][];
         // 1.15+
@@ -1013,7 +1012,7 @@ public class SquashFilter implements StreamFilter {
                 Chunk[] newChunks,
                 byte[] newBiomeData, // pre 1.15
                 PacketChunkData.TileEntity[] newTileEntities, // 1.9+
-                CompoundTag newHeightmaps, // 1.14+
+                PacketChunkData.Heightmaps newHeightmaps, // 1.14+
                 int[] newBiomes, // 1.15+
                 boolean useExistingLightData // 1.16+
         ) {

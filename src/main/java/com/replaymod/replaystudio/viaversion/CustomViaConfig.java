@@ -211,6 +211,11 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
+    public boolean isSuppressTextComponentConversionWarnings() {
+        return true;
+    }
+
+    @Override
     public boolean isDisable1_13AutoComplete() {
         return false;
     }
@@ -348,11 +353,6 @@ public class CustomViaConfig implements ViaVersionConfig {
     @Override
     public boolean fix1_21PlacementRotation() {
         return false;
-    }
-
-    @Override
-    public boolean swordBlockingViaConsumable() {
-        return true;
     }
 
     @Override

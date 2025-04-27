@@ -302,9 +302,9 @@ public class PacketChunkData {
         } else {
             extendedChunkMask = BitSet.valueOf(new long[] { in.readUnsignedShort() });
         }
-        CompoundTag heightmaps = null;
+        Heightmaps heightmaps = null;
         if (packet.atLeast(ProtocolVersion.v1_14)) {
-            heightmaps = in.readNBT();
+            heightmaps = new Heightmaps(packet, in);
         }
         int[] biomes = null;
         if (packet.atLeast(ProtocolVersion.v1_15) && packet.olderThan(ProtocolVersion.v1_18) && fullChunk) {
@@ -383,7 +383,7 @@ public class PacketChunkData {
             out.writeBitSet(extendedMask);
         }
         if (packet.atLeast(ProtocolVersion.v1_14)) {
-            out.writeNBT(this.column.heightMaps);
+            this.column.heightmaps.write(packet, out);
         }
         int[] biomes = this.column.biomes;
         if (packet.atLeast(ProtocolVersion.v1_15) && packet.olderThan(ProtocolVersion.v1_18) && biomes != null) {
@@ -426,7 +426,7 @@ public class PacketChunkData {
         }
     }
 
-    private static Column readColumn(Packet packet, byte[] data, int x, int z, boolean fullChunk, boolean hasSkylight, BitSet mask, BitSet extendedMask, CompoundTag heightmaps, int[] biomes, boolean useExistingLightData) throws IOException {
+    private static Column readColumn(Packet packet, byte[] data, int x, int z, boolean fullChunk, boolean hasSkylight, BitSet mask, BitSet extendedMask, Heightmaps heightmaps, int[] biomes, boolean useExistingLightData) throws IOException {
         NetInput in = new StreamNetInput(new ByteArrayInputStream(data));
         if (packet.atLeast(ProtocolVersion.v1_17)) {
             Chunk[] chunks = new Chunk[mask.length()];
@@ -573,18 +573,18 @@ public class PacketChunkData {
         public Chunk[] chunks;
         public byte[] biomeData; // pre 1.15
         public TileEntity[] tileEntities;
-        public CompoundTag heightMaps;
+        public Heightmaps heightmaps;
         public int[] biomes; // 1.15+ pre 1.18
         public boolean useExistingLightData; // 1.16+
         public PacketUpdateLight.Data lightData; // 1.18+
 
-        public Column(int x, int z, Chunk[] chunks, byte[] biomeData, TileEntity[] tileEntities, CompoundTag heightmaps, int[] biomes, boolean useExistingLightData, PacketUpdateLight.Data lightData) {
+        public Column(int x, int z, Chunk[] chunks, byte[] biomeData, TileEntity[] tileEntities, Heightmaps heightmaps, int[] biomes, boolean useExistingLightData, PacketUpdateLight.Data lightData) {
             this.x = x;
             this.z = z;
             this.chunks = chunks;
             this.biomeData = biomeData;
             this.tileEntities = tileEntities;
-            this.heightMaps = heightmaps;
+            this.heightmaps = heightmaps;
             this.biomes = biomes;
             this.useExistingLightData = useExistingLightData;
             this.lightData = lightData;
@@ -631,6 +631,41 @@ public class PacketChunkData {
 
         public long coordToLong() {
             return coordToLong(x, z);
+        }
+    }
+
+    public static class Heightmaps {
+        public List<Heightmap> list; // 1.21.5+
+        public CompoundTag tag; // pre 1.21.5
+
+        public Heightmaps(Packet packet, Packet.Reader in) throws IOException {
+            if (packet.atLeast(ProtocolVersion.v1_21_5)) {
+                list = in.readList(() -> new Heightmap(in.readVarInt(), in.readLongs(in.readVarInt())));
+            } else {
+                tag = in.readNBT();
+            }
+        }
+
+        public void write(Packet packet, Packet.Writer out) throws IOException {
+            if (packet.atLeast(ProtocolVersion.v1_21_5)) {
+                out.writeList(list, heightmap -> {
+                    out.writeVarInt(heightmap.type);
+                    out.writeVarInt(heightmap.content.length);
+                    out.writeLongs(heightmap.content);
+                });
+            } else {
+                out.writeNBT(tag);
+            }
+        }
+    }
+
+    public static class Heightmap {
+        public int type;
+        public long[] content;
+
+        public Heightmap(int type, long[] content) {
+            this.type = type;
+            this.content = content;
         }
     }
 
@@ -764,7 +799,13 @@ public class PacketChunkData {
                 this.states.add(in.readVarInt());
             }
 
-            this.storage = FlexibleStorage.from(registry, bitsPerEntry, type.size(), in.readLongs(in.readVarInt()));
+            long[] data;
+            if (packet.atLeast(ProtocolVersion.v1_21_5)) {
+                data = in.readLongs(PaddedFlexibleStorage.longsForEntries(bitsPerEntry, type.size()));
+            } else {
+                data = in.readLongs(in.readVarInt());
+            }
+            this.storage = FlexibleStorage.from(registry, bitsPerEntry, type.size(), data);
         }
 
         // 1.9+
@@ -779,7 +820,9 @@ public class PacketChunkData {
                 }
             }
 
-            out.writeVarInt(storage.data.length);
+            if (packet.olderThan(ProtocolVersion.v1_21_5)) {
+                out.writeVarInt(storage.data.length);
+            }
             out.writeLongs(storage.data);
         }
 

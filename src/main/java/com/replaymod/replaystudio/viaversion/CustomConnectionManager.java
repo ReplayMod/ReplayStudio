@@ -30,12 +30,17 @@ import java.util.UUID;
 public class CustomConnectionManager implements ConnectionManager {
 
     @Override
-    public boolean isClientConnected(UUID uuid) {
-        return getConnectedClient(uuid) != null;
+    public boolean hasServerConnection(UUID uuid) {
+        return getServerConnection(uuid) != null;
     }
 
     @Override
-    public UserConnection getConnectedClient(UUID uuid) {
+    public boolean hasClientConnection(UUID uuid) {
+        return false;
+    }
+
+    @Override
+    public UserConnection getServerConnection(UUID uuid) {
         UserConnection user = CustomViaAPI.INSTANCE.get().user();
         if (uuid.equals(user.getProtocolInfo().getUuid())) {
             return user;
@@ -44,8 +49,8 @@ public class CustomConnectionManager implements ConnectionManager {
     }
 
     @Override
-    public UUID getConnectedClientId(UserConnection userConnection) {
-        return userConnection.getProtocolInfo().getUuid();
+    public UserConnection getClientConnection(UUID uuid) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -54,10 +59,15 @@ public class CustomConnectionManager implements ConnectionManager {
     }
 
     @Override
-    public Map<UUID, UserConnection> getConnectedClients() {
+    public Map<UUID, UserConnection> getServerConnections() {
         UserConnection user = CustomViaAPI.INSTANCE.get().user();
         UUID uuid = user.getProtocolInfo().getUuid();
         return Collections.singletonMap(uuid, user);
+    }
+
+    @Override
+    public Map<UUID, UserConnection> getClientConnections() {
+        throw new UnsupportedOperationException();
     }
 
     @Override

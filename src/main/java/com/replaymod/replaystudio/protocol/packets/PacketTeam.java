@@ -85,9 +85,14 @@ public class PacketTeam {
         }
         in.readByte(); // flags
         if (packet.atLeast(ProtocolVersion.v1_8)) {
-            in.readString(); // name tag visibility
-            if (packet.atLeast(ProtocolVersion.v1_9)) {
-                in.readString(); // collision rule
+            if (packet.atLeast(ProtocolVersion.v1_21_5)) {
+                in.readVarInt(); // name tag visibility
+                in.readVarInt(); // collision rule
+            } else {
+                in.readString(); // name tag visibility
+                if (packet.atLeast(ProtocolVersion.v1_9)) {
+                    in.readString(); // collision rule
+                }
             }
             if (packet.atLeast(ProtocolVersion.v1_13)) {
                 in.readVarInt(); // color

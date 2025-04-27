@@ -53,7 +53,7 @@ public enum PacketType {
 	SpawnObject(ProtocolVersion.v1_7_6, 0x0e),
 	SpawnMob(ProtocolVersion.v1_7_6, 0x0f, ProtocolVersion.v1_19), // merged into SpawnObject
 	SpawnPainting(ProtocolVersion.v1_7_6, 0x10),
-	SpawnExpOrb(ProtocolVersion.v1_7_6, 0x11),
+	SpawnExpOrb(ProtocolVersion.v1_7_6, 0x11, ProtocolVersion.v1_21_5), // merged into SpawnObject
 	EntityVelocity(ProtocolVersion.v1_7_6, 0x12),
 	DestroyEntities(ProtocolVersion.v1_7_6, 0x13), // removed in 1.17, re-added in 1.17.1
 	EntityMovement(ProtocolVersion.v1_7_6, 0x14, ProtocolVersion.v1_17),

@@ -37,6 +37,7 @@ import com.replaymod.replaystudio.lib.viaversion.protocols.v1_16_4to1_17.Protoco
 import com.replaymod.replaystudio.lib.viaversion.protocols.v1_17to1_17_1.Protocol1_17To1_17_1;
 import com.replaymod.replaystudio.lib.viaversion.protocols.v1_18_2to1_19.Protocol1_18_2To1_19;
 import com.replaymod.replaystudio.lib.viaversion.protocols.v1_20to1_20_2.Protocol1_20To1_20_2;
+import com.replaymod.replaystudio.lib.viaversion.protocols.v1_21_4to1_21_5.Protocol1_21_4To1_21_5;
 import com.replaymod.replaystudio.lib.viaversion.protocols.v1_8to1_9.Protocol1_8To1_9;
 import com.replaymod.replaystudio.viaversion.CustomViaManager;
 import org.apache.commons.lang3.tuple.Pair;
@@ -184,6 +185,11 @@ public class PacketTypeRegistry {
 
                 // Special case: Spawn Player is finally merged into Spawn Object
                 if (protocol instanceof Protocol1_20To1_20_2 && packetType == PacketType.SpawnPlayer) {
+                    wasReplaced = true;
+                }
+
+                // Special case: Spawn Exp Orb is finally merged into Spawn Object
+                if (protocol instanceof Protocol1_21_4To1_21_5 && packetType == PacketType.SpawnExpOrb) {
                     wasReplaced = true;
                 }
 

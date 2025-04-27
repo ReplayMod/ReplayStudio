@@ -19,15 +19,12 @@
 package com.replaymod.replaystudio.viaversion;
 
 import com.replaymod.replaystudio.lib.viaversion.api.ViaAPI;
-import com.replaymod.replaystudio.lib.viaversion.api.command.ViaCommandSender;
-import com.replaymod.replaystudio.lib.viaversion.api.configuration.ConfigurationProvider;
 import com.replaymod.replaystudio.lib.viaversion.api.configuration.ViaVersionConfig;
 import com.replaymod.replaystudio.lib.viaversion.api.platform.PlatformTask;
 import com.replaymod.replaystudio.lib.viaversion.api.platform.ViaPlatform;
 import com.replaymod.replaystudio.lib.viaversion.libs.gson.JsonObject;
 
 import java.io.File;
-import java.util.UUID;
 import java.util.logging.Logger;
 
 public class CustomViaPlatform implements ViaPlatform<Void> {
@@ -76,26 +73,6 @@ public class CustomViaPlatform implements ViaPlatform<Void> {
     @Override
     public PlatformTask<?> runRepeatingSync(Runnable runnable, long aLong) {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public ViaCommandSender[] getOnlinePlayers() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void sendMessage(UUID uuid, String s) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean kickPlayer(UUID uuid, String s) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean isPluginEnabled() {
-        return true;
     }
 
     @Override
