@@ -171,11 +171,6 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
-    public boolean is1_12NBTArrayFix() {
-        return true;
-    }
-
-    @Override
     public boolean is1_13TeamColourFix() {
         return true;
     }
