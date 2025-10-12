@@ -222,7 +222,7 @@ public class Utils {
 
             int id = new ByteBufNetInput(byteBuf).readVarInt();
             int stateId = id >> 24;
-            int packetId = id << 24 >> 24;
+            int packetId = id & 0x00ffffff;
             return new Packet(registry.withState(State.values()[4 - stateId]), packetId, byteBuf.retain());
         } catch (IOException e) {
             throw e;
