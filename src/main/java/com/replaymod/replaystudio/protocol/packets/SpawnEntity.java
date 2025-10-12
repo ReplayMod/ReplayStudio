@@ -18,6 +18,7 @@
  */
 package com.replaymod.replaystudio.protocol.packets;
 
+import com.replaymod.replaystudio.lib.viaversion.api.type.Types;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
@@ -99,6 +100,9 @@ public class SpawnEntity {
             x = in.readInt() / 32.0;
             y = in.readInt() / 32.0;
             z = in.readInt() / 32.0;
+        }
+        if (packet.atLeast(ProtocolVersion.v1_21_9)) {
+            Types.MOVEMENT_VECTOR.read(in.asBuf());
         }
         float yaw = in.readByte() / 256f * 360;
         float pitch = in.readByte() / 256f * 360;

@@ -210,8 +210,14 @@ public class WorldStateTree extends StateTree<World> {
                     if (registry.atLeast(ProtocolVersion.v1_18_2)) {
                         packet = new Packet(registry, PacketType.SpawnPosition);
                         try (Packet.Writer out = packet.overwrite()) {
+                            if (registry.atLeast(ProtocolVersion.v1_21_9)) {
+                                out.writeString(targetWorld.info.dimension);
+                            }
                             out.writePosition(new IPosition(0, 0, 0));
                             out.writeFloat(0);
+                            if (registry.atLeast(ProtocolVersion.v1_21_9)) {
+                                out.writeFloat(0);
+                            }
                         }
                     } else {
                         packet = new PacketPlayerPositionRotation().write(registry);

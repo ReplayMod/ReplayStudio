@@ -18,6 +18,7 @@
  */
 package com.replaymod.replaystudio.viaversion;
 
+import com.replaymod.replaystudio.lib.viaversion.api.configuration.RateLimitConfig;
 import com.replaymod.replaystudio.lib.viaversion.api.configuration.ViaVersionConfig;
 import com.replaymod.replaystudio.lib.viaversion.api.minecraft.WorldIdentifiers;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.BlockedProtocolVersions;
@@ -135,6 +136,18 @@ public class CustomViaConfig implements ViaVersionConfig {
         return null;
     }
 
+    private final RateLimitConfig NO_RATE_LIMIT = new RateLimitConfig(false, 0, null, 0, 0, 0, null, null);
+
+    @Override
+    public RateLimitConfig getPacketTrackerConfig() {
+        return NO_RATE_LIMIT;
+    }
+
+    @Override
+    public RateLimitConfig getPacketSizeTrackerConfig() {
+        return NO_RATE_LIMIT;
+    }
+
     @Override
     public boolean isSendSupportedVersions() {
         return false;
@@ -193,6 +206,11 @@ public class CustomViaConfig implements ViaVersionConfig {
     @Override
     public String getBlockedDisconnectMsg() {
         return null;
+    }
+
+    @Override
+    public boolean logBlockedJoins() {
+        return true;
     }
 
     @Override
@@ -347,6 +365,11 @@ public class CustomViaConfig implements ViaVersionConfig {
 
     @Override
     public boolean fix1_21PlacementRotation() {
+        return false;
+    }
+
+    @Override
+    public boolean cancelSwingInInventory() {
         return false;
     }
 
