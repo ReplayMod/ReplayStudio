@@ -374,6 +374,11 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
+    public int maxErrorLength() {
+        return 1500;
+    }
+
+    @Override
     public void reload() {
     }
 
