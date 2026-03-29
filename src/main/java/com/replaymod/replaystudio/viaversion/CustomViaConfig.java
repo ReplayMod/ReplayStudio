@@ -23,7 +23,6 @@ import com.replaymod.replaystudio.lib.viaversion.api.configuration.ViaVersionCon
 import com.replaymod.replaystudio.lib.viaversion.api.minecraft.WorldIdentifiers;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.BlockedProtocolVersions;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
-import com.replaymod.replaystudio.lib.viaversion.libs.fastutil.ints.IntSet;
 import com.replaymod.replaystudio.lib.viaversion.libs.gson.JsonElement;
 import com.replaymod.replaystudio.lib.viaversion.protocol.BlockedProtocolVersionsImpl;
 
@@ -57,8 +56,8 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
-    public boolean isSuppressMetadataErrors() {
-        return true;
+    public boolean logEntityDataErrors() {
+        return false;
     }
 
     @Override
@@ -104,36 +103,6 @@ public class CustomViaConfig implements ViaVersionConfig {
     @Override
     public boolean isAutoTeam() {
         return false;
-    }
-
-    @Override
-    public int getMaxPPS() {
-        return -1;
-    }
-
-    @Override
-    public String getMaxPPSKickMessage() {
-        return null;
-    }
-
-    @Override
-    public int getTrackingPeriod() {
-        return -1;
-    }
-
-    @Override
-    public int getWarningPPS() {
-        return -1;
-    }
-
-    @Override
-    public int getMaxWarnings() {
-        return -1;
-    }
-
-    @Override
-    public String getMaxWarningsKickMessage() {
-        return null;
     }
 
     private final RateLimitConfig NO_RATE_LIMIT = new RateLimitConfig(false, 0, null, 0, 0, 0, null, null);
@@ -219,13 +188,13 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
-    public boolean isSuppressConversionWarnings() {
+    public boolean logOtherConversionWarnings() {
         return false;
     }
 
     @Override
-    public boolean isSuppressTextComponentConversionWarnings() {
-        return true;
+    public boolean logTextComponentConversionErrors() {
+        return false;
     }
 
     @Override
@@ -376,6 +345,21 @@ public class CustomViaConfig implements ViaVersionConfig {
     @Override
     public int maxErrorLength() {
         return 1500;
+    }
+
+    @Override
+    public boolean use1_8HitboxMargin() {
+        return false;
+    }
+
+    @Override
+    public boolean sendPlayerDetails() {
+        return false;
+    }
+
+    @Override
+    public boolean sendServerDetails() {
+        return false;
     }
 
     @Override

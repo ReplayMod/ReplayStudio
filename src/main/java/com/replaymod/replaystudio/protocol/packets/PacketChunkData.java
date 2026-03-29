@@ -671,6 +671,7 @@ public class PacketChunkData {
 
     public static class Chunk {
         private final int blockCount;
+        private final int fluidCount; // 26.1+
         public final PalettedStorage blocks;
         public final PalettedStorage biomes; // 1.18+
         public byte[] blockLight; // pre 1.14
@@ -678,6 +679,7 @@ public class PacketChunkData {
 
         private Chunk(Chunk from) {
             this.blockCount = from.blockCount;
+            this.fluidCount = from.fluidCount;
             this.blocks = from.blocks != null ? from.blocks.copy() : null;
             this.biomes = from.biomes != null ? from.biomes.copy() : null;
             this.blockLight = from.blockLight != null ? from.blockLight.clone() : null;
@@ -689,6 +691,7 @@ public class PacketChunkData {
          */
         public Chunk(PacketTypeRegistry registry) {
             this.blockCount = 0;
+            this.fluidCount = 0;
             this.blocks = new PalettedStorage(PaletteType.BLOCKS, registry);
             if (registry.atLeast(ProtocolVersion.v1_18)) {
                 this.biomes = new PalettedStorage(PaletteType.BIOMES, registry);
@@ -700,6 +703,7 @@ public class PacketChunkData {
         // 1.7-1.8
         Chunk(Packet packet) {
             this.blockCount = 0;
+            this.fluidCount = 0;
             this.blocks = new PalettedStorage(PaletteType.BLOCKS, packet);
             this.biomes = null;
         }
@@ -707,6 +711,7 @@ public class PacketChunkData {
         // 1.9+
         Chunk(Packet packet, NetInput in) throws IOException {
             this.blockCount = packet.atLeast(ProtocolVersion.v1_14) ? in.readShort() : 0;
+            this.fluidCount = packet.atLeast(ProtocolVersion.v26_1) ? in.readShort() : 0;
             this.blocks = new PalettedStorage(PaletteType.BLOCKS, packet, in);
             if (packet.atLeast(ProtocolVersion.v1_18)) {
                 this.biomes = new PalettedStorage(PaletteType.BIOMES, packet, in);
@@ -719,6 +724,12 @@ public class PacketChunkData {
         void write(Packet packet, NetOutput out) throws IOException {
             if (packet.atLeast(ProtocolVersion.v1_14)) {
                 out.writeShort(this.blockCount + this.blocks.countDelta);
+            }
+            if (packet.atLeast(ProtocolVersion.v1_14)) {
+                // FIXME we currently don't update this when we modify the block data
+                //  may need to add a delta value like for the blockCount above
+                //  though no clue how to determine if a given block id is a fluid (especially with mods)
+                out.writeShort(this.fluidCount);
             }
             this.blocks.write(packet, out);
             if (this.biomes != null) {
