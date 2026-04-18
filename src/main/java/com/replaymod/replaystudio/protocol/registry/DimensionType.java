@@ -110,7 +110,7 @@ public class DimensionType {
         if (registries == null) {
             return new DimensionType(name);
         }
-        Registries.Entry entry = registries.getEntry("minecraft:dimension_type", name);
+        Registries.Entry entry = registries.getEntry("dimension_type", name);
         if (entry == null) {
             return new DimensionType(name);
         }
@@ -118,7 +118,7 @@ public class DimensionType {
     }
 
     public static DimensionType fromRegistry(Registries registries, int id) {
-        Registries.Entry entry = registries.getEntry("minecraft:dimension_type", id);
+        Registries.Entry entry = registries.getEntry("dimension_type", id);
         if (entry == null) {
             return new DimensionType(new CompoundTag(), "", id);
         }
