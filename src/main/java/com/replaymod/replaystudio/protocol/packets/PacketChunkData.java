@@ -725,7 +725,7 @@ public class PacketChunkData {
             if (packet.atLeast(ProtocolVersion.v1_14)) {
                 out.writeShort(this.blockCount + this.blocks.countDelta);
             }
-            if (packet.atLeast(ProtocolVersion.v1_14)) {
+            if (packet.atLeast(ProtocolVersion.v26_1)) {
                 // FIXME we currently don't update this when we modify the block data
                 //  may need to add a delta value like for the blockCount above
                 //  though no clue how to determine if a given block id is a fluid (especially with mods)
