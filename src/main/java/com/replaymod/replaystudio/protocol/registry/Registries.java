@@ -54,12 +54,15 @@ public class Registries {
     public Entry getEntry(String registryName, String entryName) {
         if (registriesTag != null) {
             CompoundTag registry = registriesTag.get(registryName);
+            if (registry == null) {
+                registry = registriesTag.get("minecraft:" + registryName);
+            }
             if (registry == null) return null;
             ListTag entries = registry.get("value");
             if (entries == null) return null;
             for (Tag entry : entries) {
                 StringTag name = ((CompoundTag) entry).get("name");
-                if (name != null && name.getValue().equals(entryName)) {
+                if (name != null && (name.getValue().equals(entryName) || name.getValue().equals("minecraft:" + entryName))) {
                     NumberTag id = ((CompoundTag) entry).get("id");
                     Tag value = ((CompoundTag) entry).get("element");
                     return new Entry(id == null ? 0 : id.asInt(), name.getValue(), value);
@@ -85,6 +88,9 @@ public class Registries {
     public Entry getEntry(String registryName, int entryId) {
         if (registriesTag != null) {
             CompoundTag registry = registriesTag.get(registryName);
+            if (registry == null) {
+                registry = registriesTag.get("minecraft:" + registryName);
+            }
             if (registry == null) return null;
             ListTag entries = registry.get("value");
             if (entries == null) return null;
