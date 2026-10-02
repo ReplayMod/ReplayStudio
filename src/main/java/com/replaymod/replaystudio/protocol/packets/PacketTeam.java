@@ -79,13 +79,23 @@ public class PacketTeam {
 
     private static void skipTeamInfo(Packet packet, Packet.Reader in) throws IOException {
         in.readText(); // display name
+        if (packet.atLeast(ProtocolVersion.v26_2)) {
+            // 26.2 moved both text decorations ahead of the visibility and color fields.
+            in.readText(); // prefix
+            in.readText(); // suffix
+            in.readVarInt(); // name tag visibility
+            in.readVarInt(); // collision rule
+            if (in.readBoolean()) {
+                in.readVarInt(); // color
+            }
+            in.readByte(); // flags
+            return;
+        }
         if (!packet.atLeast(ProtocolVersion.v1_13)) {
             in.readString(); // prefix
             in.readString(); // suffix
         }
-        if (packet.olderThan(ProtocolVersion.v26_2)) {
-            in.readByte(); // flags
-        }
+        in.readByte(); // flags
         if (packet.atLeast(ProtocolVersion.v1_8)) {
             if (packet.atLeast(ProtocolVersion.v1_21_5)) {
                 in.readVarInt(); // name tag visibility
@@ -97,17 +107,12 @@ public class PacketTeam {
                 }
             }
             if (packet.atLeast(ProtocolVersion.v1_13)) {
-                if (packet.olderThan(ProtocolVersion.v26_2) || in.readBoolean()) {
-                    in.readVarInt(); // color
-                }
+                in.readVarInt(); // color
                 in.readText(); // prefix
                 in.readText(); // suffix
             } else {
                 in.readByte(); // color
             }
-        }
-        if (packet.atLeast(ProtocolVersion.v26_2)) {
-            in.readByte(); // flags
         }
     }
 
