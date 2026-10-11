@@ -79,6 +79,10 @@ public class PacketTeam {
 
     private static void skipTeamInfo(Packet packet, Packet.Reader in) throws IOException {
         in.readText(); // display name
+        if (packet.atLeast(ProtocolVersion.v26_2)) {
+            in.readText(); // prefix
+            in.readText(); // suffix
+        }
         if (!packet.atLeast(ProtocolVersion.v1_13)) {
             in.readString(); // prefix
             in.readString(); // suffix
@@ -100,8 +104,10 @@ public class PacketTeam {
                 if (packet.olderThan(ProtocolVersion.v26_2) || in.readBoolean()) {
                     in.readVarInt(); // color
                 }
-                in.readText(); // prefix
-                in.readText(); // suffix
+                if (packet.olderThan(ProtocolVersion.v26_2)) {
+                    in.readText(); // prefix
+                    in.readText(); // suffix
+                }
             } else {
                 in.readByte(); // color
             }
