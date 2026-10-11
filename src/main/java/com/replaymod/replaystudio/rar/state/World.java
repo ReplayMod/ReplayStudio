@@ -19,6 +19,7 @@
 
 package com.replaymod.replaystudio.rar.state;
 
+import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.github.steveice10.packetlib.io.NetInput;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
@@ -38,6 +39,7 @@ import com.replaymod.replaystudio.rar.containers.TransientThings;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.OptionalInt;
 
 import static java.util.Objects.requireNonNull;
 
@@ -181,7 +183,7 @@ public class World implements RandomAccessState {
                     registry.atLeast(ProtocolVersion.v1_16) ? Packet.Reader.readList(registry, in, in::readString) : null,
                     registry.atLeast(ProtocolVersion.v1_16) ? Registries.readInternal(registry, in) : new Registries(),
                     in.readString(),
-                    new DimensionType(requireNonNull(Packet.Reader.readNBT(registry, in)), in.readString(), in.readVarInt()),
+                    new DimensionType(requireNonNull((CompoundTag) Packet.Reader.readNBT(registry, in)), in.readString(), in.readVarInt()),
                     in.readLong(),
                     in.readByte(),
                     in.readBoolean(),
@@ -216,7 +218,7 @@ public class World implements RandomAccessState {
             PacketJoinGame joinGame = new PacketJoinGame();
             joinGame.entityId = -1789435; // arbitrary negative value
             joinGame.gameMode = 3; // Spectator
-            joinGame.prevGameMode = 3; // Spectator
+            joinGame.prevGameMode = OptionalInt.of(3); // Spectator
             joinGame.dimensions = dimensions;
             joinGame.registries = registries;
             joinGame.dimensionType = dimensionType;
@@ -231,7 +233,7 @@ public class World implements RandomAccessState {
         public PacketRespawn toRespawnPacket() {
             PacketRespawn respawn = new PacketRespawn();
             respawn.gameMode = 3; // Spectator
-            respawn.prevGameMode = 3; // Spectator
+            respawn.prevGameMode = OptionalInt.of(3); // Spectator
             respawn.dimensionType = dimensionType;
             respawn.dimension = dimension;
             respawn.seed = seed;

@@ -18,6 +18,7 @@
  */
 package com.replaymod.replaystudio.protocol.packets;
 
+import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.protocol.PacketType;
@@ -27,10 +28,11 @@ import com.replaymod.replaystudio.protocol.registry.Registries;
 import com.replaymod.replaystudio.util.IGlobalPosition;
 
 import java.io.IOException;
+import java.util.OptionalInt;
 
 public class PacketRespawn {
-    public byte gameMode;
-    public byte prevGameMode; // 1.16+
+    public int gameMode;
+    public OptionalInt prevGameMode; // 1.16+
     public DimensionType dimensionType;
     public String dimension;
     public long seed; // 1.15+
@@ -58,7 +60,7 @@ public class PacketRespawn {
             } else if (packet.atLeast(ProtocolVersion.v1_19)) {
                 this.dimensionType = DimensionType.fromRegistry(registries, in.readString());
             } else if (packet.atLeast(ProtocolVersion.v1_16_2)) {
-                this.dimensionType = new DimensionType(in.readNBT());
+                this.dimensionType = new DimensionType((CompoundTag) in.readNBT());
             } else {
                 this.dimensionType = new DimensionType(in.readString());
             }
@@ -72,9 +74,13 @@ public class PacketRespawn {
         if (packet.olderThan(ProtocolVersion.v1_14)) {
             this.difficulty = in.readByte();
         }
-        this.gameMode = in.readByte();
+        if (packet.atLeast(ProtocolVersion.v26_3)) {
+            this.gameMode = in.readVarInt();
+        } else {
+            this.gameMode = in.readByte();
+        }
         if (packet.atLeast(ProtocolVersion.v1_16)) {
-            this.prevGameMode = in.readByte();
+            this.prevGameMode = in.readOptionalVarInt();
         }
         if (packet.atLeast(ProtocolVersion.v1_16)) {
             this.debugWorld = in.readBoolean();
@@ -138,9 +144,13 @@ public class PacketRespawn {
         if (packet.olderThan(ProtocolVersion.v1_14)) {
             out.writeByte(this.difficulty);
         }
-        out.writeByte(this.gameMode);
+        if (packet.atLeast(ProtocolVersion.v26_3)) {
+            out.writeVarInt(this.gameMode);
+        } else {
+            out.writeByte(this.gameMode);
+        }
         if (packet.atLeast(ProtocolVersion.v1_16)) {
-            out.writeByte(this.prevGameMode);
+            out.writeOptionalVarInt(this.prevGameMode);
             out.writeBoolean(this.debugWorld);
             out.writeBoolean(this.flatWorld);
             if (packet.atLeast(ProtocolVersion.v1_20_2)) {

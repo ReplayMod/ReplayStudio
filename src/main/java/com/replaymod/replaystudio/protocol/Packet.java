@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.OptionalInt;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -193,32 +194,33 @@ public class Packet {
             return new IGlobalPosition(dimension, readPosition(registry, in));
         }
 
-        public CompoundTag readNBT() throws IOException {
+        public Tag readNBT() throws IOException {
             return readNBT(packet.registry, this);
         }
 
-        public static CompoundTag readNBT(PacketTypeRegistry registry, NetInput in) throws IOException {
+        public static Tag readNBT(PacketTypeRegistry registry, NetInput in) throws IOException {
             if (registry.atLeast(ProtocolVersion.v1_8)) {
                 byte type = in.readByte();
                 if (type == 0) {
                     return null;
-                } else {
-                    return NBTIO.readTag(new InputStream() {
-                        private int read;
-
-                        @Override
-                        public int read() throws IOException {
-                            int index = read++;
-                            if (index == 0) {
-                                return type & 0xff;
-                            }  else if ((index == 1 || index == 2) && registry.atLeast(ProtocolVersion.v1_20_2)) {
-                                return 0; // length of empty name
-                            } else {
-                                return in.readUnsignedByte();
-                            }
-                        }
-                    });
                 }
+                DataInputStream dataIn = new DataInputStream(new InputStream() {
+                    @Override
+                    public int read() throws IOException {
+                        return in.readUnsignedByte();
+                    }
+                });
+                if (registry.olderThan(ProtocolVersion.v1_20_2)) {
+                    dataIn.skipBytes(in.readUnsignedShort()); // empty name
+                }
+                Tag tag;
+                try {
+                    tag = TagRegistry.createInstance(type);
+                } catch (TagCreateException e) {
+                    throw new IOException(e);
+                }
+                tag.read(dataIn);
+                return tag;
             } else {
                 short length = in.readShort();
                 if (length < 0) {
@@ -234,7 +236,9 @@ public class Packet {
         }
 
         public static BitSet readBitSet(PacketTypeRegistry registry, NetInput in) throws IOException {
-            if (registry.atLeast(ProtocolVersion.v1_17)) {
+            if (registry.atLeast(ProtocolVersion.v26_3)) {
+                return BitSet.valueOf(in.readBytes(in.readVarInt()));
+            } else if (registry.atLeast(ProtocolVersion.v1_17)) {
                 return BitSet.valueOf(in.readLongs(in.readVarInt()));
             } else if (registry.atLeast(ProtocolVersion.v1_9)) {
                 int value = in.readVarInt();
@@ -281,6 +285,16 @@ public class Packet {
                 return new StringOrNbtText(tag);
             } else {
                 return new StringOrNbtText(readString());
+            }
+        }
+
+        public OptionalInt readOptionalVarInt() throws IOException {
+            if (packet.atLeast(ProtocolVersion.v26_3)) {
+                int value = readVarInt();
+                return value == 0 ? OptionalInt.empty() : OptionalInt.of(value - 1);
+            } else {
+                int value = readByte();
+                return value == -1 ? OptionalInt.empty() : OptionalInt.of(value);
             }
         }
     }
@@ -364,7 +378,11 @@ public class Packet {
         }
 
         public static void writeBitSet(PacketTypeRegistry registry, NetOutput out, BitSet bitSet) throws IOException {
-            if (registry.atLeast(ProtocolVersion.v1_17)) {
+            if (registry.atLeast(ProtocolVersion.v26_3)) {
+                byte[] bytes = bitSet.toByteArray();
+                out.writeVarInt(bytes.length);
+                out.writeBytes(bytes);
+            } else if (registry.atLeast(ProtocolVersion.v1_17)) {
                 long[] longs = bitSet.toLongArray();
                 out.writeVarInt(longs.length);
                 out.writeLongs(longs);
@@ -407,6 +425,14 @@ public class Packet {
                 }
             } else {
                 writeString(value.str);
+            }
+        }
+
+        public void writeOptionalVarInt(OptionalInt value) throws IOException {
+            if (packet.atLeast(ProtocolVersion.v26_3)) {
+                writeVarInt(value.isPresent() ? value.getAsInt() + 1 : 0);
+            } else {
+                writeByte(value.orElse(-1));
             }
         }
     }

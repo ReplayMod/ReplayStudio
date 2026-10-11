@@ -18,6 +18,7 @@
  */
 package com.replaymod.replaystudio.protocol.packets;
 
+import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.replaymod.replaystudio.protocol.Packet;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.protocol.PacketType;
@@ -29,12 +30,13 @@ import com.replaymod.replaystudio.util.IGlobalPosition;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalInt;
 
 public class PacketJoinGame {
     public int entityId;
     public boolean hardcore;
-    public byte gameMode;
-    public byte prevGameMode; // 1.16+
+    public int gameMode;
+    public OptionalInt prevGameMode; // 1.16+
     public List<String> dimensions; // 1.16+
     public Registries registries; // 1.16+, no longer transmitted as of 1.20.2 but still required for decoding
     public DimensionType dimensionType;
@@ -107,7 +109,7 @@ public class PacketJoinGame {
         }
         if (packet.atLeast(ProtocolVersion.v1_16)) {
             if (packet.olderThan(ProtocolVersion.v1_20_2)) {
-                this.prevGameMode = in.readByte();
+                this.prevGameMode = in.readOptionalVarInt();
             }
             int count = in.readVarInt();
             this.dimensions = new ArrayList<>(count);
@@ -115,11 +117,11 @@ public class PacketJoinGame {
                 this.dimensions.add(in.readString());
             }
             if (packet.olderThan(ProtocolVersion.v1_20_2)) {
-                this.registries = new Registries(in.readNBT());
+                this.registries = new Registries((CompoundTag) in.readNBT());
                 if (packet.atLeast(ProtocolVersion.v1_19)) {
                     this.dimensionType = DimensionType.fromRegistry(this.registries, in.readString());
                 } else if (packet.atLeast(ProtocolVersion.v1_16_2)) {
-                    this.dimensionType = new DimensionType(in.readNBT());
+                    this.dimensionType = new DimensionType((CompoundTag) in.readNBT());
                 } else {
                     this.dimensionType = new DimensionType(in.readString());
                 }
@@ -171,8 +173,12 @@ public class PacketJoinGame {
             }
             this.dimension = in.readString();
             this.seed = in.readLong();
-            this.gameMode = in.readByte();
-            this.prevGameMode = in.readByte();
+            if (packet.atLeast(ProtocolVersion.v26_3)) {
+                this.gameMode = in.readVarInt();
+            } else {
+                this.gameMode = in.readByte();
+            }
+            this.prevGameMode = in.readOptionalVarInt();
         }
         if (packet.atLeast(ProtocolVersion.v1_16)) {
             this.debugWorld = in.readBoolean();
@@ -217,7 +223,7 @@ public class PacketJoinGame {
         }
         if (packet.atLeast(ProtocolVersion.v1_16)) {
             if (packet.olderThan(ProtocolVersion.v1_20_2)) {
-                out.writeByte(this.prevGameMode);
+                out.writeOptionalVarInt(this.prevGameMode);
             }
             out.writeVarInt(this.dimensions.size());
             for (String dimension : this.dimensions) {
@@ -280,8 +286,12 @@ public class PacketJoinGame {
             }
             out.writeString(this.dimension);
             out.writeLong(this.seed);
-            out.writeByte(this.gameMode);
-            out.writeByte(this.prevGameMode);
+            if (packet.atLeast(ProtocolVersion.v26_3)) {
+                out.writeVarInt(this.gameMode);
+            } else {
+                out.writeByte(this.gameMode);
+            }
+            out.writeOptionalVarInt(this.prevGameMode);
         }
         if (packet.atLeast(ProtocolVersion.v1_16)) {
             out.writeBoolean(this.debugWorld);

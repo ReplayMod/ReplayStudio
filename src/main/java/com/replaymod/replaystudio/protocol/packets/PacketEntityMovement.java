@@ -40,8 +40,24 @@ public class PacketEntityMovement {
                 in.readInt(); // entity id
             }
             DPosition pos = null;
+            boolean onGround = true;
             if (hasPos) {
-                if (packet.atLeast(ProtocolVersion.v1_9)) {
+                int steps = 0;
+                if (packet.atLeast(ProtocolVersion.v26_3)) {
+                    int flags = in.readVarInt();
+                    onGround = (flags & 1) != 0;
+                    steps = flags >> 1;
+                }
+                if (steps > 0) {
+                    int dx = 0, dy = 0, dz = 0;
+                    for (int i = 0; i < steps; i++) {
+                        in.readVarInt(); // ticks
+                        dx += in.readShort();
+                        dy += in.readShort();
+                        dz += in.readShort();
+                    }
+                    pos = new DPosition(dx / 4096.0, dy / 4096.0, dz / 4096.0);
+                } else if (packet.atLeast(ProtocolVersion.v1_9)) {
                     pos = new DPosition(
                             in.readShort() / 4096.0,
                             in.readShort() / 4096.0,
@@ -54,6 +70,10 @@ public class PacketEntityMovement {
                             in.readByte() / 32.0
                     );
                 }
+            } else {
+                if (packet.atLeast(ProtocolVersion.v26_3)) {
+                    onGround = in.readBoolean();
+                }
             }
             Pair<Float, Float> yawPitch = null;
             if (hasRot) {
@@ -62,8 +82,7 @@ public class PacketEntityMovement {
                         in.readByte() / 256f * 360
                 );
             }
-            boolean onGround = true;
-            if (packet.atLeast(ProtocolVersion.v1_8) && (hasPos || hasRot)) {
+            if (packet.atLeast(ProtocolVersion.v1_8) && packet.olderThan(ProtocolVersion.v26_3) && (hasPos || hasRot)) {
                 onGround = in.readBoolean();
             }
             return Triple.of(pos, yawPitch, onGround);
@@ -95,6 +114,10 @@ public class PacketEntityMovement {
                 out.writeInt(entityId);
             }
             if (hasPos) {
+                if (packet.atLeast(ProtocolVersion.v26_3)) {
+                    int steps = 0; // Linear
+                    out.writeVarInt((steps << 1) | (onGround ? 1 : 0));
+                }
                 if (packet.atLeast(ProtocolVersion.v1_9)) {
                     out.writeShort((int) (deltaPos.getX() * 4096));
                     out.writeShort((int) (deltaPos.getY() * 4096));
@@ -104,12 +127,16 @@ public class PacketEntityMovement {
                     out.writeByte((int) (deltaPos.getY() * 32));
                     out.writeByte((int) (deltaPos.getZ() * 32));
                 }
+            } else {
+                if (packet.atLeast(ProtocolVersion.v26_3)) {
+                    out.writeBoolean(onGround);
+                }
             }
             if (hasRot) {
                 out.writeByte((int) (yawPitch.getKey() / 360 * 256));
                 out.writeByte((int) (yawPitch.getValue() / 360 * 256));
             }
-            if (packet.atLeast(ProtocolVersion.v1_8) && (hasPos || hasRot)) {
+            if (packet.atLeast(ProtocolVersion.v1_8) && packet.olderThan(ProtocolVersion.v26_3) && (hasPos || hasRot)) {
                 out.writeBoolean(onGround);
             }
         }

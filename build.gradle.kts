@@ -35,7 +35,7 @@ val viaVersion by configurations.creating {
 }
 
 dependencies {
-    viaVersion("com.github.replaymod.viaversion:viaversion-common:70a7d2eed")
+    viaVersion("com.github.replaymod.viaversion:viaversion-common:7c18ab52a")
 
     viaVersion("com.google.guava:guava:17.0")
     implementation("com.google.code.gson:gson:2.3.1")

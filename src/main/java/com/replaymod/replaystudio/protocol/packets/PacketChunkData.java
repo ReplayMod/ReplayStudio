@@ -19,6 +19,7 @@
 package com.replaymod.replaystudio.protocol.packets;
 
 import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
+import com.github.steveice10.opennbt.tag.builtin.Tag;
 import com.github.steveice10.packetlib.io.NetInput;
 import com.github.steveice10.packetlib.io.NetOutput;
 import com.github.steveice10.packetlib.io.stream.StreamNetInput;
@@ -636,7 +637,7 @@ public class PacketChunkData {
 
     public static class Heightmaps {
         public List<Heightmap> list; // 1.21.5+
-        public CompoundTag tag; // pre 1.21.5
+        public Tag tag; // pre 1.21.5
 
         public Heightmaps(Packet packet, Packet.Reader in) throws IOException {
             if (packet.atLeast(ProtocolVersion.v1_21_5)) {
@@ -1143,7 +1144,7 @@ public class PacketChunkData {
         public byte xz; // 1.18+
         public short y; // 1.18+
         public int type; // 1.18+
-        public CompoundTag tag;
+        public Tag tag;
 
         TileEntity(Packet packet, Packet.Reader in) throws IOException {
             if (packet.atLeast(ProtocolVersion.v1_18)) {

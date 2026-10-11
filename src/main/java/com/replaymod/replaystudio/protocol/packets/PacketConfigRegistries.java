@@ -19,6 +19,7 @@
 
 package com.replaymod.replaystudio.protocol.packets;
 
+import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.github.steveice10.opennbt.tag.builtin.Tag;
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion;
 import com.replaymod.replaystudio.protocol.Packet;
@@ -45,7 +46,7 @@ public class PacketConfigRegistries {
                 }
                 registries.registriesMap.computeIfAbsent(registryName, it -> new ArrayList<>()).addAll(registryEntries);
             } else {
-                registries.registriesTag = in.readNBT();
+                registries.registriesTag = (CompoundTag) in.readNBT();
             }
         }
     }

@@ -35,12 +35,35 @@ public class PacketEntityTeleport {
                 in.readInt(); // entity id
             }
             if (packet.atLeast(ProtocolVersion.v1_21_2)) {
-                double x = in.readDouble();
-                double y = in.readDouble();
-                double z = in.readDouble();
-                in.readDouble(); // unused
-                in.readDouble(); // unused
-                in.readDouble(); // unused
+                double x, y, z;
+                if (packet.atLeast(ProtocolVersion.v26_3)) {
+                    int pathType = in.readVarInt();
+                    if (pathType < 0 || pathType > 1) pathType = 0;
+                    switch (pathType) {
+                        case 1: // Stepped
+                            x = 0; y = 0; z = 0;
+                            for (int len = in.readVarInt(), i = 0; i < len; i++) {
+                                x = in.readDouble();
+                                y = in.readDouble();
+                                z = in.readDouble();
+                                in.readVarInt(); // tickOffset
+                            }
+                            break;
+                        case 0: // Linear
+                        default:
+                            x = in.readDouble();
+                            y = in.readDouble();
+                            z = in.readDouble();
+                            break;
+                    }
+                } else {
+                    x = in.readDouble();
+                    y = in.readDouble();
+                    z = in.readDouble();
+                    in.readDouble(); // unused
+                    in.readDouble(); // unused
+                    in.readDouble(); // unused
+                }
                 float yaw = in.readFloat();
                 float pitch = in.readFloat();
                 return new Location(x, y, z, yaw, pitch);
@@ -59,12 +82,17 @@ public class PacketEntityTeleport {
                 out.writeInt(entityId);
             }
             if (packet.atLeast(ProtocolVersion.v1_21_2)) {
+                if (packet.atLeast(ProtocolVersion.v26_3)) {
+                    out.writeVarInt(0); // pathType: Linear
+                }
                 out.writeDouble(location.getX());
                 out.writeDouble(location.getY());
                 out.writeDouble(location.getZ());
-                out.writeDouble(0); // unused
-                out.writeDouble(0); // unused
-                out.writeDouble(0); // unused
+                if (packet.olderThan(ProtocolVersion.v26_3)) {
+                    out.writeDouble(0); // unused
+                    out.writeDouble(0); // unused
+                    out.writeDouble(0); // unused
+                }
                 out.writeFloat(location.getYaw());
                 out.writeFloat(location.getPitch());
             } else {

@@ -169,7 +169,7 @@ public class Registries {
             registries.enabledPacks = Packet.Reader.readList(registry, in, () -> VersionedIdentifier.read(in));
             return registries;
         } else {
-            return new Registries(Packet.Reader.readNBT(registry, in));
+            return new Registries((CompoundTag) Packet.Reader.readNBT(registry, in));
         }
     }
 

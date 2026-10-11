@@ -153,6 +153,11 @@ public class CustomViaConfig implements ViaVersionConfig {
     }
 
     @Override
+    public boolean isMultiReddustColorFix() {
+        return false;
+    }
+
+    @Override
     public boolean is1_13TeamColourFix() {
         return true;
     }
